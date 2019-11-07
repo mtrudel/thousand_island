@@ -1,0 +1,2 @@
+defmodule ThousandIsland do
+end
