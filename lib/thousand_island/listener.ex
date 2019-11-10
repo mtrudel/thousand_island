@@ -12,7 +12,7 @@ defmodule ThousandIsland.Listener do
   end
 
   def init(opts) do
-    transport_module = Keyword.get(opts, :transport_module, ThousandIsland.Transports.TCP)
+    transport_module = ThousandIsland.Transport.transport_module(opts)
     {:ok, listener_state} = transport_module.listen(opts)
     {:ok, %{listener_state: listener_state}}
   end

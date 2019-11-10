@@ -15,18 +15,22 @@ Each `Acceptor` process (there are 10 by default) manages two processes: an
 and a `ConnectionSupervisor` which supervises the processes backing individual
 client connections. Every time a client connects to the server's port, one of 
 the `AcceptorWorkers` receives the connection in the form of a socket. It then 
-creates a new `Connection` process to manage this connection, and waits for
-another connection. It is worth noting that `AcceptorWorker` processes are 
-long-lived, and normally live for the entire period that the `Server` is running.
+creates a new `ConnectionWorker` process to manage this connection, and immediately 
+waits for another connection. It is worth noting that `AcceptorWorker` processes 
+are long-lived, and normally live for the entire period that the `Server` is 
+running.
 
-A `Connection` process manages the entire lifecycle of a client connection (other 
+A `ConnectionWorker` process manages the entire lifecycle of a client connection (other 
 than its initial acceptance by an `Acceptor`), and only lives as long as the 
-client is connected. `Connection` processes interface with a `Handler` instance
-in order to do actual application-level work.
+client is connected. `ConnectionWorker` processes encapsulate the connection state
+in a `Connection` struct, passing it to a configured `Handler` module which 
+defines the actual implementation of a server at an application level.
 
 This strongly hierarchical approach reduces blocking on connection acceptance, and
-also reduces contention for `ConnectionSupervisor` access when creating new `Connection`
-processes. 
+also reduces contention for `ConnectionSupervisor` access when creating new 
+`ConnectionWorker` processes. It allows each `Acceptor` group to function nearly 
+autonomously from one another, with attendant benefits for scalability and crash 
+resiliency.
 
 Graphically, this shakes out like so:
 
@@ -37,19 +41,25 @@ Graphically, this shakes out like so:
                     / ....n.... \
                                 Acceptor (sup, rest_for_one)
                                 /      \
-             ConnectionSupervisor     AcceptorWorker (task)
+    (dyn_sup) ConnectionSupervisor     AcceptorWorker (task)
                 / ....n.... \
-                            Connection
-                                |
-                             Handler
+                      ConnectionWorker (task)
 ```
+
+## Handlers
+
+The `Handler` behaviour defines the interface that Thousand Island uses to pass
+connections up to the application level, and forms the primary interface that 
+most applications will have with Thousand Island. Thousand Island comes with
+a few simple protocol handlers to serve as examples; these can be found in the [handlers](https://github.com/mtrudel/thousand_island) 
+folder of the project.
 
 ## Transports
 
-The `Transport` behaviour defines the functions required of a
-transport protocol, and is used by the `Listener`, `AcceptorWorker` and 
-`Connection` modules in order to interact with underlaying sockets. Currently
-`Transports.TCP` is the only defined transport.
+The `Transport` behaviour defines the functions required of a transport protocol, 
+and is used by the `Listener`, `AcceptorWorker` and `Connection` modules in 
+order to interact with underlaying sockets. Currently `Transports.TCP` is the 
+only defined transport.
 
 ### Draining
 

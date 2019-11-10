@@ -1,28 +1,20 @@
 defmodule ThousandIsland.Connection do
-  use Task
+  defstruct socket: nil, transport_module: nil
 
-  require Logger
-
-  def start_link(args) do
-    Task.start_link(__MODULE__, :run, [args])
+  def new(socket, opts) do
+    transport_module = ThousandIsland.Transport.transport_module(opts)
+    %__MODULE__{socket: socket, transport_module: transport_module}
   end
 
-  def run({socket, opts}) do
-    transport_module = Keyword.get(opts, :transport_module, ThousandIsland.Transports.TCP)
+  def recv(%__MODULE__{socket: socket, transport_module: transport_module}, length \\ 0) do
+    transport_module.recv(socket, length)
+  end
 
-    try do
-      Logger.debug(fn ->
-        {:ok, {remote_ip_tuple, remote_port}} = :inet.peername(socket)
-        remote_ip = :inet.ntoa(remote_ip_tuple)
-        "Connection #{inspect(self())} starting up (remote #{remote_ip}:#{remote_port})"
-      end)
+  def send(%__MODULE__{socket: socket, transport_module: transport_module}, data) do
+    transport_module.send(socket, data)
+  end
 
-      {:ok, _} = transport_module.recv(socket, 0)
-      transport_module.send(socket, "HTTP/1.1 200\r\n\r\nHello")
-
-      Logger.debug("Connection #{inspect(self())} shutting down")
-    after
-      transport_module.close(socket)
-    end
+  def close(%__MODULE__{socket: socket, transport_module: transport_module}) do
+    transport_module.close(socket)
   end
 end

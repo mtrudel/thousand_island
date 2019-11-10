@@ -6,7 +6,7 @@ defmodule ThousandIsland.ConnectionSupervisor do
   end
 
   def start_connection(pid, args) do
-    DynamicSupervisor.start_child(pid, {ThousandIsland.Connection, args})
+    DynamicSupervisor.start_child(pid, {ThousandIsland.ConnectionWorker, args})
   end
 
   def init(_arg) do
