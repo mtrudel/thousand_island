@@ -1,5 +1,6 @@
 defmodule ThousandIsland.Connection do
   defstruct socket: nil, transport_module: nil
+  @type t :: %__MODULE__{socket: ThousandIsland.Transport.socket(), transport_module: module()}
 
   def new(socket, opts) do
     transport_module = ThousandIsland.Transport.transport_module(opts)

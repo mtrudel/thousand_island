@@ -1,9 +1,11 @@
 defmodule ThousandIsland.Transports.TCP do
-  @behaviour ThousandIsland.Transport
-
   require Logger
 
-  @impl ThousandIsland.Transport
+  alias ThousandIsland.Transport
+
+  @behaviour Transport
+
+  @impl Transport
   def listen(opts) do
     port = Keyword.get(opts, :port, 4000)
     result = :gen_tcp.listen(port, mode: :binary, active: false, reuseaddr: true)
@@ -11,15 +13,15 @@ defmodule ThousandIsland.Transports.TCP do
     result
   end
 
-  @impl ThousandIsland.Transport
+  @impl Transport
   defdelegate accept(listener_socket), to: :gen_tcp
 
-  @impl ThousandIsland.Transport
+  @impl Transport
   defdelegate recv(socket, length), to: :gen_tcp
 
-  @impl ThousandIsland.Transport
+  @impl Transport
   defdelegate send(socket, data), to: :gen_tcp
 
-  @impl ThousandIsland.Transport
+  @impl Transport
   defdelegate close(socket), to: :gen_tcp
 end

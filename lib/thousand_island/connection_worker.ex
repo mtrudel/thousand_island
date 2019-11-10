@@ -9,14 +9,13 @@ defmodule ThousandIsland.ConnectionWorker do
     Task.start_link(__MODULE__, :run, [args])
   end
 
-  def run({socket, opts}) do
+  def run({socket, handler_module, opts}) do
     conn = Connection.new(socket, opts)
 
     try do
       Logger.debug("Connection #{inspect(self())} starting up")
 
-      Connection.recv(conn)
-      Connection.send(conn, "HTTP/1.1 200\r\n\r\nHello")
+      handler_module.handle_connection(conn)
 
       Logger.debug("Connection #{inspect(self())} shutting down")
     after

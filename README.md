@@ -49,7 +49,7 @@ Graphically, this shakes out like so:
 ## Handlers
 
 The `Handler` behaviour defines the interface that Thousand Island uses to pass
-connections up to the application level, and forms the primary interface that 
+`Connection`s up to the application level; together they form the primary interface that 
 most applications will have with Thousand Island. Thousand Island comes with
 a few simple protocol handlers to serve as examples; these can be found in the [handlers](https://github.com/mtrudel/thousand_island) 
 folder of the project.
