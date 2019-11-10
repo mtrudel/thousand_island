@@ -10,7 +10,7 @@ defmodule ThousandIsland.Handlers.Echo do
   @behaviour Handler
 
   @impl Handler
-  def handle_connection(conn) do
+  def handle_connection(conn, _opts) do
     {:ok, req} = Connection.recv(conn)
     Connection.send(conn, req)
   end

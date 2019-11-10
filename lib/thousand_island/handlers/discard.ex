@@ -10,7 +10,7 @@ defmodule ThousandIsland.Handlers.Discard do
   @behaviour Handler
 
   @impl Handler
-  def handle_connection(conn) do
+  def handle_connection(conn, _opts) do
     consume(conn)
   end
 

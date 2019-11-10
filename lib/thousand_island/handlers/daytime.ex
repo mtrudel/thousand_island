@@ -10,7 +10,7 @@ defmodule ThousandIsland.Handlers.Daytime do
   @behaviour Handler
 
   @impl Handler
-  def handle_connection(conn) do
+  def handle_connection(conn, _opts) do
     time = DateTime.utc_now() |> to_string()
     Connection.send(conn, time)
   end
