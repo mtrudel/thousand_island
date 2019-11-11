@@ -20,17 +20,15 @@ waits for another connection. It is worth noting that `AcceptorWorker` processes
 are long-lived, and normally live for the entire period that the `Server` is 
 running.
 
-A `ConnectionWorker` process manages the entire lifecycle of a client connection (other 
-than its initial acceptance by an `Acceptor`), and only lives as long as the 
-client is connected. `ConnectionWorker` processes encapsulate the connection state
-in a `Connection` struct, passing it to a configured `Handler` module which 
-defines the actual implementation of a server at an application level.
+A `ConnectionWorker` process is tied to the lifecycle of a client connection, and 
+only lives as long as the client is connected. `ConnectionWorker` processes 
+encapsulate the connection state in a `Connection` struct, passing it to a 
+configured `Handler` module which defines the application level logic of a server.
 
-This strongly hierarchical approach reduces blocking on connection acceptance, and
-also reduces contention for `ConnectionSupervisor` access when creating new 
-`ConnectionWorker` processes. It allows each `Acceptor` group to function nearly 
-autonomously from one another, with attendant benefits for scalability and crash 
-resiliency.
+This hierarchical approach reduces the time connections spend waiting to be accepted,
+and also reduces contention for `ConnectionSupervisor` access when creating new 
+`ConnectionWorker` processes. Each `Acceptor` group functions nearly autonomously, 
+improving scalability and crash resiliency.
 
 Graphically, this shakes out like so:
 
@@ -51,8 +49,8 @@ Graphically, this shakes out like so:
 The `Handler` behaviour defines the interface that Thousand Island uses to pass
 `Connection`s up to the application level; together they form the primary interface that 
 most applications will have with Thousand Island. Thousand Island comes with
-a few simple protocol handlers to serve as examples; these can be found in the [handlers](https://github.com/mtrudel/thousand_island) 
-folder of the project.
+a few simple protocol handlers to serve as examples; these can be found in the [handlers](https://github.com/mtrudel/thousand_island/tree/master/lib/thousand_island/handlers) 
+folder of this project.
 
 ## Transports
 
@@ -64,10 +62,6 @@ only defined transport.
 ### Draining
 
 TBD on a per-acceptor and per-server basis. 
-
-## What's with the name?
-
-`ThousandIsland` is an alternative to [ranch](https://github.com/ninenines/ranch).
 
 ## Installation
 
