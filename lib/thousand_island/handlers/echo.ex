@@ -5,13 +5,13 @@ defmodule ThousandIsland.Handlers.Echo do
   https://en.wikipedia.org/wiki/Echo_Protocol
   """
 
-  alias ThousandIsland.{Connection, Handler}
+  alias ThousandIsland.{Socket, Handler}
 
   @behaviour Handler
 
   @impl Handler
   def handle_connection(conn, _opts) do
-    {:ok, req} = Connection.recv(conn)
-    Connection.send(conn, req)
+    {:ok, req} = Socket.recv(conn)
+    Socket.send(conn, req)
   end
 end

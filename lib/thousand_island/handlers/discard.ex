@@ -5,7 +5,7 @@ defmodule ThousandIsland.Handlers.Discard do
   https://en.wikipedia.org/wiki/Discard_Protocol
   """
 
-  alias ThousandIsland.{Connection, Handler}
+  alias ThousandIsland.{Socket, Handler}
 
   @behaviour Handler
 
@@ -15,7 +15,7 @@ defmodule ThousandIsland.Handlers.Discard do
   end
 
   defp consume(conn) do
-    Connection.recv(conn)
+    Socket.recv(conn)
     consume(conn)
   end
 end

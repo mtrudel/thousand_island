@@ -5,13 +5,13 @@ defmodule ThousandIsland.Handlers.Daytime do
   https://en.wikipedia.org/wiki/Daytime_Protocol
   """
 
-  alias ThousandIsland.{Connection, Handler}
+  alias ThousandIsland.{Socket, Handler}
 
   @behaviour Handler
 
   @impl Handler
   def handle_connection(conn, _opts) do
     time = DateTime.utc_now() |> to_string()
-    Connection.send(conn, time)
+    Socket.send(conn, time)
   end
 end

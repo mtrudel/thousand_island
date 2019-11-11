@@ -21,8 +21,8 @@ are long-lived, and normally live for the entire period that the `Server` is
 running.
 
 A `ConnectionWorker` process is tied to the lifecycle of a client connection, and 
-only lives as long as the client is connected. `ConnectionWorker` processes 
-encapsulate the connection state in a `Connection` struct, passing it to a 
+only lives as long as the client is connected. `ConnectionWorker` processes
+encapsulate the connection state in a `Socket` struct, passing it to a 
 configured `Handler` module which defines the application level logic of a server.
 
 This hierarchical approach reduces the time connections spend waiting to be accepted,
@@ -47,7 +47,7 @@ Graphically, this shakes out like so:
 ## Handlers
 
 The `Handler` behaviour defines the interface that Thousand Island uses to pass
-`Connection`s up to the application level; together they form the primary interface that 
+`Socket`s up to the application level; together they form the primary interface that 
 most applications will have with Thousand Island. Thousand Island comes with
 a few simple protocol handlers to serve as examples; these can be found in the [handlers](https://github.com/mtrudel/thousand_island/tree/master/lib/thousand_island/handlers) 
 folder of this project.
@@ -55,9 +55,9 @@ folder of this project.
 ## Transports
 
 The `Transport` behaviour defines the functions required of a transport protocol, 
-and is used by the `Listener`, `AcceptorWorker` and `Connection` modules in 
+and is used by the `Listener`, `AcceptorWorker` and `Socket` modules in 
 order to interact with underlaying sockets. Currently `Transports.TCP` is the 
-only defined transport.
+only defined transport, but TLS and Unix Domain socket support will be coming soon.
 
 ### Draining
 

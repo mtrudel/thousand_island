@@ -1,5 +1,5 @@
 defmodule ThousandIsland.Handler do
-  @callback handle_connection(ThousandIsland.Connection.t(), keyword()) :: :ok
+  @callback handle_connection(ThousandIsland.Socket.t(), keyword()) :: :ok
 
   def handler_module(opts) do
     Keyword.fetch!(opts, :handler_module)
