@@ -24,4 +24,13 @@ defmodule ThousandIsland.Transports.TCP do
 
   @impl Transport
   defdelegate close(socket), to: :gen_tcp
+
+  @impl Transport
+  def endpoints(socket) do
+    {:ok, {local_ip_tuple, local_port}} = :inet.sockname(socket)
+    local_ip = :inet.ntoa(local_ip_tuple)
+    {:ok, {remote_ip_tuple, remote_port}} = :inet.peername(socket)
+    remote_ip = :inet.ntoa(remote_ip_tuple)
+    {{local_ip, local_port}, {remote_ip, remote_port}}
+  end
 end

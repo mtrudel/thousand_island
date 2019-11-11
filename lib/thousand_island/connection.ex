@@ -17,4 +17,8 @@ defmodule ThousandIsland.Connection do
   def close(%__MODULE__{socket: socket, transport_module: transport_module}) do
     transport_module.close(socket)
   end
+
+  def endpoints(%__MODULE__{socket: socket, transport_module: transport_module}) do
+    transport_module.endpoints(socket)
+  end
 end
