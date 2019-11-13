@@ -8,8 +8,24 @@ defmodule ThousandIsland.Transports.TCP do
   @impl Transport
   def listen(opts) do
     port = Keyword.get(opts, :port, 4000)
-    result = :gen_tcp.listen(port, mode: :binary, active: false, reuseaddr: true)
-    Logger.info("Listening on port #{port}")
+
+    default_options = [
+      backlog: 1024,
+      nodelay: true,
+      linger: {true, 30},
+      send_timeout: 30000,
+      send_timeout_close: true,
+      reuseaddr: true
+    ]
+
+    user_options = Keyword.get(opts, :listener_options, [])
+    hardcoded_options = [mode: :binary, active: false]
+
+    resolved_options =
+      default_options |> Keyword.merge(user_options) |> Keyword.merge(hardcoded_options)
+
+    result = :gen_tcp.listen(port, resolved_options)
+    Logger.info("Listening on port #{port} with options #{inspect(resolved_options)}")
     result
   end
 
