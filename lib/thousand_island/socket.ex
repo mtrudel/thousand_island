@@ -14,6 +14,10 @@ defmodule ThousandIsland.Socket do
     transport_module.send(socket, data)
   end
 
+  def shutdown(%__MODULE__{socket: socket, transport_module: transport_module}, way) do
+    transport_module.shutdown(socket, way)
+  end
+
   def close(%__MODULE__{socket: socket, transport_module: transport_module}) do
     transport_module.close(socket)
   end

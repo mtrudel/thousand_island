@@ -23,6 +23,9 @@ defmodule ThousandIsland.Transports.TCP do
   defdelegate send(socket, data), to: :gen_tcp
 
   @impl Transport
+  defdelegate shutdown(socket, way), to: :gen_tcp
+
+  @impl Transport
   defdelegate close(socket), to: :gen_tcp
 
   @impl Transport
