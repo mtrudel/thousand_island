@@ -5,17 +5,17 @@ defmodule ThousandIsland.Listener do
     GenServer.start_link(__MODULE__, opts)
   end
 
-  def listener_state(pid) do
-    GenServer.call(pid, :listener_state)
+  def listener_socket(pid) do
+    GenServer.call(pid, :listener_socket)
   end
 
   def init(opts) do
     transport_module = Keyword.get(opts, :transport_module, ThousandIsland.Transports.TCP)
-    {:ok, listener_state} = transport_module.listen(opts)
-    {:ok, %{listener_state: listener_state}}
+    {:ok, listener_socket} = transport_module.listen(opts)
+    {:ok, %{listener_socket: listener_socket}}
   end
 
-  def handle_call(:listener_state, _from, %{listener_state: listener_state} = state) do
-    {:reply, {:ok, listener_state}, state}
+  def handle_call(:listener_socket, _from, %{listener_socket: listener_socket} = state) do
+    {:reply, {:ok, listener_socket}, state}
   end
 end
