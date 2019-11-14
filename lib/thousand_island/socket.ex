@@ -6,8 +6,12 @@ defmodule ThousandIsland.Socket do
     %__MODULE__{socket: socket, transport_module: transport_module}
   end
 
-  def recv(%__MODULE__{socket: socket, transport_module: transport_module}, length \\ 0) do
-    transport_module.recv(socket, length)
+  def recv(
+        %__MODULE__{socket: socket, transport_module: transport_module},
+        length \\ 0,
+        timeout \\ :infinity
+      ) do
+    transport_module.recv(socket, length, timeout)
   end
 
   def send(%__MODULE__{socket: socket, transport_module: transport_module}, data) do
@@ -22,7 +26,11 @@ defmodule ThousandIsland.Socket do
     transport_module.close(socket)
   end
 
-  def endpoints(%__MODULE__{socket: socket, transport_module: transport_module}) do
-    transport_module.endpoints(socket)
+  def local_info(%__MODULE__{socket: socket, transport_module: transport_module}) do
+    transport_module.local_info(socket)
+  end
+
+  def remote_info(%__MODULE__{socket: socket, transport_module: transport_module}) do
+    transport_module.remote_info(socket)
   end
 end

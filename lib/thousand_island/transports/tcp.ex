@@ -29,7 +29,7 @@ defmodule ThousandIsland.Transports.TCP do
   defdelegate accept(listener_socket), to: :gen_tcp
 
   @impl Transport
-  defdelegate recv(socket, length), to: :gen_tcp
+  defdelegate recv(socket, length, timeout), to: :gen_tcp
 
   @impl Transport
   defdelegate send(socket, data), to: :gen_tcp
@@ -41,11 +41,16 @@ defmodule ThousandIsland.Transports.TCP do
   defdelegate close(socket), to: :gen_tcp
 
   @impl Transport
-  def endpoints(socket) do
-    {:ok, {local_ip_tuple, local_port}} = :inet.sockname(socket)
-    local_ip = :inet.ntoa(local_ip_tuple)
-    {:ok, {remote_ip_tuple, remote_port}} = :inet.peername(socket)
-    remote_ip = :inet.ntoa(remote_ip_tuple)
-    {{local_ip, local_port}, {remote_ip, remote_port}}
+  def local_info(socket) do
+    {:ok, {ip_tuple, port}} = :inet.sockname(socket)
+    ip = :inet.ntoa(ip_tuple)
+    %{address: ip, port: port, ssl_cert: nil}
+  end
+
+  @impl Transport
+  def remote_info(socket) do
+    {:ok, {ip_tuple, port}} = :inet.peername(socket)
+    ip = :inet.ntoa(ip_tuple)
+    %{address: ip, port: port, ssl_cert: nil}
   end
 end
