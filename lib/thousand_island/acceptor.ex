@@ -14,7 +14,6 @@ defmodule ThousandIsland.Acceptor do
     connection_sup_pid
   end
 
-  @impl true
   def init({server_pid, opts}) do
     children = [
       Supervisor.child_spec({ThousandIsland.ConnectionSupervisor, opts}, id: :connection_sup),

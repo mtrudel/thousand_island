@@ -1,6 +1,4 @@
 defmodule ThousandIsland.Transports.TCP do
-  require Logger
-
   alias ThousandIsland.Transport
 
   @behaviour Transport
@@ -24,9 +22,7 @@ defmodule ThousandIsland.Transports.TCP do
     resolved_options =
       default_options |> Keyword.merge(user_options) |> Keyword.merge(hardcoded_options)
 
-    result = :gen_tcp.listen(port, resolved_options)
-    Logger.info("Listening on port #{port} with options #{inspect(resolved_options)}")
-    result
+    :gen_tcp.listen(port, resolved_options)
   end
 
   @impl Transport

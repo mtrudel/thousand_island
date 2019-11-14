@@ -14,7 +14,6 @@ defmodule ThousandIsland.Server do
     listener_pid
   end
 
-  @impl true
   def init(opts) do
     children = [
       Supervisor.child_spec({ThousandIsland.Listener, opts}, id: :listener),

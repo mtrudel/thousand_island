@@ -1,8 +1,6 @@
 defmodule ThousandIsland.ConnectionWorker do
   use Task
 
-  require Logger
-
   alias ThousandIsland.Socket
 
   def start_link(args) do
@@ -13,11 +11,7 @@ defmodule ThousandIsland.ConnectionWorker do
     conn = Socket.new(socket, transport_module)
 
     try do
-      Logger.debug("Connection #{inspect(self())} starting up")
-
       handler_module.handle_connection(conn, handler_opts)
-
-      Logger.debug("Connection #{inspect(self())} shutting down")
     after
       Socket.close(conn)
     end

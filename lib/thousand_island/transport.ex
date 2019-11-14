@@ -11,8 +11,4 @@ defmodule ThousandIsland.Transport do
   @callback shutdown(socket(), way()) :: :ok
   @callback close(socket()) :: :ok
   @callback endpoints(socket()) :: {local :: endpoint(), remote :: endpoint()}
-
-  def transport_module(opts) do
-    Keyword.get(opts, :transport_module, ThousandIsland.Transports.TCP)
-  end
 end

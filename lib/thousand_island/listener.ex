@@ -1,8 +1,6 @@
 defmodule ThousandIsland.Listener do
   use GenServer
 
-  require Logger
-
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts)
   end
@@ -12,7 +10,7 @@ defmodule ThousandIsland.Listener do
   end
 
   def init(opts) do
-    transport_module = ThousandIsland.Transport.transport_module(opts)
+    transport_module = Keyword.get(opts, :transport_module, ThousandIsland.Transports.TCP)
     {:ok, listener_state} = transport_module.listen(opts)
     {:ok, %{listener_state: listener_state}}
   end
