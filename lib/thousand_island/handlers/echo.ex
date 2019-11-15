@@ -10,8 +10,8 @@ defmodule ThousandIsland.Handlers.Echo do
   @behaviour Handler
 
   @impl Handler
-  def handle_connection(conn, _opts) do
-    {:ok, req} = Socket.recv(conn)
-    Socket.send(conn, req)
+  def handle_connection(socket, _opts) do
+    {:ok, req} = Socket.recv(socket)
+    Socket.send(socket, req)
   end
 end

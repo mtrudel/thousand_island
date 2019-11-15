@@ -10,12 +10,11 @@ defmodule ThousandIsland.Handlers.Discard do
   @behaviour Handler
 
   @impl Handler
-  def handle_connection(conn, _opts) do
-    consume(conn)
+  def handle_connection(socket, _opts) do
+    consume(socket)
   end
 
-  defp consume(conn) do
-    Socket.recv(conn)
-    consume(conn)
+  defp consume(socket) do
+    if match?({:ok, _data}, Socket.recv(socket)), do: consume(socket)
   end
 end
