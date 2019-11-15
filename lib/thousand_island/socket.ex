@@ -30,7 +30,7 @@ defmodule ThousandIsland.Socket do
     transport_module.local_info(socket)
   end
 
-  def remote_info(%__MODULE__{socket: socket, transport_module: transport_module}) do
-    transport_module.remote_info(socket)
+  def peer_info(%__MODULE__{socket: socket, transport_module: transport_module}) do
+    transport_module.peer_info(socket)
   end
 end

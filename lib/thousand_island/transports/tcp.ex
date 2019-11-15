@@ -48,7 +48,7 @@ defmodule ThousandIsland.Transports.TCP do
   end
 
   @impl Transport
-  def remote_info(socket) do
+  def peer_info(socket) do
     {:ok, {ip_tuple, port}} = :inet.peername(socket)
     ip = :inet.ntoa(ip_tuple)
     %{address: ip, port: port, ssl_cert: nil}

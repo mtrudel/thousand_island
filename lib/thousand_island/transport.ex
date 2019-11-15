@@ -12,5 +12,5 @@ defmodule ThousandIsland.Transport do
   @callback shutdown(socket(), way()) :: :ok
   @callback close(socket() | listener_socket()) :: :ok
   @callback local_info(socket()) :: socket_info()
-  @callback remote_info(socket()) :: socket_info()
+  @callback peer_info(socket()) :: socket_info()
 end
