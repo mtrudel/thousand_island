@@ -10,7 +10,7 @@ defmodule ThousandIsland.AcceptorWorker do
     {:ok, listener_socket} = ThousandIsland.Listener.listener_socket(listener_pid)
     transport_module = Keyword.get(opts, :transport_module, ThousandIsland.Transports.TCP)
     handler_module = Keyword.get(opts, :handler_module)
-    handler_opts = Keyword.get(opts, :handler_opts, [])
+    handler_opts = Keyword.get(opts, :handler_options, [])
     connection_sup_pid = ThousandIsland.Acceptor.connection_sup_pid(parent_pid)
 
     accept(listener_socket, transport_module, handler_module, handler_opts, connection_sup_pid)
