@@ -1,6 +1,8 @@
 defmodule ThousandIsland.ConnectionWorker do
   use Task
 
+  require Logger
+
   alias ThousandIsland.Socket
 
   def start_link(args) do
@@ -12,6 +14,9 @@ defmodule ThousandIsland.ConnectionWorker do
 
     try do
       handler_module.handle_connection(socket, handler_opts)
+    rescue
+      exception ->
+        Logger.error(Exception.format(:error, exception, __STACKTRACE__))
     after
       Socket.close(socket)
     end
