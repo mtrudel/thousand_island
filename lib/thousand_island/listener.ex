@@ -11,6 +11,9 @@ defmodule ThousandIsland.Listener do
 
   def init(opts) do
     transport_module = Keyword.get(opts, :transport_module, ThousandIsland.Transports.TCP)
+
+    :telemetry.execute([:listener, :start], %{}, %{transport_module: transport_module})
+
     {:ok, listener_socket} = transport_module.listen(opts)
     {:ok, %{listener_socket: listener_socket}}
   end

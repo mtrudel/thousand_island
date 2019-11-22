@@ -19,8 +19,9 @@ defmodule ThousandIsland.Transports.TCP do
     user_options = Keyword.get(opts, :transport_options, [])
     hardcoded_options = [mode: :binary, active: false]
 
-    resolved_options =
-      default_options |> Keyword.merge(user_options) |> Keyword.merge(hardcoded_options)
+    resolved_options = default_options |> Keyword.merge(user_options) |> Keyword.merge(hardcoded_options)
+
+    :telemetry.execute([:transport, :listen, :start], %{port: port, options: resolved_options, transport: :tcp}, %{})
 
     :gen_tcp.listen(port, resolved_options)
   end
