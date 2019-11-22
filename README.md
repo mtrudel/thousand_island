@@ -54,10 +54,23 @@ folder of this project.
 
 ## Transports
 
-The `Transport` behaviour defines the functions required of a transport protocol, 
-and is used by the `Listener`, `AcceptorWorker` and `Socket` modules in 
-order to interact with underlaying sockets. Currently `Transports.TCP` is the 
-only defined transport, but TLS and Unix Domain socket support will be coming soon.
+The `Transport` behaviour defines the functions required of a transport protocol, and is used by the `Listener`,
+`AcceptorWorker` and `Socket` modules in order to interact with underlaying sockets. Currently
+`ThousandIsland.Transports.TCP` and `ThousandIsland.Transports.SSL` are defined.
+
+### Using SSL
+
+To use `ThousandIsland.Transports.SSL`, you'll need to set the key and certificate to use 
+via `transport_options`, like so:
+
+```
+ThousandIsland.Server.start_link(
+  transport_module: ThousandIsland.Transports.SSL, 
+  transport_options: [certfile: "certificate.pem", keyfile: "key.pem"], 
+  handler_module: MyHandler,
+  handler_options, [...]
+)
+```
 
 ### Draining
 
