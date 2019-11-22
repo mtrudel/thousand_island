@@ -16,7 +16,7 @@ defmodule ThousandIsland.Transports.TCP do
       reuseaddr: true
     ]
 
-    user_options = Keyword.get(opts, :listener_options, [])
+    user_options = Keyword.get(opts, :transport_options, [])
     hardcoded_options = [mode: :binary, active: false]
 
     resolved_options =
