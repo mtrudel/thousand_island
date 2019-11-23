@@ -8,35 +8,29 @@ defmodule ThousandIsland.ConnectionWorker do
   end
 
   def run({transport_socket, transport_module, handler_module, handler_opts}) do
-    connection_id = UUID.uuid4()
-
-    :telemetry.execute([:connection, :handler, :start], %{}, %{
-      connection_id: connection_id,
+    connection_info = %{
+      connection_id: UUID.uuid4(),
+      transport_module: transport_module,
       handler_module: handler_module,
       handler_opts: handler_opts
-    })
+    }
 
-    socket = Socket.new(transport_socket, transport_module, connection_id)
     start = System.monotonic_time()
+    telemetry(:start, %{}, connection_info)
+    socket = Socket.new(transport_socket, connection_info)
 
     try do
       handler_module.handle_connection(socket, handler_opts)
       duration = System.monotonic_time() - start
-
-      :telemetry.execute([:connection, :handler, :complete], %{duration: duration}, %{
-        connection_id: connection_id,
-        handler_module: handler_module,
-        handler_opts: handler_opts
-      })
+      telemetry(:complete, %{duration: duration}, connection_info)
     rescue
-      exception ->
-        :telemetry.execute([:connection, :handler, :exception], %{exception: exception, stacktrace: __STACKTRACE__}, %{
-          connection_id: connection_id,
-          handler_module: handler_module,
-          handler_opts: handler_opts
-        })
+      e -> telemetry(:exception, %{exception: e, stacktrace: __STACKTRACE__}, connection_info)
     after
       Socket.close(socket)
     end
+  end
+
+  defp telemetry(subevent, measurement, connection_info) do
+    :telemetry.execute([:connection, :handler] ++ [subevent], measurement, connection_info)
   end
 end

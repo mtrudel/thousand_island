@@ -2,7 +2,12 @@ defmodule ThousandIsland.Logger do
   require Logger
 
   def attach_logger(:error) do
-    :telemetry.attach("#{__MODULE__}.error", [:connection, :handler, :exception], &log_error/4, nil)
+    :telemetry.attach(
+      "#{__MODULE__}.error",
+      [:connection, :handler, :exception],
+      &log_error/4,
+      nil
+    )
   end
 
   def attach_logger(:info) do
@@ -60,7 +65,9 @@ defmodule ThousandIsland.Logger do
     str = Exception.format(:error, measurements.exception, measurements.stacktrace)
 
     Logger.error(
-      "Connection #{metadata.connection_id} handler #{metadata.handler_module} crashed with exception: #{str}"
+      "Connection #{metadata.connection_id} handler #{metadata.handler_module} crashed with exception: #{
+        str
+      }"
     )
   end
 
@@ -69,10 +76,14 @@ defmodule ThousandIsland.Logger do
   end
 
   def log_debug(event, measurements, metadata, _config) do
-    Logger.debug("[#{inspect(event)}] metadata: #{inspect(metadata)}, measurements: #{inspect(measurements)}")
+    Logger.debug(
+      "[#{inspect(event)}] metadata: #{inspect(metadata)}, measurements: #{inspect(measurements)}"
+    )
   end
 
   def log_trace(event, measurements, metadata, _config) do
-    Logger.debug("[#{inspect(event)}] metadata: #{inspect(metadata)}, measurements: #{inspect(measurements)}")
+    Logger.debug(
+      "[#{inspect(event)}] metadata: #{inspect(metadata)}, measurements: #{inspect(measurements)}"
+    )
   end
 end
