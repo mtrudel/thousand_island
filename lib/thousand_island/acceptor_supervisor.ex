@@ -5,12 +5,21 @@ defmodule ThousandIsland.AcceptorSupervisor do
     Supervisor.start_link(__MODULE__, arg)
   end
 
-  def init({server_pid, opts}) do
-    num_acceptors = Keyword.get(opts, :num_acceptors, 10)
-    base_spec = {ThousandIsland.Acceptor, {server_pid, opts}}
+  def connection_sup_pid(pid) do
+    {_, connection_sup_pid, _, _} =
+      pid
+      |> Supervisor.which_children()
+      |> Enum.find(&Kernel.match?({:connection_sup, _, _, _}, &1))
 
-    1..num_acceptors
-    |> Enum.map(&Supervisor.child_spec(base_spec, id: "acceptor-#{&1}"))
-    |> Supervisor.init(strategy: :one_for_one)
+    connection_sup_pid
+  end
+
+  def init({server_pid, opts}) do
+    children = [
+      Supervisor.child_spec({ThousandIsland.ConnectionSupervisor, opts}, id: :connection_sup),
+      {ThousandIsland.Acceptor, {server_pid, self(), opts}}
+    ]
+
+    Supervisor.init(children, strategy: :rest_for_one)
   end
 end

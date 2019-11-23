@@ -7,16 +7,16 @@ Thousand Island is a pure Elixir socket server, inspired heavily by [ranch](http
 At a top-level, a `Server` coordinates the processes involved
 in responding to connections on a socket. A `Server` manages two top-level
 processes: a `Listener` which is responsible for actually binding to the port 
-and managing the resultant listener socket, and an `AcceptorSupervisor` which 
-is responsible for maanging a pool of `Acceptor` processes. 
+and managing the resultant listener socket, and an `AcceptorPoolSupervisor` which 
+is responsible for maanging a pool of `AcceptorSupervisor` processes. 
 
-Each `Acceptor` process (there are 10 by default) manages two processes: an 
-`AcceptorWorker` which accepts connections made to the server's listener socket, 
+Each `AcceptorSupervisor` process (there are 10 by default) manages two processes: an 
+`Acceptor` which accepts connections made to the server's listener socket, 
 and a `ConnectionSupervisor` which supervises the processes backing individual
 client connections. Every time a client connects to the server's port, one of 
-the `AcceptorWorkers` receives the connection in the form of a socket. It then 
+the `Acceptor`s receives the connection in the form of a socket. It then 
 creates a new `ConnectionWorker` process to manage this connection, and immediately 
-waits for another connection. It is worth noting that `AcceptorWorker` processes 
+waits for another connection. It is worth noting that `Acceptor` processes 
 are long-lived, and normally live for the entire period that the `Server` is 
 running.
 
@@ -27,7 +27,7 @@ configured `Handler` module which defines the application level logic of a serve
 
 This hierarchical approach reduces the time connections spend waiting to be accepted,
 and also reduces contention for `ConnectionSupervisor` access when creating new 
-`ConnectionWorker` processes. Each `Acceptor` group functions nearly autonomously, 
+`ConnectionWorker` processes. Each `AcceptorSupervisor` subtree functions nearly autonomously, 
 improving scalability and crash resiliency.
 
 Graphically, this shakes out like so:
@@ -35,11 +35,11 @@ Graphically, this shakes out like so:
 ```
              Server (sup, rest_for_one)
              /    \
-      Listener    AcceptorSupervisor (sup, one_for_one)
+      Listener    AcceptorPoolSupervisor (sup, one_for_one)
                     / ....n.... \
-                                Acceptor (sup, rest_for_one)
+                            AcceptorSupervisor (sup, rest_for_one)
                                 /      \
-    (dyn_sup) ConnectionSupervisor     AcceptorWorker (task)
+    (dyn_sup) ConnectionSupervisor     Acceptor (task)
                 / ....n.... \
                       ConnectionWorker (task)
 ```
@@ -54,8 +54,8 @@ folder of this project.
 
 ## Transports
 
-The `Transport` behaviour defines the functions required of a transport protocol, and is used by the `Listener`,
-`AcceptorWorker` and `Socket` modules in order to interact with underlaying sockets. Currently
+The `ThousandIsland.Transport` behaviour defines the functions required of a transport protocol, and is used by the `Listener`,
+`Acceptor` and `Socket` modules in order to interact with underlaying sockets. Currently
 `ThousandIsland.Transports.TCP` and `ThousandIsland.Transports.SSL` are defined.
 
 ### Using SSL
