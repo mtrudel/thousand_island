@@ -5,9 +5,8 @@ defmodule ThousandIsland.AcceptorPoolSupervisor do
     Supervisor.start_link(__MODULE__, arg)
   end
 
-  def init({server_pid, opts}) do
-    num_acceptors = Keyword.get(opts, :num_acceptors, 10)
-    base_spec = {ThousandIsland.AcceptorSupervisor, {server_pid, opts}}
+  def init({server_pid, %ThousandIsland.ServerConfig{num_acceptors: num_acceptors} = config}) do
+    base_spec = {ThousandIsland.AcceptorSupervisor, {server_pid, config}}
 
     1..num_acceptors
     |> Enum.map(&Supervisor.child_spec(base_spec, id: "acceptor-#{&1}"))

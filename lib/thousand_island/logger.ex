@@ -19,6 +19,7 @@ defmodule ThousandIsland.Logger do
     attach_logger(:info)
 
     events = [
+      [:transport, :listen, :start],
       [:acceptor, :start],
       [:acceptor, :accept],
       [:connection, :handler, :start],
@@ -77,13 +78,13 @@ defmodule ThousandIsland.Logger do
 
   def log_debug(event, measurements, metadata, _config) do
     Logger.debug(
-      "[#{inspect(event)}] metadata: #{inspect(metadata)}, measurements: #{inspect(measurements)}"
+      "#{inspect(event)} metadata: #{inspect(metadata)}, measurements: #{inspect(measurements)}"
     )
   end
 
   def log_trace(event, measurements, metadata, _config) do
     Logger.debug(
-      "[#{inspect(event)}] metadata: #{inspect(metadata)}, measurements: #{inspect(measurements)}"
+      "#{inspect(event)} metadata: #{inspect(metadata)}, measurements: #{inspect(measurements)}"
     )
   end
 end

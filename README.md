@@ -64,7 +64,7 @@ To use `ThousandIsland.Transports.SSL`, you'll need to set the key and certifica
 via `transport_options`, like so:
 
 ```
-ThousandIsland.Server.start_link(
+ThousandIsland.start_link(
   transport_module: ThousandIsland.Transports.SSL, 
   transport_options: [certfile: "certificate.pem", keyfile: "key.pem"], 
   handler_module: MyHandler,

@@ -1,15 +1,20 @@
 defmodule ThousandIsland.Socket do
   defstruct socket: nil, transport_module: nil, connection_id: nil
 
+  alias ThousandIsland.{Transport, ServerConfig}
+
   @type uuid :: String.t()
 
   @type t :: %__MODULE__{
-          socket: ThousandIsland.Transport.socket(),
+          socket: Transport.socket(),
           transport_module: module(),
           connection_id: uuid()
         }
 
-  def new(socket, %{transport_module: transport_module, connection_id: connection_id}) do
+  def new(socket, %{
+        connection_id: connection_id,
+        server_config: %ServerConfig{transport_module: transport_module}
+      }) do
     %__MODULE__{socket: socket, transport_module: transport_module, connection_id: connection_id}
   end
 

@@ -4,9 +4,7 @@ defmodule ThousandIsland.Transports.SSL do
   @behaviour Transport
 
   @impl Transport
-  def listen(opts) do
-    port = Keyword.get(opts, :port, 4000)
-
+  def listen(port, user_options) do
     default_options = [
       backlog: 1024,
       nodelay: true,
@@ -16,7 +14,6 @@ defmodule ThousandIsland.Transports.SSL do
       reuseaddr: true
     ]
 
-    user_options = Keyword.get(opts, :transport_options, [])
     hardcoded_options = [mode: :binary, active: false]
 
     resolved_options =
@@ -29,6 +26,14 @@ defmodule ThousandIsland.Transports.SSL do
     )
 
     :ssl.listen(port, resolved_options)
+  end
+
+  @impl Transport
+  def listen_port(listener_socket) do
+    case :ssl.sockname(listener_socket) do
+      {:ok, {_, port}} -> {:ok, port}
+      {:error, _} = error -> error
+    end
   end
 
   @impl Transport

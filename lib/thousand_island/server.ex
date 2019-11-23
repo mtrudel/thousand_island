@@ -1,8 +1,8 @@
 defmodule ThousandIsland.Server do
   use Supervisor
 
-  def start_link(opts \\ []) do
-    Supervisor.start_link(__MODULE__, opts)
+  def start_link(%ThousandIsland.ServerConfig{} = config) do
+    Supervisor.start_link(__MODULE__, config)
   end
 
   def listener_pid(pid) do
@@ -14,10 +14,10 @@ defmodule ThousandIsland.Server do
     listener_pid
   end
 
-  def init(opts) do
+  def init(config) do
     children = [
-      Supervisor.child_spec({ThousandIsland.Listener, opts}, id: :listener),
-      {ThousandIsland.AcceptorPoolSupervisor, {self(), opts}}
+      Supervisor.child_spec({ThousandIsland.Listener, config}, id: :listener),
+      {ThousandIsland.AcceptorPoolSupervisor, {self(), config}}
     ]
 
     Supervisor.init(children, strategy: :rest_for_one)

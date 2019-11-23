@@ -14,10 +14,10 @@ defmodule ThousandIsland.AcceptorSupervisor do
     connection_sup_pid
   end
 
-  def init({server_pid, opts}) do
+  def init({server_pid, %ThousandIsland.ServerConfig{} = config}) do
     children = [
-      Supervisor.child_spec({ThousandIsland.ConnectionSupervisor, opts}, id: :connection_sup),
-      {ThousandIsland.Acceptor, {server_pid, self(), opts}}
+      Supervisor.child_spec(ThousandIsland.ConnectionSupervisor, id: :connection_sup),
+      {ThousandIsland.Acceptor, {server_pid, self(), config}}
     ]
 
     Supervisor.init(children, strategy: :rest_for_one)

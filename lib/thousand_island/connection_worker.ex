@@ -1,18 +1,19 @@
 defmodule ThousandIsland.ConnectionWorker do
   use Task
 
-  alias ThousandIsland.Socket
+  alias ThousandIsland.{ServerConfig, Socket}
 
   def start_link(args) do
     Task.start_link(__MODULE__, :run, [args])
   end
 
-  def run({transport_socket, transport_module, handler_module, handler_opts}) do
+  def run(
+        {transport_socket,
+         %ServerConfig{handler_module: handler_module, handler_opts: handler_opts} = server_config}
+      ) do
     connection_info = %{
       connection_id: UUID.uuid4(),
-      transport_module: transport_module,
-      handler_module: handler_module,
-      handler_opts: handler_opts
+      server_config: server_config
     }
 
     start = System.monotonic_time()
