@@ -51,6 +51,11 @@ defmodule ThousandIsland.Acceptor do
         wakeup = System.monotonic_time()
         wait_time = wakeup - start
         telemetry(:shutdown, %{wait_time: wait_time, shutdown_reason: reason}, acceptor_info)
+
+        # Reasons other than closed are unexpected, so raise up and let our supervisor take care of things
+        if !(reason in [:closed]) do
+          raise "Unexpected error in accept: #{inspect(reason)}"
+        end
     end
   end
 
