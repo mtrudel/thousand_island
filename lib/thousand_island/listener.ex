@@ -14,8 +14,10 @@ defmodule ThousandIsland.Listener do
 
     :telemetry.execute([:listener, :start], %{}, %{transport_module: transport_module})
 
-    {:ok, listener_socket} = transport_module.listen(opts)
-    {:ok, %{listener_socket: listener_socket}}
+    case transport_module.listen(opts) do
+      {:ok, listener_socket} -> {:ok, %{listener_socket: listener_socket}}
+      {:error, _} = error -> {:stop, error}
+    end
   end
 
   def handle_call(:listener_socket, _from, %{listener_socket: listener_socket} = state) do

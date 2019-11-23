@@ -25,26 +25,38 @@ defmodule ThousandIsland.AcceptorWorker do
 
   defp accept(listener_socket, transport_module, handler_module, handler_opts, connection_sup_pid, acceptor_id) do
     start = System.monotonic_time()
-    {:ok, socket} = transport_module.accept(listener_socket)
 
-    awoke = System.monotonic_time()
+    case transport_module.accept(listener_socket) do
+      {:ok, socket} ->
+        awoke = System.monotonic_time()
 
-    ThousandIsland.ConnectionSupervisor.start_connection(
-      connection_sup_pid,
-      {socket, transport_module, handler_module, handler_opts}
-    )
+        ThousandIsland.ConnectionSupervisor.start_connection(
+          connection_sup_pid,
+          {socket, transport_module, handler_module, handler_opts}
+        )
 
-    complete = System.monotonic_time()
+        complete = System.monotonic_time()
 
-    wait_time = awoke - start
-    startup_time = complete - awoke
+        wait_time = awoke - start
+        startup_time = complete - awoke
 
-    :telemetry.execute([:acceptor, :accept], %{wait_time: wait_time, startup_time: startup_time}, %{
-      acceptor_id: acceptor_id,
-      handler_module: handler_module,
-      handler_opts: handler_opts
-    })
+        :telemetry.execute([:acceptor, :accept], %{wait_time: wait_time, startup_time: startup_time}, %{
+          acceptor_id: acceptor_id,
+          handler_module: handler_module,
+          handler_opts: handler_opts
+        })
 
-    accept(listener_socket, transport_module, handler_module, handler_opts, connection_sup_pid, acceptor_id)
+        accept(listener_socket, transport_module, handler_module, handler_opts, connection_sup_pid, acceptor_id)
+
+      {:error, reason} ->
+        awoke = System.monotonic_time()
+        wait_time = awoke - start
+
+        :telemetry.execute([:acceptor, :complete], %{wait_time: wait_time, shutdown_reason: reason}, %{
+          acceptor_id: acceptor_id,
+          handler_module: handler_module,
+          handler_opts: handler_opts
+        })
+    end
   end
 end
