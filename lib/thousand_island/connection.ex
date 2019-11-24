@@ -1,17 +1,17 @@
-defmodule ThousandIsland.ConnectionWorker do
+defmodule ThousandIsland.Connection do
   use Task
 
   def start_link(args) do
-    Task.start_link(__MODULE__, :run, [args])
+    Task.start_link(__MODULE__, :run, args)
   end
 
   def run(
-        {transport_socket,
-         %ThousandIsland.ServerConfig{
-           transport_module: transport_module,
-           handler_module: handler_module,
-           handler_opts: handler_opts
-         } = server_config}
+        transport_socket,
+        %ThousandIsland.ServerConfig{
+          transport_module: transport_module,
+          handler_module: handler_module,
+          handler_opts: handler_opts
+        } = server_config
       ) do
     connection_info = %{
       connection_id: UUID.uuid4(),

@@ -38,6 +38,9 @@ defmodule ThousandIsland.Transports.TCP do
   def handshake(socket), do: {:ok, socket}
 
   @impl Transport
+  defdelegate controlling_process(socket, pid), to: :gen_tcp
+
+  @impl Transport
   defdelegate recv(socket, length, timeout), to: :gen_tcp
 
   @impl Transport

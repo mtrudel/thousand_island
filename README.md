@@ -15,19 +15,19 @@ Each `AcceptorSupervisor` process (there are 10 by default) manages two processe
 and a `ConnectionSupervisor` which supervises the processes backing individual
 client connections. Every time a client connects to the server's port, one of 
 the `Acceptor`s receives the connection in the form of a socket. It then 
-creates a new `ConnectionWorker` process to manage this connection, and immediately 
+creates a new `Connection` process to manage this connection, and immediately 
 waits for another connection. It is worth noting that `Acceptor` processes 
 are long-lived, and normally live for the entire period that the `Server` is 
 running.
 
-A `ConnectionWorker` process is tied to the lifecycle of a client connection, and 
-only lives as long as the client is connected. `ConnectionWorker` processes
+A `Connection` process is tied to the lifecycle of a client connection, and 
+only lives as long as the client is connected. `Connection` processes
 encapsulate the connection state in a `Socket` struct, passing it to a 
 configured `Handler` module which defines the application level logic of a server.
 
 This hierarchical approach reduces the time connections spend waiting to be accepted,
 and also reduces contention for `ConnectionSupervisor` access when creating new 
-`ConnectionWorker` processes. Each `AcceptorSupervisor` subtree functions nearly autonomously, 
+`Connection` processes. Each `AcceptorSupervisor` subtree functions nearly autonomously, 
 improving scalability and crash resiliency.
 
 Graphically, this shakes out like so:
@@ -39,9 +39,9 @@ Graphically, this shakes out like so:
                     / ....n.... \
                             AcceptorSupervisor (sup, rest_for_one)
                                 /      \
-    (dyn_sup) ConnectionSupervisor     Acceptor (task)
-                / ....n.... \
-                      ConnectionWorker (task)
+              ConnectionSupervisor     Acceptor (task)
+                 / ....n.... \
+                          Connection (task)
 ```
 
 ## Handlers

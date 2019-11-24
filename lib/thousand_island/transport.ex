@@ -9,6 +9,7 @@ defmodule ThousandIsland.Transport do
   @callback listen_port(listener_socket()) :: {:ok, :inet.port_number()}
   @callback accept(listener_socket()) :: {:ok, socket()}
   @callback handshake(socket()) :: {:ok, socket()} | {:error, any()}
+  @callback controlling_process(socket(), pid()) :: :ok | {:error, any()}
   @callback recv(socket(), num_bytes :: non_neg_integer(), timeout :: timeout()) :: on_recv()
   @callback send(socket(), data :: binary()) :: :ok | {:error, String.t()}
   @callback shutdown(socket(), way()) :: :ok

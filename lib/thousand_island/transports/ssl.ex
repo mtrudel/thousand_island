@@ -51,6 +51,9 @@ defmodule ThousandIsland.Transports.SSL do
   defdelegate handshake(socket), to: :ssl
 
   @impl Transport
+  defdelegate controlling_process(socket, pid), to: :ssl
+
+  @impl Transport
   defdelegate recv(socket, length, timeout), to: :ssl
 
   @impl Transport

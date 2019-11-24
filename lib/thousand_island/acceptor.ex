@@ -35,10 +35,19 @@ defmodule ThousandIsland.Acceptor do
       {:ok, socket} ->
         wakeup = System.monotonic_time()
 
-        ConnectionSupervisor.start_connection(
-          connection_sup_pid,
-          {socket, server_config}
-        )
+        {:ok, connection_pid} =
+          ConnectionSupervisor.start_connection(
+            connection_sup_pid,
+            [socket, server_config]
+          )
+
+        # This is racy and could cause early connection termination when the server 
+        # is shutting down, as well as unexpected behaviour if the connection 
+        # changed to active mode. The alternative approach of making Connection
+        # startup be a multi-stage affair (necesssary since this process must 
+        # be the one to set the controlling process for the socket) seems a bit
+        # overblown for this narrow case.
+        :ok = transport_module.controlling_process(socket, connection_pid)
 
         complete = System.monotonic_time()
 
