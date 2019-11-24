@@ -35,6 +35,9 @@ defmodule ThousandIsland.Transports.TCP do
   defdelegate accept(listener_socket), to: :gen_tcp
 
   @impl Transport
+  def handshake(socket), do: {:ok, socket}
+
+  @impl Transport
   defdelegate recv(socket, length, timeout), to: :gen_tcp
 
   @impl Transport

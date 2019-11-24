@@ -37,11 +37,10 @@ defmodule ThousandIsland.Transports.SSL do
   end
 
   @impl Transport
-  def accept(listener_socket) do
-    with {:ok, ssl_socket} <- :ssl.transport_accept(listener_socket) do
-      :ssl.handshake(ssl_socket)
-    end
-  end
+  defdelegate accept(listener_socket), to: :ssl, as: :transport_accept
+
+  @impl Transport
+  defdelegate handshake(socket), to: :ssl
 
   @impl Transport
   defdelegate recv(socket, length, timeout), to: :ssl
