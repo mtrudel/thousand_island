@@ -1,17 +1,27 @@
 defmodule ThousandIsland.Connection do
-  use Task
+  use GenServer, restart: :transient
 
-  def start_link(args) do
-    Task.start_link(__MODULE__, :run, args)
+  def start_link(arg) do
+    GenServer.start_link(__MODULE__, arg)
   end
 
-  def run(
-        transport_socket,
-        %ThousandIsland.ServerConfig{
-          transport_module: transport_module,
-          handler_module: handler_module,
-          handler_opts: handler_opts
-        } = server_config
+  def start_connection(pid) do
+    GenServer.cast(pid, :start_connection)
+  end
+
+  def init(arg) do
+    created = System.monotonic_time()
+    {:ok, {arg, created}}
+  end
+
+  def handle_cast(
+        :start_connection,
+        {{transport_socket,
+          %ThousandIsland.ServerConfig{
+            transport_module: transport_module,
+            handler_module: handler_module,
+            handler_opts: handler_opts
+          } = server_config} = state, created}
       ) do
     connection_info = %{
       connection_id: UUID.uuid4(),
@@ -32,7 +42,13 @@ defmodule ThousandIsland.Connection do
 
           duration = System.monotonic_time() - negotiated
           handshake = negotiated - start
-          telemetry(:complete, %{duration: duration, handshake: handshake}, connection_info)
+          startup = start - created
+
+          telemetry(
+            :complete,
+            %{duration: duration, handshake: handshake, startup: startup},
+            connection_info
+          )
         rescue
           e -> telemetry(:exception, %{exception: e, stacktrace: __STACKTRACE__}, connection_info)
         end
@@ -42,6 +58,13 @@ defmodule ThousandIsland.Connection do
         telemetry(:handshake_error, %{handshake: handshake, reason: reason}, connection_info)
     end
 
+    {:stop, :normal, state}
+  end
+
+  def terminate(
+        _reason,
+        {transport_socket, %ThousandIsland.ServerConfig{transport_module: transport_module}}
+      ) do
     transport_module.close(transport_socket)
   end
 

@@ -1,7 +1,14 @@
 defmodule ThousandIsland.Acceptor do
   use Task, restart: :transient
 
-  alias ThousandIsland.{Listener, Server, ServerConfig, AcceptorSupervisor, ConnectionSupervisor}
+  alias ThousandIsland.{
+    Listener,
+    Server,
+    ServerConfig,
+    AcceptorSupervisor,
+    Connection,
+    ConnectionSupervisor
+  }
 
   def start_link(arg) do
     Task.start_link(__MODULE__, :run, [arg])
@@ -38,16 +45,17 @@ defmodule ThousandIsland.Acceptor do
         {:ok, connection_pid} =
           ConnectionSupervisor.start_connection(
             connection_sup_pid,
-            [socket, server_config]
+            {socket, server_config}
           )
 
-        # This is racy and could cause early connection termination when the server 
-        # is shutting down, as well as unexpected behaviour if the connection 
-        # changed to active mode. The alternative approach of making Connection
-        # startup be a multi-stage affair (necesssary since this process must 
-        # be the one to set the controlling process for the socket) seems a bit
-        # overblown for this narrow case.
+        # Since this process owns the socket at this point, it needs to be the
+        # one to make this call. Note that the Connection has not started yet,
+        # since it's waiting on our word to do so
         :ok = transport_module.controlling_process(socket, connection_pid)
+
+        # Now that we've given the socket over to the connection process, let it 
+        # start processing
+        Connection.start_connection(connection_pid)
 
         complete = System.monotonic_time()
 
