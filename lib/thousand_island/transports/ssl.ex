@@ -19,6 +19,14 @@ defmodule ThousandIsland.Transports.SSL do
     resolved_options =
       default_options |> Keyword.merge(user_options) |> Keyword.merge(hardcoded_options)
 
+    if Keyword.take(resolved_options, [:keyfile, :key]) == [] do
+      raise "transport_options must include one of keyfile or key"
+    end
+
+    if Keyword.take(resolved_options, [:certfile, :cert]) == [] do
+      raise "transport_options must include one of certfile or cert"
+    end
+
     :telemetry.execute(
       [:transport, :listen, :start],
       %{port: port, options: resolved_options, transport: :ssl},
