@@ -22,6 +22,7 @@ defmodule ThousandIsland.Logger do
       [:transport, :listen, :start],
       [:acceptor, :start],
       [:acceptor, :accept],
+      [:acceptor, :shutdown],
       [:connection, :handler, :start],
       [:connection, :handler, :complete]
     ]

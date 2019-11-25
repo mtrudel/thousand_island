@@ -1,6 +1,8 @@
 defmodule ThousandIsland.Connection do
   use GenServer, restart: :transient
 
+  alias ThousandIsland.ServerConfig
+
   def start_link(arg) do
     GenServer.start_link(__MODULE__, arg)
   end
@@ -9,25 +11,35 @@ defmodule ThousandIsland.Connection do
     GenServer.cast(pid, :start_connection)
   end
 
-  def init(arg) do
-    created = System.monotonic_time()
-    {:ok, {arg, created}}
-  end
+  def init({transport_socket, server_config}) do
+    Process.flag(:trap_exit, true)
 
-  def handle_cast(
-        :start_connection,
-        {{transport_socket,
-          %ThousandIsland.ServerConfig{
-            transport_module: transport_module,
-            handler_module: handler_module,
-            handler_opts: handler_opts
-          } = server_config} = state, created}
-      ) do
+    created = System.monotonic_time()
+
     connection_info = %{
       connection_id: UUID.uuid4(),
       server_config: server_config
     }
 
+    {:ok,
+     %{transport_socket: transport_socket, connection_info: connection_info, created: created}}
+  end
+
+  def handle_cast(
+        :start_connection,
+        %{
+          transport_socket: transport_socket,
+          connection_info:
+            %{
+              server_config: %ServerConfig{
+                transport_module: transport_module,
+                handler_module: handler_module,
+                handler_opts: handler_opts
+              }
+            } = connection_info,
+          created: created
+        } = state
+      ) do
     start = System.monotonic_time()
     telemetry(:start, %{}, connection_info)
 
@@ -40,15 +52,13 @@ defmodule ThousandIsland.Connection do
           |> ThousandIsland.Socket.new(connection_info)
           |> handler_module.handle_connection(handler_opts)
 
-          duration = System.monotonic_time() - negotiated
-          handshake = negotiated - start
-          startup = start - created
+          measurements = %{
+            duration: System.monotonic_time() - negotiated,
+            handshake: negotiated - start,
+            startup: start - created
+          }
 
-          telemetry(
-            :complete,
-            %{duration: duration, handshake: handshake, startup: startup},
-            connection_info
-          )
+          telemetry(:complete, measurements, connection_info)
         rescue
           e -> telemetry(:exception, %{exception: e, stacktrace: __STACKTRACE__}, connection_info)
         end
@@ -61,10 +71,14 @@ defmodule ThousandIsland.Connection do
     {:stop, :normal, state}
   end
 
-  def terminate(
-        _reason,
-        {transport_socket, %ThousandIsland.ServerConfig{transport_module: transport_module}}
-      ) do
+  def terminate(_reason, %{
+        transport_socket: transport_socket,
+        connection_info: %{
+          server_config: %ServerConfig{
+            transport_module: transport_module
+          }
+        }
+      }) do
     transport_module.close(transport_socket)
   end
 

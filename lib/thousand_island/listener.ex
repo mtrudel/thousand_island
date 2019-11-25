@@ -1,10 +1,14 @@
 defmodule ThousandIsland.Listener do
-  use GenServer
+  use GenServer, restart: :transient
 
   alias ThousandIsland.ServerConfig
 
   def start_link(%ServerConfig{} = config) do
     GenServer.start_link(__MODULE__, config)
+  end
+
+  def stop(pid) do
+    GenServer.stop(pid)
   end
 
   def listener_socket(pid) do
@@ -41,5 +45,9 @@ defmodule ThousandIsland.Listener do
         %{listener_socket: listener_socket, transport_module: transport_module} = state
       ) do
     {:reply, transport_module.listen_port(listener_socket), state}
+  end
+
+  def terminate(_reason, %{listener_socket: listener_socket, transport_module: transport_module}) do
+    transport_module.close(listener_socket)
   end
 end
