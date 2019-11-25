@@ -12,7 +12,7 @@ is responsible for maanging a pool of `AcceptorSupervisor` processes.
 
 Each `AcceptorSupervisor` process (there are 10 by default) manages two processes: an 
 `Acceptor` which accepts connections made to the server's listener socket, 
-and a `ConnectionSupervisor` which supervises the processes backing individual
+and a `DynamicSupervisor` which supervises the processes backing individual
 client connections. Every time a client connects to the server's port, one of 
 the `Acceptor`s receives the connection in the form of a socket. It then 
 creates a new `Connection` process to manage this connection, and immediately 
@@ -26,7 +26,7 @@ encapsulate the connection state in a `Socket` struct, passing it to a
 configured `Handler` module which defines the application level logic of a server.
 
 This hierarchical approach reduces the time connections spend waiting to be accepted,
-and also reduces contention for `ConnectionSupervisor` access when creating new 
+and also reduces contention for `DynamicSupervisor` access when creating new 
 `Connection` processes. Each `AcceptorSupervisor` subtree functions nearly autonomously, 
 improving scalability and crash resiliency.
 
@@ -39,9 +39,9 @@ Graphically, this shakes out like so:
                     / ....n.... \
                             AcceptorSupervisor (sup, rest_for_one)
                                 /      \
-              ConnectionSupervisor     Acceptor (task)
-                 / ....n.... \
-                          Connection (task)
+                DynamicSupervisor     Acceptor (task)
+                  / ....n.... \
+                           Connection (task)
 ```
 
 ## Handlers
