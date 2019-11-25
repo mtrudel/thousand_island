@@ -49,16 +49,18 @@ defmodule ThousandIsland.Acceptor do
           )
 
         # Since this process owns the socket at this point, it needs to be the
-        # one to make this call. Note that the Connection has not started yet,
-        # since it's waiting on our word to do so
-        :ok = transport_module.controlling_process(socket, connection_pid)
+        # one to make this call. connection_pid is sitting and waiting for the
+        # word from us to start processing, in order to ensure that we've made
+        # the following call. Note that we purposefully do not match on the 
+        # return from this function; if there's an error the connection process
+        # will see it, but it's no longer our problem if that's the case
+        transport_module.controlling_process(socket, connection_pid)
 
-        # Now that we've given the socket over to the connection process, let it 
-        # start processing
-        Connection.start_connection(connection_pid)
+        # Now that we've given the socket over to the connection process, tell 
+        # it to start handling the connection
+        Connection.start_processing(connection_pid)
 
         complete = System.monotonic_time()
-
         wait_time = wakeup - start
         startup_time = complete - wakeup
         telemetry(:accept, %{wait_time: wait_time, startup_time: startup_time}, acceptor_info)

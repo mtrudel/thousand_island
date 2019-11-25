@@ -7,8 +7,8 @@ defmodule ThousandIsland.Connection do
     GenServer.start_link(__MODULE__, arg)
   end
 
-  def start_connection(pid) do
-    GenServer.cast(pid, :start_connection)
+  def start_processing(pid) do
+    GenServer.cast(pid, :start_processing)
   end
 
   def init({transport_socket, server_config}) do
@@ -26,7 +26,7 @@ defmodule ThousandIsland.Connection do
   end
 
   def handle_cast(
-        :start_connection,
+        :start_processing,
         %{
           transport_socket: transport_socket,
           connection_info:
