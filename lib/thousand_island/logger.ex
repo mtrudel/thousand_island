@@ -4,6 +4,7 @@ defmodule ThousandIsland.Logger do
   def attach_logger(:error) do
     events = [
       [:connection, :handler, :exception],
+      [:connection, :handler, :startup_timeout],
       [:connection, :handler, :handshake_error]
     ]
 

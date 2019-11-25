@@ -1,7 +1,9 @@
 defmodule ThousandIsland.Connection do
-  use GenServer, restart: :temporary
+  use Task
 
   alias ThousandIsland.ServerConfig
+
+  @its_all_yours_timeout 5000
 
   def start(sup_pid, socket, %ServerConfig{transport_module: transport_module} = server_config) do
     # This is a multi-step process since we need to do a bit of work from within
@@ -19,86 +21,69 @@ defmodule ThousandIsland.Connection do
 
     # Now that we've given the socket over to the connection process, tell 
     # it to start handling the connection
-    start_processing(pid)
+    Process.send(pid, :its_all_yours, [])
   end
 
   def start_link(arg) do
-    GenServer.start_link(__MODULE__, arg)
+    Task.start_link(__MODULE__, :run, [arg])
   end
 
-  def start_processing(pid) do
-    GenServer.cast(pid, :start_processing)
-  end
-
-  def init({transport_socket, server_config}) do
-    Process.flag(:trap_exit, true)
-
-    created = System.monotonic_time()
-
-    connection_info = %{
-      connection_id: UUID.uuid4(),
-      server_config: server_config
-    }
-
-    {:ok,
-     %{transport_socket: transport_socket, connection_info: connection_info, created: created}}
-  end
-
-  def handle_cast(
-        :start_processing,
-        %{
-          transport_socket: transport_socket,
-          connection_info:
-            %{
-              server_config: %ServerConfig{
-                transport_module: transport_module,
-                handler_module: handler_module,
-                handler_opts: handler_opts
-              }
-            } = connection_info,
-          created: created
-        } = state
+  def run(
+        {transport_socket,
+         %ServerConfig{
+           transport_module: transport_module,
+           handler_module: handler_module,
+           handler_opts: handler_opts
+         } = server_config}
       ) do
-    start = System.monotonic_time()
-    telemetry(:start, %{}, connection_info)
+    try do
+      Process.flag(:trap_exit, true)
+      created = System.monotonic_time()
 
-    case transport_module.handshake(transport_socket) do
-      {:ok, transport_socket} ->
-        try do
-          negotiated = System.monotonic_time()
+      connection_info = %{
+        connection_id: UUID.uuid4(),
+        server_config: server_config
+      }
 
-          transport_socket
-          |> ThousandIsland.Socket.new(connection_info)
-          |> handler_module.handle_connection(handler_opts)
+      receive do
+        :its_all_yours -> :ok
+      after
+        @its_all_yours_timeout ->
+          telemetry(:startup_timeout, %{}, connection_info)
+          raise "Did not receive :its_all_yours message within #{@its_all_yours_timeout}"
+      end
 
-          measurements = %{
-            duration: System.monotonic_time() - negotiated,
-            handshake: negotiated - start,
-            startup: start - created
-          }
+      start = System.monotonic_time()
+      telemetry(:start, %{}, connection_info)
 
-          telemetry(:complete, measurements, connection_info)
-        rescue
-          e -> telemetry(:exception, %{exception: e, stacktrace: __STACKTRACE__}, connection_info)
-        end
+      case transport_module.handshake(transport_socket) do
+        {:ok, transport_socket} ->
+          try do
+            negotiated = System.monotonic_time()
 
-      {:error, reason} ->
-        handshake = System.monotonic_time() - start
-        telemetry(:handshake_error, %{handshake: handshake, reason: reason}, connection_info)
+            transport_socket
+            |> ThousandIsland.Socket.new(connection_info)
+            |> handler_module.handle_connection(handler_opts)
+
+            measurements = %{
+              duration: System.monotonic_time() - negotiated,
+              handshake: negotiated - start,
+              startup: start - created
+            }
+
+            telemetry(:complete, measurements, connection_info)
+          rescue
+            e ->
+              telemetry(:exception, %{exception: e, stacktrace: __STACKTRACE__}, connection_info)
+          end
+
+        {:error, reason} ->
+          handshake = System.monotonic_time() - start
+          telemetry(:handshake_error, %{handshake: handshake, reason: reason}, connection_info)
+      end
+    after
+      transport_module.close(transport_socket)
     end
-
-    {:stop, :normal, state}
-  end
-
-  def terminate(_reason, %{
-        transport_socket: transport_socket,
-        connection_info: %{
-          server_config: %ServerConfig{
-            transport_module: transport_module
-          }
-        }
-      }) do
-    transport_module.close(transport_socket)
   end
 
   defp telemetry(subevent, measurement, connection_info) do
