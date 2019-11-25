@@ -41,7 +41,7 @@ defmodule ThousandIsland.Connection do
       created = System.monotonic_time()
 
       connection_info = %{
-        connection_id: UUID.uuid4(),
+        connection_id: unique_id(),
         server_config: server_config
       }
 
@@ -89,4 +89,6 @@ defmodule ThousandIsland.Connection do
   defp telemetry(subevent, measurement, connection_info) do
     :telemetry.execute([:connection, :handler] ++ [subevent], measurement, connection_info)
   end
+
+  defp unique_id, do: Base.encode16(:crypto.strong_rand_bytes(6))
 end

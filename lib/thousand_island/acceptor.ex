@@ -12,7 +12,7 @@ defmodule ThousandIsland.Acceptor do
     {:ok, listener_socket} = Listener.listener_socket(listener_pid)
 
     acceptor_info = %{
-      acceptor_id: UUID.uuid4(),
+      acceptor_id: unique_id(),
       listener_socket: listener_socket,
       connection_sup_pid: AcceptorSupervisor.connection_sup_pid(parent_pid),
       server_config: config
@@ -57,4 +57,6 @@ defmodule ThousandIsland.Acceptor do
     acceptor_info = Map.take(acceptor_info, [:acceptor_id, :server_config])
     :telemetry.execute([:acceptor] ++ [subevent], measurement, acceptor_info)
   end
+
+  defp unique_id, do: Base.encode16(:crypto.strong_rand_bytes(6))
 end

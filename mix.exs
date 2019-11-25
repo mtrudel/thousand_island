@@ -17,8 +17,7 @@ defmodule ThousandIsland.MixProject do
 
   defp deps() do
     [
-      {:telemetry, "~> 0.4.1"},
-      {:elixir_uuid, "~> 1.2"}
+      {:telemetry, "~> 0.4.1"}
     ]
   end
 end
