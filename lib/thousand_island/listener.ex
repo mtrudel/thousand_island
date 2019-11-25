@@ -46,8 +46,4 @@ defmodule ThousandIsland.Listener do
       ) do
     {:reply, transport_module.listen_port(listener_socket), state}
   end
-
-  def terminate(_reason, %{listener_socket: listener_socket, transport_module: transport_module}) do
-    transport_module.close(listener_socket)
-  end
 end

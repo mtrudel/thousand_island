@@ -17,7 +17,8 @@ defmodule ThousandIsland.Server do
   def init(config) do
     children = [
       Supervisor.child_spec({ThousandIsland.Listener, config}, id: :listener),
-      {ThousandIsland.AcceptorPoolSupervisor, {self(), config}}
+      {ThousandIsland.AcceptorPoolSupervisor, {self(), config}},
+      {ThousandIsland.ShutdownListener, self()}
     ]
 
     Supervisor.init(children, strategy: :rest_for_one)

@@ -22,11 +22,6 @@ defmodule ThousandIsland do
   end
 
   def stop(pid, connection_wait \\ 15000) do
-    # This will shut down the listener and all acceptors
-    # We do this before shutting down the supervision tree so
-    # that we stop accepting new connections while doing so
-    pid |> Server.listener_pid() |> Listener.stop()
-
     Supervisor.stop(pid, :normal, connection_wait)
   end
 end
