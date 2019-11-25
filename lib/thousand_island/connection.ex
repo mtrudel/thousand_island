@@ -1,5 +1,5 @@
 defmodule ThousandIsland.Connection do
-  use GenServer, restart: :transient
+  use GenServer, restart: :temporary
 
   alias ThousandIsland.ServerConfig
 
