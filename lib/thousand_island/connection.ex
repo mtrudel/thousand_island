@@ -36,53 +36,49 @@ defmodule ThousandIsland.Connection do
            handler_opts: handler_opts
          } = server_config}
       ) do
-    try do
-      Process.flag(:trap_exit, true)
-      created = System.monotonic_time()
+    Process.flag(:trap_exit, true)
+    created = System.monotonic_time()
 
-      connection_info = %{
-        connection_id: unique_id(),
-        server_config: server_config
-      }
+    connection_info = %{
+      connection_id: unique_id(),
+      server_config: server_config
+    }
 
-      receive do
-        :its_all_yours -> :ok
-      after
-        @its_all_yours_timeout ->
-          telemetry(:startup_timeout, %{}, connection_info)
-          raise "Did not receive :its_all_yours message within #{@its_all_yours_timeout}"
-      end
-
-      start = System.monotonic_time()
-      telemetry(:start, %{}, connection_info)
-
-      case transport_module.handshake(transport_socket) do
-        {:ok, transport_socket} ->
-          try do
-            negotiated = System.monotonic_time()
-
-            transport_socket
-            |> ThousandIsland.Socket.new(connection_info)
-            |> handler_module.handle_connection(handler_opts)
-
-            measurements = %{
-              duration: System.monotonic_time() - negotiated,
-              handshake: negotiated - start,
-              startup: start - created
-            }
-
-            telemetry(:complete, measurements, connection_info)
-          rescue
-            e ->
-              telemetry(:exception, %{exception: e, stacktrace: __STACKTRACE__}, connection_info)
-          end
-
-        {:error, reason} ->
-          handshake = System.monotonic_time() - start
-          telemetry(:handshake_error, %{handshake: handshake, reason: reason}, connection_info)
-      end
+    receive do
+      :its_all_yours -> :ok
     after
-      transport_module.close(transport_socket)
+      @its_all_yours_timeout ->
+        telemetry(:startup_timeout, %{}, connection_info)
+        raise "Did not receive :its_all_yours message within #{@its_all_yours_timeout}"
+    end
+
+    start = System.monotonic_time()
+    telemetry(:start, %{}, connection_info)
+
+    case transport_module.handshake(transport_socket) do
+      {:ok, transport_socket} ->
+        try do
+          negotiated = System.monotonic_time()
+
+          transport_socket
+          |> ThousandIsland.Socket.new(connection_info)
+          |> handler_module.handle_connection(handler_opts)
+
+          measurements = %{
+            duration: System.monotonic_time() - negotiated,
+            handshake: negotiated - start,
+            startup: start - created
+          }
+
+          telemetry(:complete, measurements, connection_info)
+        rescue
+          e ->
+            telemetry(:exception, %{exception: e, stacktrace: __STACKTRACE__}, connection_info)
+        end
+
+      {:error, reason} ->
+        handshake = System.monotonic_time() - start
+        telemetry(:handshake_error, %{handshake: handshake, reason: reason}, connection_info)
     end
   end
 
