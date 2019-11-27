@@ -1,4 +1,25 @@
 defmodule ThousandIsland.ServerConfig do
+  @moduledoc false
+
+  @opaque t :: %__MODULE__{
+            port: :inet.port_number(),
+            transport_module: module(),
+            transport_opts: keyword(),
+            handler_module: module(),
+            handler_opts: term(),
+            num_acceptors: pos_integer()
+          }
+
+  @typedoc "Valid options when creating a ServerConfig struct"
+  @type options() :: [
+          port: :inet.port_number(),
+          transport_module: module(),
+          transport_opts: keyword(),
+          handler_module: module(),
+          handler_opts: keyword(),
+          num_acceptors: pos_integer()
+        ]
+
   defstruct [
     :port,
     :transport_module,
@@ -8,6 +29,7 @@ defmodule ThousandIsland.ServerConfig do
     :num_acceptors
   ]
 
+  @spec new(options()) :: t()
   def new(opts \\ []) do
     %__MODULE__{
       port: Keyword.get(opts, :port, 4000),

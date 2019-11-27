@@ -1,0 +1,5 @@
+--ignore-file=is:report_file_test.xml
+--ignore-dir=is:deps
+--ignore-dir=is:log
+--ignore-dir=is:doc
+--ignore-dir=is:.elixir_ls

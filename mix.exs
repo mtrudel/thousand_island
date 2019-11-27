@@ -7,7 +7,10 @@ defmodule ThousandIsland.MixProject do
       version: "0.1.0",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      name: "Thousand Island",
+      description: "A modern, pure Elixir socket server",
+      source_url: "https://github.com/mtrudel/thousand_island"
     ]
   end
 
@@ -17,7 +20,8 @@ defmodule ThousandIsland.MixProject do
 
   defp deps() do
     [
-      {:telemetry, "~> 0.4.1"}
+      {:telemetry, "~> 0.4.1"},
+      {:ex_doc, "~> 0.21", only: :dev, runtime: false}
     ]
   end
 end

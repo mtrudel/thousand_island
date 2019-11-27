@@ -1,4 +1,6 @@
 defmodule ThousandIsland.Server do
+  @moduledoc false
+
   use Supervisor
 
   def start_link(%ThousandIsland.ServerConfig{} = config) do

@@ -1,4 +1,6 @@
 defmodule ThousandIsland.Listener do
+  @moduledoc false
+
   use GenServer, restart: :transient
 
   alias ThousandIsland.ServerConfig

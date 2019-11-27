@@ -1,4 +1,6 @@
 defmodule ThousandIsland.Connection do
+  @moduledoc false
+
   use Task
 
   alias ThousandIsland.ServerConfig
@@ -39,8 +41,10 @@ defmodule ThousandIsland.Connection do
     Process.flag(:trap_exit, true)
     created = System.monotonic_time()
 
+    connection_id = unique_id()
+
     connection_info = %{
-      connection_id: unique_id(),
+      connection_id: connection_id,
       server_config: server_config
     }
 
@@ -61,7 +65,7 @@ defmodule ThousandIsland.Connection do
           negotiated = System.monotonic_time()
 
           transport_socket
-          |> ThousandIsland.Socket.new(connection_info)
+          |> ThousandIsland.Socket.new(connection_id, server_config)
           |> handler_module.handle_connection(handler_opts)
 
           measurements = %{

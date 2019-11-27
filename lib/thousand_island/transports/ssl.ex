@@ -1,4 +1,40 @@
 defmodule ThousandIsland.Transports.SSL do
+  @moduledoc """
+  Defines a `ThousandIsland.Transport` implementation based on TCP SSL sockets 
+  as provided by Erlang's `:ssl` module. For the most part, users of Thousand
+  Island will only ever need to deal with this module via `transport_options`
+  passed to `ThousandIsland` at startup time. A complete list of such options
+  is defined via the `t::ssl.tls_server_option` type. This list can be somewhat 
+  difficult to decipher; a list of the most common options follows:
+
+  * `key`: A DER encoded binary representation of the SSL key to use
+  * `cert`: A DER encoded binary representation of the SSL key to use
+  * `keyfile: A string path to a PEM encoded key to use for SSL
+  * `certfile: A string path to a PEM encoded cert to use for SSL
+  * `ip`:  The IP to listen on (defaults to all interfaces). IPs should be 
+  described in tuple form (ie: `ip: {1, 2, 3, 4}`). The value `:loopback` can 
+  be used to only bind to localhost.
+
+  Unless overridden, this module uses the following default options:
+
+  ```elixir
+  backlog: 1024,
+  nodelay: true,
+  linger: {true, 30},
+  send_timeout: 30000,
+  send_timeout_close: true,
+  reuseaddr: true
+  ```
+
+  The following options are required for the proper operation of Thousand Island
+  and cannot be overridden:
+
+  ```elixir
+  mode: :binary,
+  active: false
+  ```
+  """
+
   alias ThousandIsland.Transport
 
   @behaviour Transport

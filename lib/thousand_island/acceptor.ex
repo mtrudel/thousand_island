@@ -1,4 +1,6 @@
 defmodule ThousandIsland.Acceptor do
+  @moduledoc false
+
   use Task, restart: :transient
 
   alias ThousandIsland.{Listener, Server, ServerConfig, AcceptorSupervisor, Connection}
