@@ -5,7 +5,7 @@ defmodule ThousandIsland.Handlers.Echo do
   https://en.wikipedia.org/wiki/Echo_Protocol
   """
 
-  alias ThousandIsland.{Socket, Handler}
+  alias ThousandIsland.{Handler, Socket}
 
   @behaviour Handler
 

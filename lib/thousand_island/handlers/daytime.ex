@@ -5,7 +5,7 @@ defmodule ThousandIsland.Handlers.Daytime do
   https://en.wikipedia.org/wiki/Daytime_Protocol
   """
 
-  alias ThousandIsland.{Socket, Handler}
+  alias ThousandIsland.{Handler, Socket}
 
   @behaviour Handler
 

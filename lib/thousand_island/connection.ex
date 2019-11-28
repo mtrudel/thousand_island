@@ -16,12 +16,12 @@ defmodule ThousandIsland.Connection do
     # Since this process owns the socket at this point, it needs to be the
     # one to make this call. connection_pid is sitting and waiting for the
     # word from us to start processing, in order to ensure that we've made
-    # the following call. Note that we purposefully do not match on the 
+    # the following call. Note that we purposefully do not match on the
     # return from this function; if there's an error the connection process
     # will see it, but it's no longer our problem if that's the case
     transport_module.controlling_process(socket, pid)
 
-    # Now that we've given the socket over to the connection process, tell 
+    # Now that we've given the socket over to the connection process, tell
     # it to start handling the connection
     Process.send(pid, :its_all_yours, [])
   end

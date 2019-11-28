@@ -5,7 +5,7 @@ defmodule ThousandIsland.Handlers.Discard do
   https://en.wikipedia.org/wiki/Discard_Protocol
   """
 
-  alias ThousandIsland.{Socket, Handler}
+  alias ThousandIsland.{Handler, Socket}
 
   @behaviour Handler
 

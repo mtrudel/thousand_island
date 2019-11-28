@@ -21,7 +21,7 @@ defmodule ThousandIsland.Transports.SSL do
   backlog: 1024,
   nodelay: true,
   linger: {true, 30},
-  send_timeout: 30000,
+  send_timeout: 30_000,
   send_timeout_close: true,
   reuseaddr: true
   ```
@@ -45,7 +45,7 @@ defmodule ThousandIsland.Transports.SSL do
       backlog: 1024,
       nodelay: true,
       linger: {true, 30},
-      send_timeout: 30000,
+      send_timeout: 30_000,
       send_timeout_close: true,
       reuseaddr: true
     ]

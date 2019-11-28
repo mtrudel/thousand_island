@@ -8,7 +8,7 @@ defmodule ThousandIsland.Socket do
 
   defstruct socket: nil, transport_module: nil, connection_id: nil
 
-  alias ThousandIsland.{Transport, ServerConfig}
+  alias ThousandIsland.{ServerConfig, Transport}
 
   @typedoc "A reference to a socket along with metadata describing how to use it"
   @opaque t :: %__MODULE__{

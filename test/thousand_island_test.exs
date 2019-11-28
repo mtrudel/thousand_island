@@ -1,8 +1,8 @@
 defmodule ThousandIslandTest do
   use ExUnit.Case, async: true
 
-  alias ThousandIsland.Transports.SSL
   alias ThousandIsland.Handlers.Echo
+  alias ThousandIsland.Transports.SSL
 
   describe "TCP transport" do
     setup do

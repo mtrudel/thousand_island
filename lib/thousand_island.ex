@@ -141,7 +141,7 @@ defmodule ThousandIsland do
   elapsed.
   """
   @spec stop(pid(), timeout()) :: :ok
-  def stop(pid, connection_wait \\ 15000) do
+  def stop(pid, connection_wait \\ 15_000) do
     Supervisor.stop(pid, :normal, connection_wait)
   end
 end

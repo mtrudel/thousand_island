@@ -21,7 +21,8 @@ defmodule ThousandIsland.MixProject do
   defp deps() do
     [
       {:telemetry, "~> 0.4.1"},
-      {:ex_doc, "~> 0.21", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.21", only: :dev, runtime: false},
+      {:credo, "~> 1.1.0", only: [:dev, :test], runtime: false}
     ]
   end
 end

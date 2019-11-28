@@ -3,7 +3,7 @@ defmodule ThousandIsland.Acceptor do
 
   use Task, restart: :transient
 
-  alias ThousandIsland.{Listener, Server, ServerConfig, AcceptorSupervisor, Connection}
+  alias ThousandIsland.{AcceptorSupervisor, Connection, Listener, Server, ServerConfig}
 
   def start_link(arg) do
     Task.start_link(__MODULE__, :run, [arg])
