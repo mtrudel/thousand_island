@@ -85,11 +85,9 @@ defmodule ThousandIsland.Logger do
 
   @doc false
   def log_error([:connection, :handler, :exception], measurements, metadata, _config) do
-    str = Exception.format(:error, measurements.exception, measurements.stacktrace)
-
     Logger.error(
-      "Connection #{metadata.connection_id} handler #{metadata.handler_module} crashed with exception: #{
-        str
+      "Connection #{metadata.connection_id} handler #{metadata.server_config.handler_module} crashed with exception: #{
+        measurements.formatted_exception
       }"
     )
   end

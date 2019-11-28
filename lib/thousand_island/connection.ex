@@ -77,7 +77,13 @@ defmodule ThousandIsland.Connection do
           telemetry(:complete, measurements, connection_info)
         rescue
           e ->
-            telemetry(:exception, %{exception: e, stacktrace: __STACKTRACE__}, connection_info)
+            formatted_exception = Exception.format(:error, e, __STACKTRACE__)
+
+            telemetry(
+              :exception,
+              %{exception: e, formatted_exception: formatted_exception},
+              connection_info
+            )
         end
 
       {:error, reason} ->
