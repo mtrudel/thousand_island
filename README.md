@@ -138,7 +138,7 @@ to host any number of `Server` processes each listening on a different port.
 
 ## Installation
 
-Thousand Island is [available in Hex](https://hex.pm/docs/publish). The package 
+Thousand Island is [available in Hex](https://hex.pm/packages/thousand_island). The package 
 can be installed by adding `thousand_island` to your list of dependencies in `mix.exs`:
 
 ```elixir
