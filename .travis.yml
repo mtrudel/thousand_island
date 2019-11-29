@@ -11,9 +11,6 @@ script:
   - mix compile --warnings-as-errors
   - mix test
   - mix credo --strict
-after_script:
-  - mix deps.get --only docs
-  - MIX_ENV=docs mix inch.report
 notifications:
   recipients:
     - mat@geeky.net
