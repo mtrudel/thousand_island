@@ -10,7 +10,11 @@ defmodule ThousandIsland.Transports.TCP do
 
   * `ip`:  The IP to listen on (defaults to all interfaces). IPs should be 
   described in tuple form (ie: `ip: {1, 2, 3, 4}`). The value `:loopback` can 
-  be used to only bind to localhost.
+  be used to only bind to localhost. On platforms which support it (macOS and
+  Linux at a minimum, likely others), you can also bind to a Unix domain socket 
+  by specifying a value of `ip: {:local, "/path/to/socket"}`. Note that the port
+  *must* be set to `0`, and that the socket is not removed from the filesystem
+  after the server shuts down.
 
   Unless overridden, this module uses the following default options:
 
