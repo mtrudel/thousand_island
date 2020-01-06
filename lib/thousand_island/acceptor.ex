@@ -26,6 +26,7 @@ defmodule ThousandIsland.Acceptor do
 
   defp accept(
          %{
+           acceptor_id: acceptor_id,
            listener_socket: listener_socket,
            connection_sup_pid: connection_sup_pid,
            server_config: %ServerConfig{transport_module: transport_module} = server_config
@@ -36,7 +37,7 @@ defmodule ThousandIsland.Acceptor do
     case transport_module.accept(listener_socket) do
       {:ok, socket} ->
         wakeup = System.monotonic_time()
-        Connection.start(connection_sup_pid, socket, server_config)
+        Connection.start(connection_sup_pid, socket, acceptor_id, server_config)
         complete = System.monotonic_time()
         wait_time = wakeup - start
         startup_time = complete - wakeup

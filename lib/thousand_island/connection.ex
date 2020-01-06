@@ -7,11 +7,17 @@ defmodule ThousandIsland.Connection do
 
   @its_all_yours_timeout 5000
 
-  def start(sup_pid, socket, %ServerConfig{transport_module: transport_module} = server_config) do
+  def start(
+        sup_pid,
+        socket,
+        acceptor_id,
+        %ServerConfig{transport_module: transport_module} = server_config
+      ) do
     # This is a multi-step process since we need to do a bit of work from within
     # the process which owns the socket. Start by creating the worker process
     # which will eventually handle this socket
-    {:ok, pid} = DynamicSupervisor.start_child(sup_pid, {__MODULE__, {socket, server_config}})
+    {:ok, pid} =
+      DynamicSupervisor.start_child(sup_pid, {__MODULE__, {socket, acceptor_id, server_config}})
 
     # Since this process owns the socket at this point, it needs to be the
     # one to make this call. connection_pid is sitting and waiting for the
@@ -31,7 +37,7 @@ defmodule ThousandIsland.Connection do
   end
 
   def run(
-        {transport_socket,
+        {transport_socket, acceptor_id,
          %ServerConfig{
            transport_module: transport_module,
            handler_module: handler_module,
@@ -44,6 +50,7 @@ defmodule ThousandIsland.Connection do
     connection_id = unique_id()
 
     connection_info = %{
+      acceptor_id: acceptor_id,
       connection_id: connection_id,
       server_config: server_config
     }
