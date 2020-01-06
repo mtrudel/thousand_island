@@ -75,10 +75,20 @@ defmodule ThousandIsland.Connection do
           |> ThousandIsland.Socket.new(connection_id, server_config)
           |> handler_module.handle_connection(handler_opts)
 
+          stats =
+            case :inet.getstat(transport_socket) do
+              {:ok, stats} -> stats
+              _ -> %{}
+            end
+
           measurements = %{
             duration: System.monotonic_time() - negotiated,
             handshake: negotiated - start,
-            startup: start - created
+            startup: start - created,
+            octets_sent: stats[:send_oct],
+            packets_sent: stats[:send_cnt],
+            octets_recv: stats[:recv_oct],
+            packets_recv: stats[:recv_cnt]
           }
 
           telemetry(:complete, measurements, connection_info)
