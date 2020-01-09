@@ -74,7 +74,7 @@ defaults to `ThousandIsland.Transports.TCP`.
 `c:ThousandIsland.Transport.listen/2` function. Valid values depend on the transport
 module specified in `transport_module` and can be found in the documentation for the
 `ThousandIsland.Transports.TCP` and `ThousandIsland.Transports.SSL` modules.
-* `num_acceptors`: The numbner of acceptor processes to run. Defaults to 10.
+* `num_acceptors`: The number of acceptor processes to run. Defaults to 10.
 
 ### Connection Draining & Shutdown
 
