@@ -127,9 +127,9 @@ Graphically, this shakes out like so:
                     / ....n.... \
                             AcceptorSupervisor (sup, rest_for_one)
                                 /      \
-                DynamicSupervisor     Acceptor (task)
-                  / ....n.... \
-                           Connection (task)
+                  Acceptor (task)     DynamicSupervisor     
+                                        / ....n.... \
+                                Connection (task)
 ```
 
 Thousand Island does not use named processes or other 'global' state internally 
