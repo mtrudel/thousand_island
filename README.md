@@ -121,15 +121,16 @@ autonomously, improving scalability and crash resiliency.
 Graphically, this shakes out like so:
 
 ```
-             Server (sup, rest_for_one)
-             /    \
-      Listener    AcceptorPoolSupervisor (dyn_sup)
-                    / ....n.... \
-                            AcceptorSupervisor (sup, rest_for_one)
-                                /      \
-                  Acceptor (task)     DynamicSupervisor     
-                                        / ....n.... \
-                                Connection (task)
+                        Server (sup, rest_for_one) 
+              ____________/        |          \___________________
+             /                     |                              \
+      Listener         AcceptorPoolSupervisor (dyn_sup)      ShutdownListener
+                             / ....n.... \
+                 AcceptorSupervisor (sup, rest_for_one)
+                            /      \
+              Acceptor (task)     DynamicSupervisor    
+                                    / ....n.... \
+                                  Connection (task)
 ```
 
 Thousand Island does not use named processes or other 'global' state internally 
