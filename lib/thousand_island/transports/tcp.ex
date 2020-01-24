@@ -40,6 +40,8 @@ defmodule ThousandIsland.Transports.TCP do
 
   @behaviour Transport
 
+  @hardcoded_options [mode: :binary, active: false]
+
   @impl Transport
   def listen(port, user_options) do
     default_options = [
@@ -51,10 +53,8 @@ defmodule ThousandIsland.Transports.TCP do
       reuseaddr: true
     ]
 
-    hardcoded_options = [mode: :binary, active: false]
-
     resolved_options =
-      default_options |> Keyword.merge(user_options) |> Keyword.merge(hardcoded_options)
+      default_options |> Keyword.merge(user_options) |> Keyword.merge(@hardcoded_options)
 
     :telemetry.execute(
       [:transport, :listen, :start],
@@ -82,6 +82,12 @@ defmodule ThousandIsland.Transports.TCP do
 
   @impl Transport
   defdelegate send(socket, data), to: :gen_tcp
+
+  @impl Transport
+  def setopts(socket, options) do
+    resolved_options = Keyword.merge(options, @hardcoded_options)
+    :inet.setopts(socket, resolved_options)
+  end
 
   @impl Transport
   defdelegate shutdown(socket, way), to: :gen_tcp

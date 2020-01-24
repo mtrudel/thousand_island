@@ -78,6 +78,14 @@ defmodule ThousandIsland.Socket do
   end
 
   @doc """
+  Sets the given flags on the socket
+  """
+  @spec setopts(t(), Transport.socket_opts()) :: :ok | {:error, String.t()}
+  def setopts(%__MODULE__{socket: socket, transport_module: transport_module}, options) do
+    transport_module.setopts(socket, options)
+  end
+
+  @doc """
   Shuts down the socket in the given direction.
   """
   @spec shutdown(t(), Transport.way()) :: :ok
