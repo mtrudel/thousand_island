@@ -17,6 +17,9 @@ defmodule ThousandIsland.Transport do
   @typedoc "Information about an endpoint (either remote ('peer') or local"
   @type socket_info() :: %{address: String.t(), port: :inet.port_number()}
 
+  @typedoc "Options which can be set on a socket via setopts/2"
+  @type socket_options() :: [:inet.socket_setopts()]
+
   @typedoc "The direction in which to shutdown a connection in advance of closing it"
   @type way() :: :read | :write | :read_write
 
@@ -30,7 +33,7 @@ defmodule ThousandIsland.Transport do
   @callback listen(:inet.port_number(), keyword()) :: {:ok, listener_socket()}
 
   @doc """
-  Return the local port number that the given lsitener socket is accepting 
+  Return the local port number that the given listener socket is accepting
   connections on.
   """
   @callback listen_port(listener_socket()) :: {:ok, :inet.port_number()}
@@ -67,6 +70,12 @@ defmodule ThousandIsland.Transport do
   Sends the given data (specified as a binary or an IO list) on the given socket.
   """
   @callback send(socket(), data :: IO.iodata()) :: :ok | {:error, String.t()}
+
+  @doc """
+  Sets the given options on the socket. Should disallow setting of options which
+  are not compatible with Thousand Island
+  """
+  @callback setopts(socket(), socket_options()) :: :ok | {:error, String.t()}
 
   @doc """
   Shuts down the socket in the given direction.

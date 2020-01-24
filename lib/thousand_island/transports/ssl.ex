@@ -43,6 +43,8 @@ defmodule ThousandIsland.Transports.SSL do
 
   @behaviour Transport
 
+  @hardcoded_options [mode: :binary, active: false]
+
   @impl Transport
   def listen(port, user_options) do
     default_options = [
@@ -54,10 +56,8 @@ defmodule ThousandIsland.Transports.SSL do
       reuseaddr: true
     ]
 
-    hardcoded_options = [mode: :binary, active: false]
-
     resolved_options =
-      default_options |> Keyword.merge(user_options) |> Keyword.merge(hardcoded_options)
+      default_options |> Keyword.merge(user_options) |> Keyword.merge(@hardcoded_options)
 
     if Keyword.take(resolved_options, [:keyfile, :key]) == [] do
       raise "transport_options must include one of keyfile or key"
@@ -98,6 +98,12 @@ defmodule ThousandIsland.Transports.SSL do
 
   @impl Transport
   defdelegate send(socket, data), to: :ssl
+
+  @impl Transport
+  def setopts(socket, options) do
+    resolved_options = Keyword.merge(options, @hardcoded_options)
+    :inet.setopts(socket, resolved_options)
+  end
 
   @impl Transport
   defdelegate shutdown(socket, way), to: :ssl
