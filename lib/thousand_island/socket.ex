@@ -39,11 +39,9 @@ defmodule ThousandIsland.Socket do
         length \\ 0,
         timeout \\ :infinity
       ) do
-    start = System.monotonic_time()
     result = transport_module.recv(socket, length, timeout)
-    duration = System.monotonic_time() - start
 
-    :telemetry.execute([:socket, :recv, :complete], %{duration: duration, result: result}, %{
+    :telemetry.execute([:socket, :recv, :complete], %{result: result}, %{
       connection_id: connection_id
     })
 
@@ -62,17 +60,11 @@ defmodule ThousandIsland.Socket do
         },
         data
       ) do
-    start = System.monotonic_time()
     result = transport_module.send(socket, data)
-    duration = System.monotonic_time() - start
 
-    :telemetry.execute(
-      [:socket, :send, :complete],
-      %{duration: duration, result: result, data: data},
-      %{
-        connection_id: connection_id
-      }
-    )
+    :telemetry.execute([:socket, :send, :complete], %{result: result, data: data}, %{
+      connection_id: connection_id
+    })
 
     result
   end
