@@ -8,6 +8,7 @@ defmodule ThousandIsland.MixProject do
       elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      elixirc_paths: elixirc_path(Mix.env()),
       name: "Thousand Island",
       description: "A simple & modern pure Elixir socket server",
       source_url: "https://github.com/mtrudel/thousand_island",
@@ -31,4 +32,7 @@ defmodule ThousandIsland.MixProject do
       {:credo, "~> 1.1.0", only: [:dev, :test], runtime: false}
     ]
   end
+
+  defp elixirc_path(:test), do: ["lib/", "test/support"]
+  defp elixirc_path(_), do: ["lib/"]
 end
