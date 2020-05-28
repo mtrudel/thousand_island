@@ -70,6 +70,39 @@ defmodule ThousandIsland.Socket do
   end
 
   @doc """
+  Sends the contents of the given file based on the provided offset & length
+  """
+  @spec sendfile(t(), String.t(), non_neg_integer(), non_neg_integer()) ::
+          {:ok, non_neg_integer()} | {:error, String.t()}
+  def sendfile(
+        %__MODULE__{
+          socket: socket,
+          transport_module: transport_module,
+          connection_id: connection_id
+        },
+        filename,
+        offset,
+        length
+      ) do
+    result = transport_module.sendfile(socket, filename, offset, length)
+
+    :telemetry.execute(
+      [:socket, :sendfile, :complete],
+      %{
+        result: result,
+        file: filename,
+        offset: offset,
+        length: length
+      },
+      %{
+        connection_id: connection_id
+      }
+    )
+
+    result
+  end
+
+  @doc """
   Sets the given flags on the socket
   """
   @spec setopts(t(), Transport.socket_opts()) :: :ok | {:error, String.t()}

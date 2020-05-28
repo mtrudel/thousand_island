@@ -84,6 +84,13 @@ defmodule ThousandIsland.Transports.TCP do
   defdelegate send(socket, data), to: :gen_tcp
 
   @impl Transport
+  def sendfile(socket, filename, offset, length) do
+    with {:ok, fd} <- :file.open(filename, [:raw]) do
+      :file.sendfile(fd, socket, offset, length, [])
+    end
+  end
+
+  @impl Transport
   def setopts(socket, options) do
     resolved_options = Keyword.merge(options, @hardcoded_options)
     :inet.setopts(socket, resolved_options)

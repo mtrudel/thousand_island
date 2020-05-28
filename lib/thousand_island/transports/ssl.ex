@@ -100,6 +100,16 @@ defmodule ThousandIsland.Transports.SSL do
   defdelegate send(socket, data), to: :ssl
 
   @impl Transport
+  def sendfile(socket, filename, offset, length) do
+    # We can't use :file.sendfile here since it works on clear sockets, not ssl
+    # sockets. Build our own (much slower and not optimized for large files) version.
+    with {:ok, fd} <- :file.open(filename, [:raw]),
+         {:ok, data} <- :file.pread(fd, offset, length) do
+      :ssl.send(socket, data)
+    end
+  end
+
+  @impl Transport
   def setopts(socket, options) do
     resolved_options = Keyword.merge(options, @hardcoded_options)
     :inet.setopts(socket, resolved_options)

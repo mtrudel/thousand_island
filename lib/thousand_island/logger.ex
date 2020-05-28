@@ -52,6 +52,7 @@ defmodule ThousandIsland.Logger do
       [:listener, :start],
       [:socket, :recv, :complete],
       [:socket, :send, :complete],
+      [:socket, :sendfile, :complete],
       [:socket, :shutdown, :complete],
       [:socket, :close, :complete]
     ]

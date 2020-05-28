@@ -60,6 +60,7 @@ defmodule ThousandIsland do
   a result of the TLS library being unable to agree on certificates or ciphers.
   * `[:socket, :recv, :complete]`: Emitted whenever a `ThousandIsland.Socket.recv/3` call completes.
   * `[:socket, :send, :complete]`: Emitted whenever a `ThousandIsland.Socket.send/2` call completes.
+  * `[:socket, :sendfile, :complete]`: Emitted whenever a `ThousandIsland.Socket.sendfile/4` call completes.
   * `[:socket, :shutdown, :complete]`: Emitted whenever a `ThousandIsland.Socket.shutdown/2` call completes.
   * `[:socket, :close, :complete]`: Emitted wheneverr a `ThousandIsland.Socket.close/1` call completes.
 

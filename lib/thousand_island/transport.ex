@@ -72,6 +72,17 @@ defmodule ThousandIsland.Transport do
   @callback send(socket(), data :: IO.iodata()) :: :ok | {:error, String.t()}
 
   @doc """
+  Sends the contents of the given file based on the provided offset & length
+  """
+  @callback sendfile(
+              socket(),
+              filename :: String.t(),
+              offset :: non_neg_integer(),
+              length :: non_neg_integer()
+            ) ::
+              {:ok, non_neg_integer()} | {:error, String.t()}
+
+  @doc """
   Sets the given options on the socket. Should disallow setting of options which
   are not compatible with Thousand Island
   """

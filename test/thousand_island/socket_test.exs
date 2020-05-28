@@ -35,6 +35,15 @@ defmodule ThousandIsland.SocketTest do
 
         context.client_mod.close(client)
       end
+
+      test "it should properly send files", context do
+        {:ok, port} = start_handler(Handlers.Sendfile, context.server_opts)
+        {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
+
+        assert context.client_mod.recv(client, 9) == {:ok, 'ABCDEFBCD'}
+
+        context.client_mod.close(client)
+      end
     end
   end)
 
