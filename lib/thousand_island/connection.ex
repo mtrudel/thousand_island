@@ -101,6 +101,8 @@ defmodule ThousandIsland.Connection do
               %{exception: e, formatted_exception: formatted_exception},
               connection_info
             )
+
+            reraise e, __STACKTRACE__
         end
 
       {:error, reason} ->
