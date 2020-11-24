@@ -102,7 +102,9 @@ defmodule ThousandIsland.Connection do
               connection_info
             )
 
-            reraise e, __STACKTRACE__
+            if Application.get_env(:thousand_island, :reraise_on_error, true) do
+              reraise e, __STACKTRACE__
+            end
         end
 
       {:error, reason} ->
