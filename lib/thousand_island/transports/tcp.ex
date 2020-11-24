@@ -115,4 +115,7 @@ defmodule ThousandIsland.Transports.TCP do
     ip = ip_tuple |> :inet.ntoa() |> to_string()
     %{address: ip, port: port, ssl_cert: nil}
   end
+
+  @impl Transport
+  defdelegate getstat(socket), to: :inet
 end

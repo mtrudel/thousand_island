@@ -141,4 +141,7 @@ defmodule ThousandIsland.Transports.SSL do
 
     %{address: ip, port: port, ssl_cert: cert}
   end
+
+  @impl Transport
+  defdelegate getstat(socket), to: :ssl
 end

@@ -21,6 +21,9 @@ defmodule ThousandIsland.Transport do
           ssl_cert: String.t() | nil
         }
 
+  @typedoc "Connection statistics for a given socket"
+  @type socket_stats() :: {:ok, [{:inet.stat_option(), integer()}]} | {:error, :inet.posix()}
+
   @typedoc "Options which can be set on a socket via setopts/2"
   @type socket_options() :: [:inet.socket_setopt()]
 
@@ -111,4 +114,9 @@ defmodule ThousandIsland.Transport do
   Returns information in the form of `t:socket_info()` about the remote end of the socket.
   """
   @callback peer_info(socket()) :: socket_info()
+
+  @doc """
+  Returns stats about the connection on the socket.
+  """
+  @callback getstat(socket()) :: socket_stats()
 end

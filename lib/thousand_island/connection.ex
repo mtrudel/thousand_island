@@ -76,7 +76,7 @@ defmodule ThousandIsland.Connection do
           |> handler_module.handle_connection(handler_opts)
 
           stats =
-            case :inet.getstat(transport_socket) do
+            case transport_module.getstat(transport_socket) do
               {:ok, stats} -> stats
               _ -> %{}
             end
