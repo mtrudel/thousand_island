@@ -1,6 +1,6 @@
 # 🏝🏝🏝 Thousand Island 🏝🏝🏝 
 
-[![Build Status](https://travis-ci.org/mtrudel/thousand_island.svg?branch=master)](https://travis-ci.org/mtrudel/thousand_island)
+[![Build Status](https://github.com/mtrudel/thousand_island/workflows/Elixir%20CI/badge.svg)](https://github.com/mtrudel/thousand_island/actions)
 [![Hex.pm](https://img.shields.io/hexpm/v/thousand_island.svg?style=flat-square)](https://hex.pm/packages/thousand_island)
 
 [Documentation](https://hexdocs.pm/thousand_island)
