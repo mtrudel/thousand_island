@@ -59,7 +59,7 @@ jobs:
         key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-plts-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
 
     - name: Create PLTs
-      if: steps.plt-cache.outputs.cache-hit != 'true'
+      #if: steps.plt-cache.outputs.cache-hit != 'true'
       run: |
         mkdir -p priv/plts
         mix dialyzer --plt
