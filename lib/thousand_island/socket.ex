@@ -11,11 +11,11 @@ defmodule ThousandIsland.Socket do
   alias ThousandIsland.{ServerConfig, Transport}
 
   @typedoc "A reference to a socket along with metadata describing how to use it"
-  @opaque t :: %__MODULE__{
-            socket: Transport.socket(),
-            transport_module: module(),
-            connection_id: String.t()
-          }
+  @type t :: %__MODULE__{
+          socket: Transport.socket(),
+          transport_module: module(),
+          connection_id: String.t()
+        }
 
   @doc false
   @spec new(Transport.socket(), String.t(), ServerConfig.t()) :: t()
@@ -51,7 +51,7 @@ defmodule ThousandIsland.Socket do
   @doc """
   Sends the given data (specified as a binary or an IO list) on the given socket.
   """
-  @spec send(t(), IO.iodata()) :: :ok | {:error, term()}
+  @spec send(t(), IO.chardata()) :: :ok | {:error, term()}
   def send(
         %__MODULE__{
           socket: socket,
@@ -105,7 +105,7 @@ defmodule ThousandIsland.Socket do
   @doc """
   Sets the given flags on the socket
   """
-  @spec setopts(t(), Transport.socket_opts()) :: :ok | {:error, String.t()}
+  @spec setopts(t(), Transport.socket_options()) :: :ok | {:error, String.t()}
   def setopts(%__MODULE__{socket: socket, transport_module: transport_module}, options) do
     transport_module.setopts(socket, options)
   end

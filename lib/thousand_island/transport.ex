@@ -9,16 +9,20 @@ defmodule ThousandIsland.Transport do
   """
 
   @typedoc "A listener socket used to wait for connections"
-  @opaque listener_socket() :: port()
+  @type listener_socket() :: any()
 
   @typedoc "A socket representing a client connection"
-  @opaque socket() :: port()
+  @type socket() :: any()
 
   @typedoc "Information about an endpoint (either remote ('peer') or local"
-  @type socket_info() :: %{address: String.t(), port: :inet.port_number()}
+  @type socket_info() :: %{
+          address: String.t(),
+          port: :inet.port_number(),
+          ssl_cert: String.t() | nil
+        }
 
   @typedoc "Options which can be set on a socket via setopts/2"
-  @type socket_options() :: [:inet.socket_setopts()]
+  @type socket_options() :: [:inet.socket_setopt()]
 
   @typedoc "The direction in which to shutdown a connection in advance of closing it"
   @type way() :: :read | :write | :read_write
@@ -69,7 +73,7 @@ defmodule ThousandIsland.Transport do
   @doc """
   Sends the given data (specified as a binary or an IO list) on the given socket.
   """
-  @callback send(socket(), data :: IO.iodata()) :: :ok | {:error, String.t()}
+  @callback send(socket(), data :: IO.chardata()) :: :ok | {:error, String.t()}
 
   @doc """
   Sends the contents of the given file based on the provided offset & length

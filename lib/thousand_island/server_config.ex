@@ -1,14 +1,15 @@
 defmodule ThousandIsland.ServerConfig do
   @moduledoc false
 
-  @opaque t :: %__MODULE__{
-            port: :inet.port_number(),
-            transport_module: module(),
-            transport_opts: keyword(),
-            handler_module: module(),
-            handler_opts: term(),
-            num_acceptors: pos_integer()
-          }
+  @typedoc "A set of configuration parameters for a ThousandIsland server instance"
+  @type t :: %__MODULE__{
+          port: :inet.port_number(),
+          transport_module: module(),
+          transport_opts: keyword(),
+          handler_module: module(),
+          handler_opts: term(),
+          num_acceptors: pos_integer()
+        }
 
   @typedoc "Valid options when creating a ServerConfig struct"
   @type options() :: [
