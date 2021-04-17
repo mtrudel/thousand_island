@@ -5,12 +5,20 @@ defmodule ThousandIsland.Handlers.Discard do
   https://en.wikipedia.org/wiki/Discard_Protocol
   """
 
+  @behaviour ThousandIsland.Handler
+
+  use Task
+
   alias ThousandIsland.{Handler, Socket}
 
-  @behaviour Handler
-
   @impl Handler
-  def handle_connection(socket, _opts) do
+  def start_link(arg) do
+    Task.start_link(__MODULE__, :run, [arg])
+  end
+
+  def run(_arg) do
+    {:ok, socket} = Socket.get_socket()
+
     consume(socket)
   end
 

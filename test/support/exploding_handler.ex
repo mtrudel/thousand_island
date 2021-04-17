@@ -1,12 +1,19 @@
 defmodule ThousandIsland.Handlers.Exploding do
   @moduledoc false
 
-  alias ThousandIsland.Handler
+  @behaviour ThousandIsland.Handler
 
-  @behaviour Handler
+  use Task
+
+  alias ThousandIsland.{Handler, Socket}
 
   @impl Handler
-  def handle_connection(_socket, _opts) do
+  def start_link(arg) do
+    Task.start_link(__MODULE__, :run, [arg])
+  end
+
+  def run(_arg) do
+    {:ok, _socket} = Socket.get_socket()
     raise "boom"
   end
 end

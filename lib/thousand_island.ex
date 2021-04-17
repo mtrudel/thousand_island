@@ -1,6 +1,6 @@
 defmodule ThousandIsland do
   @moduledoc """
-  Provides a high-level interface for starting and managing `ThousandIsland.Server`
+  Provides a high-level interface for starting and managing `ThousandIsland` server
   instances. Server instances exist as a process tree, which is usually started
   by starting this module's child spec within an existing supervision tree,
   or by calling `start_link/1` directly. 
@@ -45,19 +45,13 @@ defmodule ThousandIsland do
   can also be hooked by your application for logging or metric purposes. The following is a complete list of events emitted by Thousand Island:
 
   * `[:listener, :start]`: Emitted when the server first starts up. 
-  * `[:transport, :listen, :start]`: Emitted when a transport module successfully
-  listens on the configured port.
+  * `[:transport, :listen, :start]`: Emitted when a transport module successfully listens on the configured port.
   * `[:acceptor, :start]`: Emitted when an acceptor process starts up.
-  * `[:acceptor, :accept]`: Emitted when an acceptor process accepts a new client
-  connection.
+  * `[:acceptor, :accept]`: Emitted when an acceptor process accepts a new client connection.
   * `[:acceptor, :shutdown]`: Emitted when an acceptor process shuts down.
-  * `[:connection, :handler, :start]`: Emitted when a connection is started.
-  * `[:connection, :handler, :complete]`: Emitted when a connection completes normally.
-  * `[:connection, :handler, :exception]`: Emitted when a Handler raises an exception during processing.
-  * `[:connection, :handler, :startup_timeout]`: Emitted when the transfer of the underlying socket
-  does not complete in time. Internal-only for the most part.
-  * `[:connection, :handler, :handshake_error]`: Emitted when the handshake fails, most often
-  a result of the TLS library being unable to agree on certificates or ciphers.
+  * `[:socket, :start]`: Emitted whenever a `ThousandIsland.Socket` handler process is created
+  * `[:socket, :handshake, :complete]`: Emitted whenever a `ThousandIsland.Socket.handshake/1` call completes.
+  * `[:socket, :handshake, :error]`: Emitted whenever a `ThousandIsland.Socket.handshake/1` call errors.
   * `[:socket, :recv, :complete]`: Emitted whenever a `ThousandIsland.Socket.recv/3` call completes.
   * `[:socket, :send, :complete]`: Emitted whenever a `ThousandIsland.Socket.send/2` call completes.
   * `[:socket, :sendfile, :complete]`: Emitted whenever a `ThousandIsland.Socket.sendfile/4` call completes.
@@ -75,7 +69,7 @@ defmodule ThousandIsland do
   * `handler_module`: The name of the module used to handle connections to this server.
   The module is expected to implement the `ThousandIsland.Handler` behaviour. Required.
   * `handler_options`: A term which is passed as the second argument to all 
-  `c:ThousandIsland.Handler.handle_connection/2` calls. Optional.
+  `c:ThousandIsland.Handler.start_link/1` calls. Optional.
   * `port`: The TCP port number to listen on. If not specified this defaults to 4000.
   If a port number of `0` is given, the server will dynamically assign a port number
   which can then be obtained via `local_port/1`.
@@ -114,7 +108,7 @@ defmodule ThousandIsland do
   end
 
   @doc """
-  Starts a `ThousandIsland.Server` instance with the given options. Returns a pid
+  Starts a `ThousandIsland` instance with the given options. Returns a pid
   that can be used to further manipulate the server via other functions defined on
   this module in the case of success, or an error tuple describing the reason the
   server was unable to start in the case of failure.
