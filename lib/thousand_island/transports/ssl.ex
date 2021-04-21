@@ -110,7 +110,7 @@ defmodule ThousandIsland.Transports.SSL do
   end
 
   @impl Transport
-  defdelegate setopts(socket, options), to: :inet
+  defdelegate setopts(socket, options), to: :ssl
 
   @impl Transport
   defdelegate shutdown(socket, way), to: :ssl
