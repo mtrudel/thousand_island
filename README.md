@@ -38,82 +38,20 @@ folder of this project. A simple implementation would look like this:
 
 ```elixir
 defmodule Echo do
-  @behaviour ThousandIsland.Handler
-
-  use Task
+  use ThousandIsland.Handler
 
   @impl ThousandIsland.Handler
-  def start_link(arg) do
-    Task.start_link(__MODULE__, :run, [arg])
-  end
-
-  def run(_arg) do
-    {:ok, socket} = ThousandIsland.Socket.get_socket()
-    {:ok, req} = ThousandIsland.Socket.recv(socket)
-    ThousandIsland.Socket.send(socket, req)
+  def handle_data(data, socket, state) do
+    ThousandIsland.Socket.send(socket, data)
+    {:ok, :continue, state}
   end
 end
 
 {:ok, pid} = ThousandIsland.start_link(port: 1234, handler_module: Echo)
 ```
 
-This will start a server on TCP port 1234, with each new connection being handled by
-a call to `Echo.start_link/1`. The implementation above reads in a chunk
-of data from the client, echoes it back over the socket, and returns (thus closing
-the connection).
-
-#### GenServer Handlers
-
-While the Task-based approach described above is sufficient for many simple protocols,
-it is often desirable to be able to send messages to a connected client asynchronously.
-To accomplish this, a GenServer based process can be created in your handler module,
-allowing for it to respond to messages sent from elsewhere in your application & take
-action on the socket. A simple example follows:
-
-```elixir
-defmodule Messenger do
-  @behaviour ThousandIsland.Handler
-
-  use GenServer, restart: :temporary
-
-  @impl ThousandIsland.Handler
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, args)
-  end
-
-  def send_message(pid, message) do
-    GenServer.call(pid, {:send, message})
-  end
-
-  def init(_args) do
-    {:ok, nil}
-  end
-
-  def handle_call({:send, message}, _from, socket) do
-    case socket do
-      %ThousandIsland.Socket{} = socket ->
-        ThousandIsland.Socket.send(socket, message <> "\n")
-        {:reply, :ok, socket}
-
-      nil ->
-        {:reply, {:error, :socket_not_ready_yet}, socket}
-    end
-  end
-
-  def handle_info({:thousand_island_ready, socket}, _) do
-    ThousandIsland.Socket.handshake(socket)
-    ThousandIsland.Socket.setopts(socket, active: true)
-    {:noreply, socket}
-  end
-
-  def handle_info({:tcp, _socket, message}, state) do
-    IO.puts("Got message: #{message}")
-    {:noreply, state}
-  end
-end
-
-{:ok, pid} = ThousandIsland.start_link(port: 1234, handler_module: Messenger)
-```
+This will start a server on TCP port 1234. The implementation echoes each received 
+packet back to the client.
 
 ### Starting a Thousand Island Server
 
@@ -123,8 +61,8 @@ complete description, consult `ThousandIsland.start_link/1`):
 
 * `handler_module`: The name of the module used to handle connections to this server.
 The module is expected to implement the `ThousandIsland.Handler` behaviour. Required.
-* `handler_options`: A term which is passed as the argument to
-`c:ThousandIsland.Handler.start_link/1` calls. Optional.
+* `handler_options`: A term which is passed as the initial state value to 
+`c:ThousandIsland.Handler.handle_connection/2` calls. Optional, defaulting to nil.
 * `port`: The TCP port number to listen on. If not specified this defaults to 4000.
 * `transport_module`: The name of the module which provides basic socket functions.
 Thousand Island provides `ThousandIsland.Transports.TCP` and `ThousandIsland.Transports.SSL`,
@@ -189,7 +127,7 @@ Graphically, this shakes out like so:
                             /      \
               Acceptor (task)     DynamicSupervisor
                                     / ....n.... \
-                                  Handler Processes (task / gen_server)
+                                 Handler (gen_server)
 ```
 
 Thousand Island does not use named processes or other 'global' state internally

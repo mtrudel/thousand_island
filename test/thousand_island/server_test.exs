@@ -7,7 +7,7 @@ defmodule ThousandIsland.ServerTest do
   describe "tests with an echo handler" do
     setup do
       {:ok, server_pid} =
-        start_supervised({ThousandIsland, port: 0, handler_module: Handlers.Echo})
+        start_supervised({ThousandIsland, port: 0, handler_module: Handlers.SyncEcho})
 
       {:ok, port} = ThousandIsland.local_port(server_pid)
       {:ok, %{server_pid: server_pid, port: port}}
@@ -65,9 +65,10 @@ defmodule ThousandIsland.ServerTest do
       :gen_tcp.close(client)
 
       events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
-      assert length(events) == 2
-      assert {[:socket, :send, :complete], %{data: "HELLO", result: :ok}, _} = Enum.at(events, 0)
-      assert {[:socket, :recv, :complete], %{result: {:ok, "HELLO"}}, _} = Enum.at(events, 1)
+      assert length(events) == 3
+      assert {[:socket, :recv, :complete], %{result: {:ok, "HELLO"}}, _} = Enum.at(events, 0)
+      assert {[:socket, :send, :complete], %{data: "HELLO", result: :ok}, _} = Enum.at(events, 1)
+      assert {[:socket, :close, :complete], %{}, _} = Enum.at(events, 2)
     end
   end
 

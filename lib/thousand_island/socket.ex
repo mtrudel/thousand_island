@@ -8,8 +8,6 @@ defmodule ThousandIsland.Socket do
 
   alias ThousandIsland.Transport
 
-  @ready_timeout 5000
-
   @typedoc "A reference to a socket along with metadata describing how to use it"
   @type t :: %__MODULE__{
           socket: Transport.socket(),
@@ -21,24 +19,6 @@ defmodule ThousandIsland.Socket do
   @spec new(Transport.socket(), module(), String.t()) :: t()
   def new(socket, transport_module, connection_id) do
     %__MODULE__{socket: socket, transport_module: transport_module, connection_id: connection_id}
-  end
-
-  @doc """
-  Convenience method for receiving a fully-setup socket. Note that this function
-  makes use of receive calls and as such is NOT SAFE for use within a GenServer or 
-  other module which manages a process' mailbox automatically. For proper setup of a GenServer
-  based handler, refer to the `ThousandIsland.Handler` module documentation.
-  """
-  @spec get_socket() :: {:ok, t()} | {:error, String.t()}
-  def get_socket() do
-    receive do
-      {:thousand_island_ready, socket} ->
-        with {:ok, _} <- handshake(socket) do
-          {:ok, socket}
-        end
-    after
-      @ready_timeout -> {:error, :ready_timeout}
-    end
   end
 
   @doc """

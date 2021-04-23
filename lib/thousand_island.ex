@@ -68,8 +68,8 @@ defmodule ThousandIsland do
 
   * `handler_module`: The name of the module used to handle connections to this server.
   The module is expected to implement the `ThousandIsland.Handler` behaviour. Required.
-  * `handler_options`: A term which is passed as the second argument to all 
-  `c:ThousandIsland.Handler.start_link/1` calls. Optional.
+  * `handler_options`: A term which is passed as the initial state value to 
+  `c:ThousandIsland.Handler.handle_connection/2` calls. Optional, defaulting to nil.
   * `port`: The TCP port number to listen on. If not specified this defaults to 4000.
   If a port number of `0` is given, the server will dynamically assign a port number
   which can then be obtained via `local_port/1`.
