@@ -1,17 +1,15 @@
 defmodule ThousandIsland.Handlers.HTTPHelloWorld do
   @moduledoc """
-  A sample Handler implementation of a simple HTTP Server. Intended to be the 
+  A sample Handler implementation of a simple HTTP Server. Intended to be the
   simplest thing that can answer a browser request and nothing more. Not even
   remotely strictly HTTP compliant.
   """
 
-  alias ThousandIsland.{Handler, Socket}
+  use ThousandIsland.Handler
 
-  @behaviour Handler
-
-  @impl Handler
-  def handle_connection(socket, _opts) do
-    {:ok, _req} = Socket.recv(socket)
-    Socket.send(socket, "HTTP/1.0 200 OK\r\n\r\nHello, World")
+  @impl ThousandIsland.Handler
+  def handle_data(_data, socket, state) do
+    ThousandIsland.Socket.send(socket, "HTTP/1.0 200 OK\r\n\r\nHello, World")
+    {:ok, :close, state}
   end
 end

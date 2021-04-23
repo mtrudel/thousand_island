@@ -2,13 +2,11 @@ defmodule ThousandIsland.Socket do
   @moduledoc """
   Encapsulates a client connection's underlying socket, providing a facility to
   read, write, and otherwise manipulate a connection from a client. 
-  `ThousandIsland.Socket` instances are passed to the application layer of a server
-  via the `c:ThousandIsland.Handler.handle_connection/2` callback. 
   """
 
   defstruct socket: nil, transport_module: nil, connection_id: nil
 
-  alias ThousandIsland.{ServerConfig, Transport}
+  alias ThousandIsland.Transport
 
   @typedoc "A reference to a socket along with metadata describing how to use it"
   @type t :: %__MODULE__{
@@ -18,9 +16,34 @@ defmodule ThousandIsland.Socket do
         }
 
   @doc false
-  @spec new(Transport.socket(), String.t(), ServerConfig.t()) :: t()
-  def new(socket, connection_id, %ServerConfig{transport_module: transport_module}) do
+  @spec new(Transport.socket(), module(), String.t()) :: t()
+  def new(socket, transport_module, connection_id) do
     %__MODULE__{socket: socket, transport_module: transport_module, connection_id: connection_id}
+  end
+
+  @doc """
+  Handshakes the underlying socket if it is required (as in the case of SSL sockets, for example). 
+  """
+  @spec handshake(t()) :: {:ok, t()} | {:error, String.t()}
+  def handshake(
+        %__MODULE__{
+          socket: transport_socket,
+          transport_module: transport_module,
+          connection_id: connection_id
+        } = socket
+      ) do
+    case transport_module.handshake(transport_socket) do
+      {:ok, _} ->
+        :telemetry.execute([:socket, :handshake, :complete], %{}, %{connection_id: connection_id})
+        {:ok, socket}
+
+      {:error, error} ->
+        :telemetry.execute([:socket, :handshake, :error], %{error: error}, %{
+          connection_id: connection_id
+        })
+
+        {:error, error}
+    end
   end
 
   @doc """
@@ -128,7 +151,8 @@ defmodule ThousandIsland.Socket do
   end
 
   @doc """
-  Closes the given socket.
+  Closes the given socket. Note that a socket is automatically closed when the handler
+  process which owns it terminates
   """
   @spec close(t()) :: :ok
   def close(%__MODULE__{

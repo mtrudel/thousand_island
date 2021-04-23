@@ -1,13 +1,12 @@
 defmodule ThousandIsland.Handlers.Sendfile do
   @moduledoc false
 
-  alias ThousandIsland.{Handler, Socket}
+  use ThousandIsland.Handler
 
-  @behaviour Handler
-
-  @impl Handler
-  def handle_connection(socket, _opts) do
-    Socket.sendfile(socket, Path.join(__DIR__, "sendfile"), 0, 6)
-    Socket.sendfile(socket, Path.join(__DIR__, "sendfile"), 1, 3)
+  @impl ThousandIsland.Handler
+  def handle_connection(socket, state) do
+    ThousandIsland.Socket.sendfile(socket, Path.join(__DIR__, "sendfile"), 0, 6)
+    ThousandIsland.Socket.sendfile(socket, Path.join(__DIR__, "sendfile"), 1, 3)
+    {:ok, :close, state}
   end
 end

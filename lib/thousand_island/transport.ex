@@ -33,6 +33,9 @@ defmodule ThousandIsland.Transport do
   @typedoc "The return value from a recv/3 call"
   @type on_recv() :: {:ok, binary()} | {:error, String.t()}
 
+  @typedoc "The return value from a handshake/1 call"
+  @type on_handshake() :: {:ok, socket()} | {:error, any()}
+
   @doc """
   Create and return a listener socket bound to the given port and configured per
   the provided options.
@@ -57,7 +60,7 @@ defmodule ThousandIsland.Transport do
   when negotiating an SSL connection). Transports which do not have such a 
   handshake can simply pass the socket through unchanged.
   """
-  @callback handshake(socket()) :: {:ok, socket()} | {:error, any()}
+  @callback handshake(socket()) :: on_handshake()
 
   @doc """
   Transfers ownership of the given socket to the given process. This will always

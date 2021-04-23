@@ -16,13 +16,7 @@ defmodule ThousandIsland.Logger do
   """
   @spec attach_logger(atom()) :: :ok | {:error, :already_exists}
   def attach_logger(:error) do
-    events = [
-      [:connection, :handler, :exception],
-      [:connection, :handler, :startup_timeout],
-      [:connection, :handler, :handshake_error]
-    ]
-
-    :telemetry.attach_many("#{__MODULE__}.error", events, &log_error/4, nil)
+    :telemetry.attach("#{__MODULE__}.info", [:socket, :handshake, :error], &log_error/4, nil)
   end
 
   def attach_logger(:info) do
@@ -34,12 +28,10 @@ defmodule ThousandIsland.Logger do
     attach_logger(:info)
 
     events = [
-      [:transport, :listen, :start],
       [:acceptor, :start],
       [:acceptor, :accept],
       [:acceptor, :shutdown],
-      [:connection, :handler, :start],
-      [:connection, :handler, :complete]
+      [:socket, :start]
     ]
 
     :telemetry.attach_many("#{__MODULE__}.debug", events, &log_debug/4, nil)
@@ -49,7 +41,7 @@ defmodule ThousandIsland.Logger do
     attach_logger(:debug)
 
     events = [
-      [:listener, :start],
+      [:socket, :handshake, :complete],
       [:socket, :recv, :complete],
       [:socket, :send, :complete],
       [:socket, :sendfile, :complete],
@@ -85,16 +77,10 @@ defmodule ThousandIsland.Logger do
   end
 
   @doc false
-  def log_error([:connection, :handler, :exception], measurements, metadata, _config) do
+  def log_error([:socket, :handshake, :error], measurements, metadata, _config) do
     Logger.error(
-      "Connection #{metadata.connection_id} handler #{metadata.server_config.handler_module} crashed with exception: #{
-        measurements.formatted_exception
-      }"
+      "Connection #{metadata.connection_id} handshake error #{inspect(measurements.error)}"
     )
-  end
-
-  def log_error([:connection, :handler, :handshake_error], measurements, metadata, _config) do
-    Logger.error("Connection #{metadata.connection_id} handshake error #{measurements.reason}")
   end
 
   def log_info([:transport, :listen, :start], measurements, _metadata, _config) do

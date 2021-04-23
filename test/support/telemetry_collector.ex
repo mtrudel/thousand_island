@@ -25,6 +25,6 @@ defmodule ThousandIsland.TelemetryCollector do
   end
 
   def handle_call(:get_events, _from, events) do
-    {:reply, events, events}
+    {:reply, Enum.reverse(events), events}
   end
 end

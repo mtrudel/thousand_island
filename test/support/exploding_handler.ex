@@ -1,12 +1,10 @@
 defmodule ThousandIsland.Handlers.Exploding do
   @moduledoc false
 
-  alias ThousandIsland.Handler
+  use ThousandIsland.Handler
 
-  @behaviour Handler
-
-  @impl Handler
-  def handle_connection(_socket, _opts) do
+  @impl ThousandIsland.Handler
+  def handle_connection(_socket, _state) do
     raise "boom"
   end
 end

@@ -28,7 +28,7 @@ defmodule ThousandIsland.Transports.TCP do
   ```
 
   The following options are required for the proper operation of Thousand Island
-  and cannot be overridden:
+  and cannot be overridden at startup (though they can be set via calls to `setopts/2`)
 
   ```elixir
   mode: :binary,
@@ -91,10 +91,7 @@ defmodule ThousandIsland.Transports.TCP do
   end
 
   @impl Transport
-  def setopts(socket, options) do
-    resolved_options = Keyword.merge(options, @hardcoded_options)
-    :inet.setopts(socket, resolved_options)
-  end
+  defdelegate setopts(socket, options), to: :inet
 
   @impl Transport
   defdelegate shutdown(socket, way), to: :gen_tcp
