@@ -64,22 +64,14 @@ defmodule ThousandIsland.ServerTest do
       {:ok, 'HELLO'} = :gen_tcp.recv(client, 0)
       :gen_tcp.close(client)
 
+      # Give the server process a chance to shut down
+      Process.sleep(100)
+
       events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
       assert length(events) == 3
       assert {[:socket, :recv, :complete], %{result: {:ok, "HELLO"}}, _} = Enum.at(events, 0)
       assert {[:socket, :send, :complete], %{data: "HELLO", result: :ok}, _} = Enum.at(events, 1)
       assert {[:socket, :close, :complete], %{}, _} = Enum.at(events, 2)
-    end
-  end
-
-  describe "tests with an exploding handler" do
-    test "should handle crashing handlers" do
-      {:ok, server_pid} =
-        start_supervised({ThousandIsland, port: 0, handler_module: Handlers.Exploding})
-
-      {:ok, port} = ThousandIsland.local_port(server_pid)
-      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
-      :gen_tcp.close(client)
     end
   end
 end
