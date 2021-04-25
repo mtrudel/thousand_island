@@ -131,7 +131,8 @@ defmodule ThousandIsland.Handler do
   * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` function to 
   allow final cleanup to be done.
   """
-  @callback handle_connection(ThousandIsland.Socket.t(), state :: term()) :: handler_result()
+  @callback handle_connection(socket :: ThousandIsland.Socket.t(), state :: term()) ::
+              handler_result()
 
   @doc """
   This function is called whenever client data is received after `c:handle_connection/2` or `c:handle_data/3` have returned an
@@ -148,7 +149,7 @@ defmodule ThousandIsland.Handler do
   * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` function to 
   allow final cleanup to be done.
   """
-  @callback handle_data(data :: binary(), ThousandIsland.Socket.t(), state :: term()) ::
+  @callback handle_data(data :: binary(), socket :: ThousandIsland.Socket.t(), state :: term()) ::
               handler_result()
 
   @doc """
@@ -158,7 +159,7 @@ defmodule ThousandIsland.Handler do
   This function is not called if the connection is explicitly closed at this end, however it will be called in cases where
   `handle_connection/2` or `handle_data/3` return a `{:ok, :close, state}` tuple.
   """
-  @callback handle_close(ThousandIsland.Socket.t(), state :: term()) :: term()
+  @callback handle_close(socket :: ThousandIsland.Socket.t(), state :: term()) :: term()
 
   @doc """
   This function is called when the underlying socket encounters an error; it should perform any cleanup required
@@ -167,7 +168,8 @@ defmodule ThousandIsland.Handler do
   In addition to socket level errors, this function is also called ifn cases where `handle_connection/2` or `handle_data/3`
   return a `{:ok, :close, state}` tuple.
   """
-  @callback handle_error(reason :: String.t(), ThousandIsland.Socket.t(), term()) :: term()
+  @callback handle_error(reason :: String.t(), socket :: ThousandIsland.Socket.t(), term()) ::
+              term()
 
   @optional_callbacks handle_connection: 2, handle_data: 3, handle_close: 2, handle_error: 3
 
