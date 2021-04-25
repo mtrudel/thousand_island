@@ -14,7 +14,7 @@ defmodule ThousandIsland.Handler do
   an implementation & the value `{:ok, :close, state}` can be returned which will cause Thousand Island to close the connection
   to the client.
 
-  3. In cases where the server wishes to keep the connection open and wait for subsequent request from the client on the 
+  3. In cases where the server wishes to keep the connection open and wait for subsequent requests from the client on the 
   same socket, it may elect to return `{:ok, :continue, state}`. This will cause Thousand Island to wait for client data
   asynchronously; `c:handle_data/3` will be invoked when the client sends more data. 
 
@@ -168,7 +168,11 @@ defmodule ThousandIsland.Handler do
   In addition to socket level errors, this function is also called ifn cases where `handle_connection/2` or `handle_data/3`
   return a `{:ok, :close, state}` tuple.
   """
-  @callback handle_error(reason :: String.t(), socket :: ThousandIsland.Socket.t(), term()) ::
+  @callback handle_error(
+              reason :: String.t(),
+              socket :: ThousandIsland.Socket.t(),
+              state :: term()
+            ) ::
               term()
 
   @optional_callbacks handle_connection: 2, handle_data: 3, handle_close: 2, handle_error: 3
