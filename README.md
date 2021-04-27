@@ -50,8 +50,7 @@ end
 {:ok, pid} = ThousandIsland.start_link(port: 1234, handler_module: Echo)
 ```
 
-This will start a server on TCP port 1234. The implementation echoes each received 
-packet back to the client.
+For more information, please consult the `ThousandIsland.Handler` documentation.
 
 ### Starting a Thousand Island Server
 
