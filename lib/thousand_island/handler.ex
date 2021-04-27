@@ -197,11 +197,13 @@ defmodule ThousandIsland.Handler do
         GenServer.start_link(__MODULE__, arg)
       end
 
+      @impl GenServer
       def init(handler_options) do
         Process.flag(:trap_exit, true)
         {:ok, {nil, handler_options}}
       end
 
+      @impl GenServer
       def handle_info({:thousand_island_ready, socket}, {_, state}) do
         ThousandIsland.Socket.handshake(socket)
 
