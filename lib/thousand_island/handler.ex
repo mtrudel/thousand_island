@@ -80,6 +80,10 @@ defmodule ThousandIsland.Handler do
   end
   ```
 
+  Note that in this example we make use of the fact that the handler process is really just a GenServer to send it messages
+  which are able to make use of the underlying socket. This allows for bidirectional sending and receiving of messages in
+  an asynchronous manner.
+
   # When Handler Isn't Enough
 
   The `use ThousandIsland.Handler` implementation should be flexible enough to power just about any handler, however if
