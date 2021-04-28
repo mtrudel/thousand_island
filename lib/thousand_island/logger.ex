@@ -18,7 +18,7 @@ defmodule ThousandIsland.Logger do
   def attach_logger(:error) do
     events = [
       [:listener, :error],
-      [:socket, :handshake, :error]
+      [:socket, :handshake_error]
     ]
 
     :telemetry.attach_many("#{__MODULE__}.error", events, &log_error/4, nil)
@@ -51,7 +51,7 @@ defmodule ThousandIsland.Logger do
     attach_logger(:debug)
 
     events = [
-      [:socket, :handshake, :complete],
+      [:socket, :handshake],
       [:socket, :recv, :complete],
       [:socket, :send, :complete],
       [:socket, :sendfile, :complete],
@@ -91,7 +91,7 @@ defmodule ThousandIsland.Logger do
     Logger.error("Listener error #{inspect(measurements.error)}")
   end
 
-  def log_error([:socket, :handshake, :error], measurements, metadata, _config) do
+  def log_error([:socket, :handshake_error], measurements, metadata, _config) do
     Logger.error(
       "Connection #{metadata.connection_id} handshake error #{inspect(measurements.error)}"
     )

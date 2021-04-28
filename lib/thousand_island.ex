@@ -51,8 +51,8 @@ defmodule ThousandIsland do
   * `[:acceptor, :accept]`: Emitted when an acceptor process accepts a new client connection.
   * `[:acceptor, :shutdown]`: Emitted when an acceptor process shuts down.
   * `[:socket, :start]`: Emitted whenever a `ThousandIsland.Socket` handler process is created
-  * `[:socket, :handshake, :complete]`: Emitted whenever a `ThousandIsland.Socket.handshake/1` call completes.
-  * `[:socket, :handshake, :error]`: Emitted whenever a `ThousandIsland.Socket.handshake/1` call errors.
+  * `[:socket, :handshake]`: Emitted whenever a `ThousandIsland.Socket.handshake/1` call completes.
+  * `[:socket, :handshake_error]`: Emitted whenever a `ThousandIsland.Socket.handshake/1` call errors.
   * `[:socket, :recv, :complete]`: Emitted whenever a `ThousandIsland.Socket.recv/3` call completes.
   * `[:socket, :send, :complete]`: Emitted whenever a `ThousandIsland.Socket.send/2` call completes.
   * `[:socket, :sendfile, :complete]`: Emitted whenever a `ThousandIsland.Socket.sendfile/4` call completes.

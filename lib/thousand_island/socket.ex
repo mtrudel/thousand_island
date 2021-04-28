@@ -34,11 +34,11 @@ defmodule ThousandIsland.Socket do
       ) do
     case transport_module.handshake(transport_socket) do
       {:ok, _} ->
-        :telemetry.execute([:socket, :handshake, :complete], %{}, %{connection_id: connection_id})
+        :telemetry.execute([:socket, :handshake], %{}, %{connection_id: connection_id})
         {:ok, socket}
 
       {:error, error} ->
-        :telemetry.execute([:socket, :handshake, :error], %{error: error}, %{
+        :telemetry.execute([:socket, :handshake_error], %{error: error}, %{
           connection_id: connection_id
         })
 
