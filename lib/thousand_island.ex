@@ -1,6 +1,6 @@
 defmodule ThousandIsland do
   @moduledoc """
-  Provides a high-level interface for starting and managing `ThousandIsland` server
+  Provides a high-level interface for starting and managing Thousand Island server
   instances. Server instances exist as a process tree, which is usually started
   by starting this module's child spec within an existing supervision tree,
   or by calling `start_link/1` directly. 
@@ -44,8 +44,9 @@ defmodule ThousandIsland do
   logging is backed by `:telemetry` events internally, and if desired these events
   can also be hooked by your application for logging or metric purposes. The following is a complete list of events emitted by Thousand Island:
 
-  * `[:listener, :start]`: Emitted when the server first starts up. 
-  * `[:transport, :listen, :start]`: Emitted when a transport module successfully listens on the configured port.
+  * `[:listener, :start]`: Emitted when the server successfully listens on the configured port.
+  * `[:listener, :error]`: Emitted when the server encounters an error listening on the configured port.
+  * `[:listener, :shutdown]`: Emitted when the server shuts down.
   * `[:acceptor, :start]`: Emitted when an acceptor process starts up.
   * `[:acceptor, :accept]`: Emitted when an acceptor process accepts a new client connection.
   * `[:acceptor, :shutdown]`: Emitted when an acceptor process shuts down.
@@ -56,7 +57,7 @@ defmodule ThousandIsland do
   * `[:socket, :send, :complete]`: Emitted whenever a `ThousandIsland.Socket.send/2` call completes.
   * `[:socket, :sendfile, :complete]`: Emitted whenever a `ThousandIsland.Socket.sendfile/4` call completes.
   * `[:socket, :shutdown, :complete]`: Emitted whenever a `ThousandIsland.Socket.shutdown/2` call completes.
-  * `[:socket, :close, :complete]`: Emitted wheneverr a `ThousandIsland.Socket.close/1` call completes.
+  * `[:socket, :close, :complete]`: Emitted whenever a `ThousandIsland.Socket.close/1` call completes.
 
   Where meaurements indicate a time duration they are are expressed in `System` 
   `:native` units for performance reasons. They can be conveted to any desired 

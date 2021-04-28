@@ -16,12 +16,22 @@ defmodule ThousandIsland.Logger do
   """
   @spec attach_logger(atom()) :: :ok | {:error, :already_exists}
   def attach_logger(:error) do
-    :telemetry.attach("#{__MODULE__}.info", [:socket, :handshake, :error], &log_error/4, nil)
+    events = [
+      [:listener, :error],
+      [:socket, :handshake, :error]
+    ]
+
+    :telemetry.attach_many("#{__MODULE__}.error", events, &log_error/4, nil)
   end
 
   def attach_logger(:info) do
     attach_logger(:error)
-    :telemetry.attach("#{__MODULE__}.info", [:transport, :listen, :start], &log_info/4, nil)
+
+    events = [
+      [:listener, :start]
+    ]
+
+    :telemetry.attach_many("#{__MODULE__}.info", events, &log_info/4, nil)
   end
 
   def attach_logger(:debug) do
@@ -77,14 +87,18 @@ defmodule ThousandIsland.Logger do
   end
 
   @doc false
+  def log_error([:listener, :error], measurements, _metadata, _config) do
+    Logger.error("Listener error #{inspect(measurements.error)}")
+  end
+
   def log_error([:socket, :handshake, :error], measurements, metadata, _config) do
     Logger.error(
       "Connection #{metadata.connection_id} handshake error #{inspect(measurements.error)}"
     )
   end
 
-  def log_info([:transport, :listen, :start], measurements, _metadata, _config) do
-    Logger.info("Transport #{measurements.transport} listening on port #{measurements.port}")
+  def log_info([:listener, :start], measurements, _metadata, _config) do
+    Logger.info("Listener listening on port #{measurements.port}")
   end
 
   def log_debug(event, measurements, metadata, _config) do

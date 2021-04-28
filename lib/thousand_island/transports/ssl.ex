@@ -67,12 +67,6 @@ defmodule ThousandIsland.Transports.SSL do
       raise "transport_options must include one of certfile or cert"
     end
 
-    :telemetry.execute(
-      [:transport, :listen, :start],
-      %{port: port, options: resolved_options, transport: :ssl},
-      %{}
-    )
-
     :ssl.listen(port, resolved_options)
   end
 

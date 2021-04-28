@@ -26,13 +26,33 @@ defmodule ThousandIsland.Listener do
         transport_module: transport_module,
         transport_opts: transport_opts
       }) do
-    :telemetry.execute([:listener, :start], %{}, %{transport_module: transport_module})
-
     case transport_module.listen(port, transport_opts) do
       {:ok, listener_socket} ->
+        :telemetry.execute(
+          [:listener, :start],
+          %{
+            port: transport_module.listen_port(listener_socket)
+          },
+          %{
+            transport_module: transport_module,
+            transport_opts: transport_opts
+          }
+        )
+
         {:ok, %{listener_socket: listener_socket, transport_module: transport_module}}
 
-      {:error, _} = error ->
+      {:error, reason} = error ->
+        :telemetry.execute(
+          [:listener, :error],
+          %{
+            error: reason
+          },
+          %{
+            transport_module: transport_module,
+            transport_opts: transport_opts
+          }
+        )
+
         {:stop, error}
     end
   end
@@ -47,5 +67,9 @@ defmodule ThousandIsland.Listener do
         %{listener_socket: listener_socket, transport_module: transport_module} = state
       ) do
     {:reply, transport_module.listen_port(listener_socket), state}
+  end
+
+  def terminate(_reason, %{transport_module: transport_module}) do
+    :telemetry.execute([:listener, :shutdown], %{}, %{transport_module: transport_module})
   end
 end
