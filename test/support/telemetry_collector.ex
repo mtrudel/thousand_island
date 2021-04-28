@@ -16,7 +16,7 @@ defmodule ThousandIsland.TelemetryCollector do
   end
 
   def init(event_types) do
-    :telemetry.attach_many("#{__MODULE__}.trace", event_types, &record_event/4, self())
+    :telemetry.attach_many("#{inspect(self())}.trace", event_types, &record_event/4, self())
     {:ok, []}
   end
 

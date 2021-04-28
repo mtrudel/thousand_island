@@ -52,11 +52,11 @@ defmodule ThousandIsland.Logger do
 
     events = [
       [:socket, :handshake],
-      [:socket, :recv, :complete],
-      [:socket, :send, :complete],
-      [:socket, :sendfile, :complete],
-      [:socket, :shutdown, :complete],
-      [:socket, :close, :complete]
+      [:socket, :recv],
+      [:socket, :send],
+      [:socket, :sendfile],
+      [:socket, :shutdown],
+      [:socket, :close]
     ]
 
     :telemetry.attach_many("#{__MODULE__}.trace", events, &log_trace/4, nil)

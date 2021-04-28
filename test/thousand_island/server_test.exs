@@ -47,15 +47,15 @@ defmodule ThousandIsland.ServerTest do
       Task.await(task)
     end
 
-    test "it should emit telemetry events as expected", context do
+    test "it should emit telemetry events as expected when the client disconnects", context do
       {:ok, collector_pid} =
         start_supervised(
           {ThousandIsland.TelemetryCollector,
            [
-             [:socket, :recv, :complete],
-             [:socket, :send, :complete],
-             [:socket, :shutdown, :complete],
-             [:socket, :close, :complete]
+             [:socket, :recv],
+             [:socket, :send],
+             [:socket, :shutdown],
+             [:socket, :close]
            ]}
         )
 
@@ -69,9 +69,45 @@ defmodule ThousandIsland.ServerTest do
 
       events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
       assert length(events) == 3
-      assert {[:socket, :recv, :complete], %{result: {:ok, "HELLO"}}, _} = Enum.at(events, 0)
-      assert {[:socket, :send, :complete], %{data: "HELLO", result: :ok}, _} = Enum.at(events, 1)
-      assert {[:socket, :close, :complete], %{}, _} = Enum.at(events, 2)
+      assert {[:socket, :recv], %{result: {:ok, "HELLO"}}, _} = Enum.at(events, 0)
+      assert {[:socket, :send], %{data: "HELLO", result: :ok}, _} = Enum.at(events, 1)
+
+      assert {[:socket, :close],
+              %{octets_recv: 5, octets_sent: 5, packets_recv: 1, packets_sent: 1},
+              %{}} = Enum.at(events, 2)
+    end
+
+    test "it should emit telemetry events as expected when the server disconnects", context do
+      {:ok, collector_pid} =
+        start_supervised(
+          {ThousandIsland.TelemetryCollector,
+           [
+             [:socket, :recv],
+             [:socket, :send],
+             [:socket, :shutdown],
+             [:socket, :close]
+           ]}
+        )
+
+      {:ok, client} = :gen_tcp.connect(:localhost, context.port, active: false)
+      :ok = :gen_tcp.send(client, "HELLO")
+      {:ok, 'HELLO'} = :gen_tcp.recv(client, 0)
+
+      task = Task.async(fn -> ThousandIsland.stop(context.server_pid) end)
+
+      # Give the server process a chance to shut down
+      Process.sleep(100)
+
+      events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
+      assert length(events) == 3
+      assert {[:socket, :recv], %{result: {:ok, "HELLO"}}, _} = Enum.at(events, 0)
+      assert {[:socket, :send], %{data: "HELLO", result: :ok}, _} = Enum.at(events, 1)
+
+      assert {[:socket, :close],
+              %{octets_recv: 5, octets_sent: 5, packets_recv: 1, packets_sent: 1},
+              %{}} = Enum.at(events, 2)
+
+      Task.await(task)
     end
   end
 end

@@ -53,11 +53,11 @@ defmodule ThousandIsland do
   * `[:socket, :start]`: Emitted whenever a `ThousandIsland.Socket` handler process is created
   * `[:socket, :handshake]`: Emitted whenever a `ThousandIsland.Socket.handshake/1` call completes.
   * `[:socket, :handshake_error]`: Emitted whenever a `ThousandIsland.Socket.handshake/1` call errors.
-  * `[:socket, :recv, :complete]`: Emitted whenever a `ThousandIsland.Socket.recv/3` call completes.
-  * `[:socket, :send, :complete]`: Emitted whenever a `ThousandIsland.Socket.send/2` call completes.
-  * `[:socket, :sendfile, :complete]`: Emitted whenever a `ThousandIsland.Socket.sendfile/4` call completes.
-  * `[:socket, :shutdown, :complete]`: Emitted whenever a `ThousandIsland.Socket.shutdown/2` call completes.
-  * `[:socket, :close, :complete]`: Emitted whenever a `ThousandIsland.Socket.close/1` call completes.
+  * `[:socket, :recv]`: Emitted whenever a `ThousandIsland.Socket.recv/3` call completes.
+  * `[:socket, :send]`: Emitted whenever a `ThousandIsland.Socket.send/2` call completes.
+  * `[:socket, :sendfile]`: Emitted whenever a `ThousandIsland.Socket.sendfile/4` call completes.
+  * `[:socket, :shutdown]`: Emitted whenever a `ThousandIsland.Socket.shutdown/2` call completes.
+  * `[:socket, :close]`: Emitted whenever a `ThousandIsland.Socket.close/1` call completes.
 
   Where meaurements indicate a time duration they are are expressed in `System` 
   `:native` units for performance reasons. They can be conveted to any desired 

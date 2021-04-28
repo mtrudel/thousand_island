@@ -64,7 +64,7 @@ defmodule ThousandIsland.Socket do
       ) do
     result = transport_module.recv(socket, length, timeout)
 
-    :telemetry.execute([:socket, :recv, :complete], %{result: result}, %{
+    :telemetry.execute([:socket, :recv], %{result: result}, %{
       connection_id: connection_id
     })
 
@@ -85,7 +85,7 @@ defmodule ThousandIsland.Socket do
       ) do
     result = transport_module.send(socket, data)
 
-    :telemetry.execute([:socket, :send, :complete], %{result: result, data: data}, %{
+    :telemetry.execute([:socket, :send], %{result: result, data: data}, %{
       connection_id: connection_id
     })
 
@@ -110,7 +110,7 @@ defmodule ThousandIsland.Socket do
     result = transport_module.sendfile(socket, filename, offset, length)
 
     :telemetry.execute(
-      [:socket, :sendfile, :complete],
+      [:socket, :sendfile],
       %{
         result: result,
         file: filename,
@@ -146,7 +146,7 @@ defmodule ThousandIsland.Socket do
         way
       ) do
     result = transport_module.shutdown(socket, way)
-    :telemetry.execute([:socket, :shutdown, :complete], %{}, %{connection_id: connection_id})
+    :telemetry.execute([:socket, :shutdown], %{}, %{connection_id: connection_id})
     result
   end
 
@@ -160,8 +160,22 @@ defmodule ThousandIsland.Socket do
         transport_module: transport_module,
         connection_id: connection_id
       }) do
+    stats =
+      case transport_module.getstat(socket) do
+        {:ok, stats} -> stats
+        _ -> %{}
+      end
+
+    measurements = %{
+      octets_sent: stats[:send_oct],
+      packets_sent: stats[:send_cnt],
+      octets_recv: stats[:recv_oct],
+      packets_recv: stats[:recv_cnt]
+    }
+
     result = transport_module.close(socket)
-    :telemetry.execute([:socket, :close, :complete], %{}, %{connection_id: connection_id})
+
+    :telemetry.execute([:socket, :close], measurements, %{connection_id: connection_id})
     result
   end
 
