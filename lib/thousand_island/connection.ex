@@ -14,11 +14,6 @@ defmodule ThousandIsland.Connection do
     # Start by creating the worker process which will eventually handle this socket
     {:ok, pid} = DynamicSupervisor.start_child(sup_pid, {handler_module, handler_opts})
 
-    :telemetry.execute([:socket, :start], %{}, %{
-      connection_id: connection_id,
-      acceptor_id: acceptor_id
-    })
-
     # Since this process owns the socket at this point, it needs to be the
     # one to make this call. connection_pid is sitting and waiting for the
     # word from us to start processing, in order to ensure that we've made
@@ -30,7 +25,9 @@ defmodule ThousandIsland.Connection do
     # Now that we have transferred ownership over to the new process, create a Socket
     # struct and send it to the new process via a message so it can start working
     # with the socket (note that the new process will still need to handshake with the remote end)
-    socket = ThousandIsland.Socket.new(transport_socket, transport_module, connection_id)
+    socket =
+      ThousandIsland.Socket.new(transport_socket, transport_module, connection_id, acceptor_id)
+
     Process.send(pid, {:thousand_island_ready, socket}, [])
   end
 

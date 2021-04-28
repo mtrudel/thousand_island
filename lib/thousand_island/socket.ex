@@ -4,7 +4,7 @@ defmodule ThousandIsland.Socket do
   read, write, and otherwise manipulate a connection from a client. 
   """
 
-  defstruct socket: nil, transport_module: nil, connection_id: nil
+  defstruct socket: nil, transport_module: nil, connection_id: nil, acceptor_id: nil
 
   alias ThousandIsland.Transport
 
@@ -12,13 +12,19 @@ defmodule ThousandIsland.Socket do
   @type t :: %__MODULE__{
           socket: Transport.socket(),
           transport_module: module(),
-          connection_id: String.t()
+          connection_id: String.t(),
+          acceptor_id: String.t()
         }
 
   @doc false
-  @spec new(Transport.socket(), module(), String.t()) :: t()
-  def new(socket, transport_module, connection_id) do
-    %__MODULE__{socket: socket, transport_module: transport_module, connection_id: connection_id}
+  @spec new(Transport.socket(), module(), String.t(), String.t()) :: t()
+  def new(socket, transport_module, connection_id, acceptor_id) do
+    %__MODULE__{
+      socket: socket,
+      transport_module: transport_module,
+      connection_id: connection_id,
+      acceptor_id: acceptor_id
+    }
   end
 
   @doc """

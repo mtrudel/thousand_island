@@ -205,6 +205,11 @@ defmodule ThousandIsland.Handler do
 
       @impl GenServer
       def handle_info({:thousand_island_ready, socket}, {_, state}) do
+        :telemetry.execute([:handler, :start], %{}, %{
+          connection_id: socket.connection_id,
+          acceptor_id: socket.acceptor_id
+        })
+
         ThousandIsland.Socket.handshake(socket)
         {:noreply, {socket, state}, {:continue, :handle_connection}}
       end
@@ -239,11 +244,19 @@ defmodule ThousandIsland.Handler do
       @impl GenServer
       def terminate(:shutdown, {socket, state}) do
         ThousandIsland.Socket.close(socket)
+
+        :telemetry.execute([:handler, :shutdown], %{}, %{connection_id: socket.connection_id})
+
         __MODULE__.handle_close(socket, state)
       end
 
       def terminate(reason, {socket, state}) do
         ThousandIsland.Socket.close(socket)
+
+        :telemetry.execute([:handler, :error], %{error: reason}, %{
+          connection_id: socket.connection_id
+        })
+
         __MODULE__.handle_error(reason, socket, state)
       end
 
