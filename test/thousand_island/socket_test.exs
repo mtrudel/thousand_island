@@ -1,5 +1,6 @@
 defmodule ThousandIsland.SocketTest do
-  use ExUnit.Case, async: true
+  # False due to telemetry raciness
+  use ExUnit.Case, async: false
 
   alias ThousandIsland.Handlers
 
@@ -26,23 +27,48 @@ defmodule ThousandIsland.SocketTest do
     describe "common behaviour using #{setup_fn}" do
       setup setup_fn
 
-      test "should satisfy a basic echo transport handler", context do
+      test "should send and receive", context do
         {:ok, port} = start_handler(Handlers.Echo, context.server_opts)
         {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
 
         assert context.client_mod.send(client, "HELLO") == :ok
         assert context.client_mod.recv(client, 0) == {:ok, 'HELLO'}
-
-        context.client_mod.close(client)
       end
 
-      test "it should properly send files", context do
+      test "it should send files", context do
         {:ok, port} = start_handler(Handlers.Sendfile, context.server_opts)
         {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
 
         assert context.client_mod.recv(client, 9) == {:ok, 'ABCDEFBCD'}
+      end
 
+      test "it should close connections", context do
+        {:ok, port} = start_handler(Handlers.Closer, context.server_opts)
+        {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
+
+        assert context.client_mod.recv(client, 0) == {:error, :closed}
+      end
+
+      test "it should emit telemetry events as expected", context do
+        {:ok, collector_pid} = start_collector()
+        {:ok, port} = start_handler(Handlers.SyncEcho, context.server_opts)
+        {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
+
+        :ok = context.client_mod.send(client, "HELLO")
+        {:ok, 'HELLO'} = context.client_mod.recv(client, 0)
         context.client_mod.close(client)
+
+        # Give the server process a chance to shut down
+        Process.sleep(100)
+
+        events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
+        assert length(events) == 3
+        assert {[:socket, :recv], %{result: {:ok, "HELLO"}}, _} = Enum.at(events, 0)
+        assert {[:socket, :send], %{data: "HELLO", result: :ok}, _} = Enum.at(events, 1)
+
+        assert {[:socket, :close],
+                %{octets_recv: _, octets_sent: _, packets_recv: _, packets_sent: _},
+                %{}} = Enum.at(events, 2)
       end
     end
   end)
@@ -91,5 +117,11 @@ defmodule ThousandIsland.SocketTest do
     resolved_args = server_args |> Keyword.merge(port: 0, handler_module: handler)
     {:ok, server_pid} = start_supervised({ThousandIsland, resolved_args})
     ThousandIsland.local_port(server_pid)
+  end
+
+  defp start_collector do
+    start_supervised(
+      {ThousandIsland.TelemetryCollector, [[:socket, :recv], [:socket, :send], [:socket, :close]]}
+    )
   end
 end

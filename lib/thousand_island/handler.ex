@@ -206,7 +206,15 @@ defmodule ThousandIsland.Handler do
       @impl GenServer
       def handle_info({:thousand_island_ready, socket}, {_, state}) do
         ThousandIsland.Socket.handshake(socket)
+        {:noreply, {socket, state}, {:continue, :handle_connection}}
+      end
 
+      # Use a continue pattern here so that we have committed the socket
+      # to state in case the `c:handle_connection/2` callback raises an error.
+      # This ensures that the `c:terminate/2` calls below are able to properly
+      # close down the process
+      @impl GenServer
+      def handle_continue(:handle_connection, {socket, state}) do
         __MODULE__.handle_connection(socket, state)
         |> handle_continuation(socket)
       end
@@ -217,19 +225,26 @@ defmodule ThousandIsland.Handler do
       end
 
       def handle_info({msg, _}, {socket, state}) when msg in [:tcp_closed, :ssl_closed] do
-        __MODULE__.handle_close(socket, state)
         {:stop, :shutdown, {socket, state}}
       end
 
       def handle_info({msg, _, reason}, {socket, state}) when msg in [:tcp_error, :ssl_error] do
-        __MODULE__.handle_error(reason, socket, state)
-        {:stop, :shutdown, {socket, state}}
+        {:stop, reason, {socket, state}}
       end
 
       def handle_info(:timeout, {socket, state}) do
+        {:stop, :timeout, {socket, state}}
+      end
+
+      @impl GenServer
+      def terminate(:shutdown, {socket, state}) do
         ThousandIsland.Socket.close(socket)
-        __MODULE__.handle_error(:timeout, socket, state)
-        {:stop, :shutdown, {socket, state}}
+        __MODULE__.handle_close(socket, state)
+      end
+
+      def terminate(reason, {socket, state}) do
+        ThousandIsland.Socket.close(socket)
+        __MODULE__.handle_error(reason, socket, state)
       end
 
       defp handle_continuation(continuation, socket) do
@@ -243,14 +258,10 @@ defmodule ThousandIsland.Handler do
             {:noreply, {socket, state}, timeout}
 
           {:ok, :close, state} ->
-            ThousandIsland.Socket.close(socket)
-            __MODULE__.handle_close(socket, state)
             {:stop, :shutdown, {socket, state}}
 
           {:error, reason, state} ->
-            ThousandIsland.Socket.close(socket)
-            __MODULE__.handle_error(reason, socket, state)
-            {:stop, :shutdown, {socket, state}}
+            {:stop, reason, {socket, state}}
         end
       end
     end
