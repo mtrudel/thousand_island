@@ -14,9 +14,7 @@ defmodule ThousandIsland.Handlers.Messenger do
   @impl ThousandIsland.Handler
   def handle_connection(socket, state) do
     %{address: remote_address} = ThousandIsland.Socket.peer_info(socket)
-
     IO.puts("#{inspect(self())} received connection from #{remote_address}")
-
     {:ok, :continue, state}
   end
 
