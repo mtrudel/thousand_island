@@ -109,6 +109,9 @@ defmodule ThousandIsland.Handler do
 
   * Handler processes should trap exit if possible so that existing connections can be given a chance to cleanly shut
   down when shutting down a Thousand Island server instance.
+
+  * The `:handler` family of telemetry events are emitted by the `ThousandIsland.Handler` implementation. If you use your
+  own implementation in its place you will not see any such telemetry events.
   """
 
   @typedoc """
