@@ -1,0 +1,357 @@
+defmodule ThousandIsland.HandlerTest do
+  use ExUnit.Case
+
+  import ExUnit.CaptureLog
+
+  describe "state passing" do
+    defmodule StatePasser do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_connection(_socket, state) do
+        {:ok, :continue, state}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_data("ping", _socket, state) do
+        {:ok, :close, state}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_close(_socket, state) do
+        Logger.info("Closing with #{state}")
+      end
+    end
+
+    test "it should take the initial handler_options as initial state & preserve state through calls" do
+      {:ok, port} = start_handler(StatePasser, handler_options: :hello)
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      messages =
+        capture_log(fn ->
+          :gen_tcp.send(client, "ping")
+          Process.sleep(100)
+        end)
+
+      # Ensure that we saw the message displayed by the handle_close callback
+      assert messages =~ "Closing with hello"
+    end
+  end
+
+  describe "handle_connection" do
+    defmodule HandleConnection.HelloWorld do
+      use ThousandIsland.Handler
+
+      @impl ThousandIsland.Handler
+      def handle_connection(socket, state) do
+        ThousandIsland.Socket.send(socket, "HELLO")
+        {:ok, :continue, state}
+      end
+    end
+
+    test "it should keep the connection open if {:ok, :continue, state} is returned" do
+      {:ok, port} = start_handler(HandleConnection.HelloWorld)
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+      assert :gen_tcp.recv(client, 0, 100) == {:error, :timeout}
+    end
+
+    defmodule HandleConnection.Closer do
+      use ThousandIsland.Handler
+
+      @impl ThousandIsland.Handler
+      def handle_connection(_socket, state) do
+        {:ok, :close, state}
+      end
+    end
+
+    test "it should close the connection if {:ok, :close, state} is returned" do
+      {:ok, port} = start_handler(HandleConnection.Closer)
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      assert :gen_tcp.recv(client, 0) == {:error, :closed}
+    end
+
+    defmodule HandleConnection.Error do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_connection(_socket, state) do
+        {:error, :nope, state}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_error(error, _socket, _state) do
+        Logger.error("handle_error: #{error}")
+      end
+    end
+
+    test "it should close the connection and call handle_error if {:error, reason, state} is returned" do
+      {:ok, port} = start_handler(HandleConnection.Error)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          assert :gen_tcp.recv(client, 0) == {:error, :closed}
+          Process.sleep(100)
+        end)
+
+      # Ensure that we saw the message displayed by the handle_error callback
+      assert messages =~ "handle_error: nope"
+    end
+
+    defmodule HandleConnection.Exploding do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_connection(_socket, _state) do
+        raise "nope"
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_error({error, _stacktrace}, _socket, _state) do
+        Logger.error("handle_error: #{error.message}")
+      end
+    end
+
+    test "it should close the connection and call handle_error if an error is raised" do
+      {:ok, port} = start_handler(HandleConnection.Exploding)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          assert :gen_tcp.recv(client, 0) == {:error, :closed}
+          Process.sleep(100)
+        end)
+
+      # Ensure that we saw the message displayed by the handle_error callback
+      assert messages =~ "handle_error: nope"
+    end
+  end
+
+  describe "handle_data" do
+    defmodule HandleData.HelloWorld do
+      use ThousandIsland.Handler
+
+      @impl ThousandIsland.Handler
+      def handle_data("ping", socket, state) do
+        ThousandIsland.Socket.send(socket, "HELLO")
+        {:ok, :continue, state}
+      end
+    end
+
+    test "it should keep the connection open if {:ok, :continue, state} is returned" do
+      {:ok, port} = start_handler(HandleData.HelloWorld)
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      :gen_tcp.send(client, "ping")
+      assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+      assert :gen_tcp.recv(client, 0, 100) == {:error, :timeout}
+    end
+
+    defmodule HandleData.Closer do
+      use ThousandIsland.Handler
+
+      @impl ThousandIsland.Handler
+      def handle_data("ping", _socket, state) do
+        {:ok, :close, state}
+      end
+    end
+
+    test "it should close the connection if {:ok, :close, state} is returned" do
+      {:ok, port} = start_handler(HandleData.Closer)
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      :gen_tcp.send(client, "ping")
+      assert :gen_tcp.recv(client, 0) == {:error, :closed}
+    end
+
+    defmodule HandleData.Error do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_data("ping", _socket, state) do
+        {:error, :nope, state}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_error(error, _socket, _state) do
+        Logger.error("handle_error: #{error}")
+      end
+    end
+
+    test "it should close the connection and call handle_error if {:error, reason, state} is returned" do
+      {:ok, port} = start_handler(HandleData.Error)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          :gen_tcp.send(client, "ping")
+          assert :gen_tcp.recv(client, 0) == {:error, :closed}
+          Process.sleep(100)
+        end)
+
+      # Ensure that we saw the message displayed by the handle_error callback
+      assert messages =~ "handle_error: nope"
+    end
+
+    defmodule HandleData.Exploding do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_data("ping", _socket, _state) do
+        raise "nope"
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_error({error, _stacktrace}, _socket, _state) do
+        Logger.error("handle_error: #{error.message}")
+      end
+    end
+
+    test "it should close the connection and call handle_error if an error is raised" do
+      {:ok, port} = start_handler(HandleData.Exploding)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          :gen_tcp.send(client, "ping")
+          assert :gen_tcp.recv(client, 0) == {:error, :closed}
+          Process.sleep(100)
+        end)
+
+      # Ensure that we saw the message displayed by the handle_error callback
+      assert messages =~ "handle_error: nope"
+    end
+  end
+
+  describe "async waiting" do
+    defmodule Timeout do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_connection(_socket, state) do
+        {:ok, :continue, state, 50}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_error(error, _socket, _state) do
+        Logger.error("handle_error: #{error}")
+      end
+    end
+
+    test "it should close the connection and call handle_error the specified timeout is reached waiting for client data" do
+      {:ok, port} = start_handler(Timeout)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          assert :gen_tcp.recv(client, 0) == {:error, :closed}
+          Process.sleep(100)
+        end)
+
+      # Ensure that we saw the message displayed by the handle_error callback
+      assert messages =~ "handle_error: timeout"
+    end
+
+    defmodule DoNothing do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_close(_socket, _state) do
+        Logger.error("handle_close")
+      end
+    end
+
+    test "it should close the connection and call handle_close if the client closes the connection" do
+      {:ok, port} = start_handler(DoNothing)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          :gen_tcp.close(client)
+          Process.sleep(100)
+        end)
+
+      # Ensure that we saw the message displayed by the handle_close callback
+      assert messages =~ "handle_close"
+    end
+  end
+
+  describe "telemetry" do
+    defmodule Telemetry.Closer do
+      use ThousandIsland.Handler
+
+      @impl ThousandIsland.Handler
+      def handle_connection(_socket, state) do
+        {:ok, :close, state}
+      end
+    end
+
+    test "it should send relevant telemetry events on shutdown" do
+      {:ok, collector_pid} =
+        start_supervised(
+          {ThousandIsland.TelemetryCollector,
+           [[:handler, :start], [:handler, :shutdown], [:handler, :error]]}
+        )
+
+      {:ok, port} = start_handler(Telemetry.Closer)
+
+      capture_log(fn ->
+        :gen_tcp.connect(:localhost, port, active: false)
+        Process.sleep(100)
+      end)
+
+      events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
+      assert length(events) == 2
+      assert {[:handler, :start], _, _} = Enum.at(events, 0)
+      assert {[:handler, :shutdown], _, _} = Enum.at(events, 1)
+    end
+
+    defmodule Telemetry.Error do
+      use ThousandIsland.Handler
+
+      @impl ThousandIsland.Handler
+      def handle_connection(_socket, state) do
+        {:error, :nope, state}
+      end
+    end
+
+    test "it should send relevant telemetry events on error" do
+      {:ok, collector_pid} =
+        start_supervised(
+          {ThousandIsland.TelemetryCollector,
+           [[:handler, :start], [:handler, :shutdown], [:handler, :error]]}
+        )
+
+      {:ok, port} = start_handler(Telemetry.Error)
+
+      capture_log(fn ->
+        :gen_tcp.connect(:localhost, port, active: false)
+        Process.sleep(100)
+      end)
+
+      events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
+      assert length(events) == 2
+      assert {[:handler, :start], _, _} = Enum.at(events, 0)
+      assert {[:handler, :error], %{error: :nope}, _} = Enum.at(events, 1)
+    end
+  end
+
+  defp start_handler(handler, server_args \\ []) do
+    resolved_args = server_args |> Keyword.merge(port: 0, handler_module: handler)
+    {:ok, server_pid} = start_supervised({ThousandIsland, resolved_args})
+    ThousandIsland.local_port(server_pid)
+  end
+end
