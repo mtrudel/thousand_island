@@ -95,15 +95,13 @@ defmodule ThousandIsland.Transports.TCP do
 
   @impl Transport
   def local_info(socket) do
-    {:ok, {ip_tuple, port}} = :inet.sockname(socket)
-    ip = ip_tuple |> :inet.ntoa() |> to_string()
+    {:ok, {ip, port}} = :inet.sockname(socket)
     %{address: ip, port: port, ssl_cert: nil}
   end
 
   @impl Transport
   def peer_info(socket) do
-    {:ok, {ip_tuple, port}} = :inet.peername(socket)
-    ip = ip_tuple |> :inet.ntoa() |> to_string()
+    {:ok, {ip, port}} = :inet.peername(socket)
     %{address: ip, port: port, ssl_cert: nil}
   end
 

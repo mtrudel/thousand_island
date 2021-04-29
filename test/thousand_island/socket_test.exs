@@ -126,8 +126,8 @@ defmodule ThousandIsland.SocketTest do
       {:ok, local_port} = :inet.port(client)
 
       expected = [
-        %{address: "127.0.0.1", port: port, ssl_cert: nil},
-        %{address: "127.0.0.1", port: local_port, ssl_cert: nil}
+        %{address: {127, 0, 0, 1}, port: port, ssl_cert: nil},
+        %{address: {127, 0, 0, 1}, port: local_port, ssl_cert: nil}
       ]
 
       assert to_string(resp) == inspect(expected)
@@ -146,8 +146,8 @@ defmodule ThousandIsland.SocketTest do
       {:ok, resp} = context.client_mod.recv(client, 0)
 
       expected = [
-        %{address: "127.0.0.1", port: port, ssl_cert: nil},
-        %{address: "127.0.0.1", port: local_port, ssl_cert: nil}
+        %{address: {127, 0, 0, 1}, port: port, ssl_cert: nil},
+        %{address: {127, 0, 0, 1}, port: local_port, ssl_cert: nil}
       ]
 
       assert to_string(resp) == inspect(expected)

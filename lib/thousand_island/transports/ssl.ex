@@ -114,15 +114,13 @@ defmodule ThousandIsland.Transports.SSL do
 
   @impl Transport
   def local_info(socket) do
-    {:ok, {ip_tuple, port}} = :ssl.sockname(socket)
-    ip = ip_tuple |> :inet.ntoa() |> to_string()
+    {:ok, {ip, port}} = :ssl.sockname(socket)
     %{address: ip, port: port, ssl_cert: nil}
   end
 
   @impl Transport
   def peer_info(socket) do
-    {:ok, {ip_tuple, port}} = :ssl.peername(socket)
-    ip = ip_tuple |> :inet.ntoa() |> to_string()
+    {:ok, {ip, port}} = :ssl.peername(socket)
 
     cert =
       case :ssl.peercert(socket) do
