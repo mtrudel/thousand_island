@@ -1,5 +1,6 @@
 defmodule ThousandIsland.HandlerTest do
-  use ExUnit.Case
+  # False due to telemetry raciness
+  use ExUnit.Case, async: false
 
   import ExUnit.CaptureLog
 

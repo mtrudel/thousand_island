@@ -2,8 +2,6 @@ defmodule ThousandIsland.SocketTest do
   # False due to telemetry raciness
   use ExUnit.Case, async: false
 
-  alias ThousandIsland.Handlers
-
   def gen_tcp_setup(_context) do
     {:ok, %{client_mod: :gen_tcp, server_opts: []}}
   end
@@ -22,13 +20,57 @@ defmodule ThousandIsland.SocketTest do
      }}
   end
 
+  defmodule Echo do
+    use ThousandIsland.Handler
+
+    @impl ThousandIsland.Handler
+    def handle_connection(socket, state) do
+      {:ok, data} = ThousandIsland.Socket.recv(socket, 0)
+      ThousandIsland.Socket.send(socket, data)
+      {:ok, :close, state}
+    end
+  end
+
+  defmodule Sendfile do
+    use ThousandIsland.Handler
+
+    @impl ThousandIsland.Handler
+    def handle_connection(socket, state) do
+      ThousandIsland.Socket.sendfile(socket, Path.join(__DIR__, "../support/sendfile"), 0, 6)
+      ThousandIsland.Socket.sendfile(socket, Path.join(__DIR__, "../support/sendfile"), 1, 3)
+      {:ok, :close, state}
+    end
+  end
+
+  defmodule Closer do
+    use ThousandIsland.Handler
+
+    @impl ThousandIsland.Handler
+    def handle_connection(_socket, state) do
+      {:ok, :close, state}
+    end
+  end
+
+  defmodule Info do
+    use ThousandIsland.Handler
+
+    @impl ThousandIsland.Handler
+    def handle_connection(socket, state) do
+      peer_info = ThousandIsland.Socket.peer_info(socket)
+      local_info = ThousandIsland.Socket.local_info(socket)
+      ThousandIsland.Socket.send(socket, "#{inspect([local_info, peer_info])}")
+
+      {:ok, :close, state}
+    end
+  end
+
   [:gen_tcp_setup, :ssl_setup]
   |> Enum.each(fn setup_fn ->
     describe "common behaviour using #{setup_fn}" do
       setup setup_fn
 
       test "should send and receive", context do
-        {:ok, port} = start_handler(Handlers.Echo, context.server_opts)
+        {:ok, port} = start_handler(Echo, context.server_opts)
         {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
 
         assert context.client_mod.send(client, "HELLO") == :ok
@@ -36,14 +78,14 @@ defmodule ThousandIsland.SocketTest do
       end
 
       test "it should send files", context do
-        {:ok, port} = start_handler(Handlers.Sendfile, context.server_opts)
+        {:ok, port} = start_handler(Sendfile, context.server_opts)
         {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
 
         assert context.client_mod.recv(client, 9) == {:ok, 'ABCDEFBCD'}
       end
 
       test "it should close connections", context do
-        {:ok, port} = start_handler(Handlers.Closer, context.server_opts)
+        {:ok, port} = start_handler(Closer, context.server_opts)
         {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
 
         assert context.client_mod.recv(client, 0) == {:error, :closed}
@@ -51,7 +93,7 @@ defmodule ThousandIsland.SocketTest do
 
       test "it should emit telemetry events as expected", context do
         {:ok, collector_pid} = start_collector()
-        {:ok, port} = start_handler(Handlers.SyncEcho, context.server_opts)
+        {:ok, port} = start_handler(Echo, context.server_opts)
         {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
 
         :ok = context.client_mod.send(client, "HELLO")
@@ -62,13 +104,14 @@ defmodule ThousandIsland.SocketTest do
         Process.sleep(100)
 
         events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
-        assert length(events) == 3
-        assert {[:socket, :recv], %{result: {:ok, "HELLO"}}, _} = Enum.at(events, 0)
-        assert {[:socket, :send], %{data: "HELLO", result: :ok}, _} = Enum.at(events, 1)
+        assert length(events) == 4
+        assert {[:socket, :handshake], %{}, _} = Enum.at(events, 0)
+        assert {[:socket, :recv], %{result: {:ok, "HELLO"}}, _} = Enum.at(events, 1)
+        assert {[:socket, :send], %{data: "HELLO", result: :ok}, _} = Enum.at(events, 2)
 
         assert {[:socket, :close],
                 %{octets_recv: _, octets_sent: _, packets_recv: _, packets_sent: _},
-                %{}} = Enum.at(events, 2)
+                %{}} = Enum.at(events, 3)
       end
     end
   end)
@@ -77,7 +120,7 @@ defmodule ThousandIsland.SocketTest do
     setup :gen_tcp_setup
 
     test "it should provide correct connection info", context do
-      {:ok, port} = start_handler(Handlers.Info, context.server_opts)
+      {:ok, port} = start_handler(Info, context.server_opts)
       {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
       {:ok, resp} = context.client_mod.recv(client, 0)
       {:ok, local_port} = :inet.port(client)
@@ -97,7 +140,7 @@ defmodule ThousandIsland.SocketTest do
     setup :ssl_setup
 
     test "it should provide correct connection info", context do
-      {:ok, port} = start_handler(Handlers.Info, context.server_opts)
+      {:ok, port} = start_handler(Info, context.server_opts)
       {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
       {:ok, {_, local_port}} = context.client_mod.sockname(client)
       {:ok, resp} = context.client_mod.recv(client, 0)
@@ -121,7 +164,15 @@ defmodule ThousandIsland.SocketTest do
 
   defp start_collector do
     start_supervised(
-      {ThousandIsland.TelemetryCollector, [[:socket, :recv], [:socket, :send], [:socket, :close]]}
+      {ThousandIsland.TelemetryCollector,
+       [
+         [:socket, :handshake],
+         [:socket, :recv],
+         [:socket, :send],
+         [:socket, :sendfile],
+         [:socket, :shutdown],
+         [:socket, :close]
+       ]}
     )
   end
 end
