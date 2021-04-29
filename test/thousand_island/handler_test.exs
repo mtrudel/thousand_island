@@ -291,6 +291,35 @@ defmodule ThousandIsland.HandlerTest do
   end
 
   describe "telemetry" do
+    defmodule Telemetry.CloseOnData do
+      use ThousandIsland.Handler
+
+      @impl ThousandIsland.Handler
+      def handle_data(_data, _socket, state) do
+        {:ok, :close, state}
+      end
+    end
+
+    test "it should send relevant telemetry events on async receipt of data" do
+      {:ok, collector_pid} =
+        start_supervised(
+          {ThousandIsland.TelemetryCollector,
+           [[:handler, :start], [:handler, :shutdown], [:handler, :async_recv]]}
+        )
+
+      {:ok, port} = start_handler(Telemetry.CloseOnData)
+
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      :gen_tcp.send(client, "ping")
+      Process.sleep(100)
+
+      events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
+      assert length(events) == 3
+      assert {[:handler, :start], _, _} = Enum.at(events, 0)
+      assert {[:handler, :async_recv], %{data: "ping"}, _} = Enum.at(events, 1)
+      assert {[:handler, :shutdown], _, _} = Enum.at(events, 2)
+    end
+
     defmodule Telemetry.Closer do
       use ThousandIsland.Handler
 

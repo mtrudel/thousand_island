@@ -53,6 +53,7 @@ defmodule ThousandIsland.Logger do
     attach_logger(:debug)
 
     events = [
+      [:handler, :async_recv],
       [:socket, :handshake],
       [:socket, :recv],
       [:socket, :send],

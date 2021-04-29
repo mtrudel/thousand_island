@@ -232,6 +232,10 @@ defmodule ThousandIsland.Handler do
       end
 
       def handle_info({msg, _, data}, {socket, state}) when msg in [:tcp, :ssl] do
+        :telemetry.execute([:handler, :async_recv], %{data: data}, %{
+          connection_id: socket.connection_id
+        })
+
         __MODULE__.handle_data(data, socket, state)
         |> handle_continuation(socket)
       end
