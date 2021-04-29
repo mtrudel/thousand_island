@@ -80,9 +80,9 @@ usual rules regarding shutdown and shutdown timeouts apply. Immediately upon
 beginning the shutdown sequence the `ThousandIsland.ShutdownListener` will cause
 the listening socket to shut down, which in turn will cause all of the `Acceptor`
 processes to shut down as well. At this point all that is left in the supervision
-tree are several layers of Supervisors and whatever `Connection` processes were
+tree are several layers of Supervisors and whatever `Handler` processes were
 in progress when shutdown was initiated. At this point, standard Supervisor shutdown
-timeout semantics give existing connections a chance to finish things up. `Connection`
+timeout semantics give existing connections a chance to finish things up. `Handler`
 processes trap exit, so they continue running beyond shutdown until they either
 complete or are `:brutal_kill`ed after their shutdown timeout expires.
 
@@ -111,7 +111,7 @@ In typical cases its lifetime is directly related to that of the underlying conn
 
 This hierarchical approach reduces the time connections spend waiting to be accepted,
 and also reduces contention for `DynamicSupervisor` access when creating new
-`Connection` processes. Each `AcceptorSupervisor` subtree functions nearly
+`Handler` processes. Each `AcceptorSupervisor` subtree functions nearly
 autonomously, improving scalability and crash resiliency.
 
 Graphically, this shakes out like so:
