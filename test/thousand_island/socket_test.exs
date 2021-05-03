@@ -14,7 +14,8 @@ defmodule ThousandIsland.SocketTest do
          transport_module: ThousandIsland.Transports.SSL,
          transport_options: [
            certfile: Path.join(__DIR__, "../support/cert.pem"),
-           keyfile: Path.join(__DIR__, "../support/key.pem")
+           keyfile: Path.join(__DIR__, "../support/key.pem"),
+           alpn_preferred_protocols: ["foo"]
          ]
        ]
      }}
@@ -58,7 +59,12 @@ defmodule ThousandIsland.SocketTest do
     def handle_connection(socket, state) do
       peer_info = ThousandIsland.Socket.peer_info(socket)
       local_info = ThousandIsland.Socket.local_info(socket)
-      ThousandIsland.Socket.send(socket, "#{inspect([local_info, peer_info])}")
+      negotiated_protocol = ThousandIsland.Socket.negotiated_protocol(socket)
+
+      ThousandIsland.Socket.send(
+        socket,
+        "#{inspect([local_info, peer_info, negotiated_protocol])}"
+      )
 
       {:ok, :close, state}
     end
@@ -127,7 +133,8 @@ defmodule ThousandIsland.SocketTest do
 
       expected = [
         %{address: {127, 0, 0, 1}, port: port, ssl_cert: nil},
-        %{address: {127, 0, 0, 1}, port: local_port, ssl_cert: nil}
+        %{address: {127, 0, 0, 1}, port: local_port, ssl_cert: nil},
+        {:error, :protocol_not_negotiated}
       ]
 
       assert to_string(resp) == inspect(expected)
@@ -141,13 +148,20 @@ defmodule ThousandIsland.SocketTest do
 
     test "it should provide correct connection info", context do
       {:ok, port} = start_handler(Info, context.server_opts)
-      {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
+
+      {:ok, client} =
+        context.client_mod.connect(:localhost, port,
+          active: false,
+          alpn_advertised_protocols: ["foo"]
+        )
+
       {:ok, {_, local_port}} = context.client_mod.sockname(client)
       {:ok, resp} = context.client_mod.recv(client, 0)
 
       expected = [
         %{address: {127, 0, 0, 1}, port: port, ssl_cert: nil},
-        %{address: {127, 0, 0, 1}, port: local_port, ssl_cert: nil}
+        %{address: {127, 0, 0, 1}, port: local_port, ssl_cert: nil},
+        {:ok, "foo"}
       ]
 
       assert to_string(resp) == inspect(expected)

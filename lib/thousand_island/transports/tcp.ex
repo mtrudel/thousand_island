@@ -107,4 +107,7 @@ defmodule ThousandIsland.Transports.TCP do
 
   @impl Transport
   defdelegate getstat(socket), to: :inet
+
+  @impl Transport
+  def negotiated_protocol(_socket), do: {:error, :protocol_not_negotiated}
 end

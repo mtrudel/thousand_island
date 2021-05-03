@@ -36,6 +36,9 @@ defmodule ThousandIsland.Transport do
   @typedoc "The return value from a handshake/1 call"
   @type on_handshake() :: {:ok, socket()} | {:error, any()}
 
+  @typedoc "The return value from a negotiated_protocol/1 call"
+  @type negotiated_protocol_info() :: {:ok, binary()} | {:error, :protocol_not_negotiated}
+
   @doc """
   Create and return a listener socket bound to the given port and configured per
   the provided options.
@@ -122,4 +125,11 @@ defmodule ThousandIsland.Transport do
   Returns stats about the connection on the socket.
   """
   @callback getstat(socket()) :: socket_stats()
+
+  @doc """
+  Returns the protocol negotiated as part of handshaking. Most typically this is via TLS'
+  ALPN or NPN extensions. If the underlying transport does not support protocol negotiation
+  (or if one was not negotiated), `{:error, :protocol_not_negotiated}` is returned
+  """
+  @callback negotiated_protocol(socket()) :: negotiated_protocol_info()
 end

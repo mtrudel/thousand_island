@@ -200,4 +200,12 @@ defmodule ThousandIsland.Socket do
   def peer_info(%__MODULE__{socket: socket, transport_module: transport_module}) do
     transport_module.peer_info(socket)
   end
+
+  @doc """
+  Returns information about the protocol negotiated during transport handshaking (if any).
+  """
+  @spec negotiated_protocol(t()) :: Transport.negotiated_protocol_info()
+  def negotiated_protocol(%__MODULE__{socket: socket, transport_module: transport_module}) do
+    transport_module.negotiated_protocol(socket)
+  end
 end

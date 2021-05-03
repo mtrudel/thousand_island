@@ -133,4 +133,7 @@ defmodule ThousandIsland.Transports.SSL do
 
   @impl Transport
   defdelegate getstat(socket), to: :ssl
+
+  @impl Transport
+  defdelegate negotiated_protocol(socket), to: :ssl
 end
