@@ -212,7 +212,11 @@ defmodule ThousandIsland.Handler do
 
       @impl GenServer
       def handle_info({:thousand_island_ready, socket}, {_, state}) do
+        %{address: address, port: port} = ThousandIsland.Socket.peer_info(socket)
+
         :telemetry.execute([:handler, :start], %{}, %{
+          remote_address: address,
+          remote_port: port,
           connection_id: socket.connection_id,
           acceptor_id: socket.acceptor_id
         })

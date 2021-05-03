@@ -300,6 +300,26 @@ defmodule ThousandIsland.HandlerTest do
       end
     end
 
+    test "it should send relevant telemetry events on startup" do
+      {:ok, collector_pid} =
+        start_supervised(
+          {ThousandIsland.TelemetryCollector,
+           [[:handler, :start], [:handler, :shutdown], [:handler, :error]]}
+        )
+
+      {:ok, port} = start_handler(Telemetry.Closer)
+
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      {:ok, {ip, port}} = :inet.sockname(client)
+      Process.sleep(100)
+
+      events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
+      assert length(events) == 2
+
+      assert {[:handler, :start], _, %{remote_address: ^ip, remote_port: ^port}} =
+               Enum.at(events, 0)
+    end
+
     test "it should send relevant telemetry events on async receipt of data" do
       {:ok, collector_pid} =
         start_supervised(
