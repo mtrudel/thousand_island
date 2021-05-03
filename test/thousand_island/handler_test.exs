@@ -338,10 +338,8 @@ defmodule ThousandIsland.HandlerTest do
 
       {:ok, port} = start_handler(Telemetry.Closer)
 
-      capture_log(fn ->
-        :gen_tcp.connect(:localhost, port, active: false)
-        Process.sleep(100)
-      end)
+      :gen_tcp.connect(:localhost, port, active: false)
+      Process.sleep(100)
 
       events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
       assert length(events) == 2
