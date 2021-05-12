@@ -9,8 +9,8 @@ defmodule ThousandIsland.Transports.SSL do
 
   * `key`: A DER encoded binary representation of the SSL key to use
   * `cert`: A DER encoded binary representation of the SSL key to use
-  * `keyfile: A string path to a PEM encoded key to use for SSL
-  * `certfile: A string path to a PEM encoded cert to use for SSL
+  * `keyfile`: A string path to a PEM encoded key to use for SSL
+  * `certfile`: A string path to a PEM encoded cert to use for SSL
   * `ip`:  The IP to listen on (defaults to all interfaces). IPs should be 
   described in tuple form (ie: `ip: {1, 2, 3, 4}`). The value `:loopback` can 
   be used to only bind to localhost. On platforms which support it (macOS and
