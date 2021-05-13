@@ -161,19 +161,21 @@ defmodule ThousandIsland.Handler do
 
   @doc """
   This function is called when the underlying socket is closed by the remote end; it should perform any cleanup required
-  as it is the last function called before the process backing this connection is terminated. The return value is ignored.
+  as it is the last function called before the process backing this connection is terminated. The underlying socket
+  has already been closed by the time this function is called. The return value is ignored.
 
-  This function is not called if the connection is explicitly closed at this end, however it will be called in cases where
-  `handle_connection/2` or `handle_data/3` return a `{:ok, :close, state}` tuple.
+  This function is not called if the connection is explicitly closed via `ThousandIsland.Socket.close/1`, however it 
+  will be called in cases where `handle_connection/2` or `handle_data/3` return a `{:ok, :close, state}` tuple.
   """
   @callback handle_close(socket :: ThousandIsland.Socket.t(), state :: term()) :: term()
 
   @doc """
   This function is called when the underlying socket encounters an error; it should perform any cleanup required
-  as it is the last function called before the process backing this connection is terminated. The return value is ignored.
+  as it is the last function called before the process backing this connection is terminated. The underlying socket
+  has already been closed by the time this function is called. The return value is ignored.
 
   In addition to socket level errors, this function is also called ifn cases where `handle_connection/2` or `handle_data/3`
-  return a `{:ok, :close, state}` tuple.
+  return a `{:error, reason, state}` tuple.
   """
   @callback handle_error(
               reason :: String.t(),
