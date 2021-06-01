@@ -13,7 +13,7 @@ performance & overhead; short of synthetic scenarios on the busiest of servers,
 they perform equally for all intents and purposes.
 
 Thousand Island is written entirely in Elixir, and is nearly dependency-free (the
-only libary used is [telemetry](https://github.com/beam-telemetry/telemetry)).
+only library used is [telemetry](https://github.com/beam-telemetry/telemetry)).
 The application strongly embraces OTP design principles, and emphasizes readable,
 simple code. The hope is that as much as Thousand Island is capable of backing
 the most demanding of services, it is also useful as a simple and approachable
