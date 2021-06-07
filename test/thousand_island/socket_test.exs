@@ -3,13 +3,18 @@ defmodule ThousandIsland.SocketTest do
   use ExUnit.Case, async: false
 
   def gen_tcp_setup(_context) do
-    {:ok, %{client_mod: :gen_tcp, server_opts: []}}
+    {:ok, %{client_mod: :gen_tcp, client_opts: [active: false], server_opts: []}}
   end
 
   def ssl_setup(_context) do
     {:ok,
      %{
        client_mod: :ssl,
+       client_opts: [
+         active: false,
+         verify: :verify_peer,
+         cacertfile: Path.join(__DIR__, "../support/ca.pem")
+       ],
        server_opts: [
          transport_module: ThousandIsland.Transports.SSL,
          transport_options: [
@@ -77,7 +82,7 @@ defmodule ThousandIsland.SocketTest do
 
       test "should send and receive", context do
         {:ok, port} = start_handler(Echo, context.server_opts)
-        {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
+        {:ok, client} = context.client_mod.connect('localhost', port, context.client_opts)
 
         assert context.client_mod.send(client, "HELLO") == :ok
         assert context.client_mod.recv(client, 0) == {:ok, 'HELLO'}
@@ -85,14 +90,14 @@ defmodule ThousandIsland.SocketTest do
 
       test "it should send files", context do
         {:ok, port} = start_handler(Sendfile, context.server_opts)
-        {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
+        {:ok, client} = context.client_mod.connect('localhost', port, context.client_opts)
 
         assert context.client_mod.recv(client, 9) == {:ok, 'ABCDEFBCD'}
       end
 
       test "it should close connections", context do
         {:ok, port} = start_handler(Closer, context.server_opts)
-        {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
+        {:ok, client} = context.client_mod.connect('localhost', port, context.client_opts)
 
         assert context.client_mod.recv(client, 0) == {:error, :closed}
       end
@@ -100,7 +105,7 @@ defmodule ThousandIsland.SocketTest do
       test "it should emit telemetry events as expected", context do
         {:ok, collector_pid} = start_collector()
         {:ok, port} = start_handler(Echo, context.server_opts)
-        {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
+        {:ok, client} = context.client_mod.connect('localhost', port, context.client_opts)
 
         :ok = context.client_mod.send(client, "HELLO")
         {:ok, 'HELLO'} = context.client_mod.recv(client, 0)
@@ -127,7 +132,7 @@ defmodule ThousandIsland.SocketTest do
 
     test "it should provide correct connection info", context do
       {:ok, port} = start_handler(Info, context.server_opts)
-      {:ok, client} = context.client_mod.connect(:localhost, port, active: false)
+      {:ok, client} = context.client_mod.connect('localhost', port, context.client_opts)
       {:ok, resp} = context.client_mod.recv(client, 0)
       {:ok, local_port} = :inet.port(client)
 
@@ -150,8 +155,10 @@ defmodule ThousandIsland.SocketTest do
       {:ok, port} = start_handler(Info, context.server_opts)
 
       {:ok, client} =
-        context.client_mod.connect(:localhost, port,
+        context.client_mod.connect('localhost', port,
           active: false,
+          verify: :verify_peer,
+          cacertfile: Path.join(__DIR__, "../support/ca.pem"),
           alpn_advertised_protocols: ["foo"]
         )
 
