@@ -9,7 +9,7 @@ defmodule ThousandIsland.Handler do
   1. After a client connection to a Thousand Island server is made, Thousand Island will complete the initial setup of the 
   connection (performing a TLS handshake, for example), and then call `c:handle_connection/2`.
 
-  2. A handler implementation may choose to process a client connection within the `c:handle_connection/2` function by
+  2. A handler implementation may choose to process a client connection within the `c:handle_connection/2` callback by
   calling functions against the passed `ThousandIsland.Socket`. In many cases, this may be all that may be required of
   an implementation & the value `{:ok, :close, state}` can be returned which will cause Thousand Island to close the connection
   to the client.
@@ -124,57 +124,57 @@ defmodule ThousandIsland.Handler do
           | {:error, String.t(), state :: term()}
 
   @doc """
-  This function is called shortly after a client connection has been made, immediately after the socket handshake process has
+  This callback is called shortly after a client connection has been made, immediately after the socket handshake process has
   completed. It is called with the server's configured `handler_options` value as initial state. Handlers may choose to
-  interact synchronously with the socket in this function via calls to various `ThousandIsland.Socket` functions.
+  interact synchronously with the socket in this callback via calls to various `ThousandIsland.Socket` functions.
 
   The value returned by this callback causes Thousand Island to proceed in once of several ways:
 
-  * Returning `{:ok, :close, state}` will cause Thousand Island to close the socket & call the `c:handle_close/2` function to 
+  * Returning `{:ok, :close, state}` will cause Thousand Island to close the socket & call the `c:handle_close/2` callback to 
   allow final cleanup to be done.
   * Returning `{:ok, :continue, state}` will cause Thousand Island to switch the socket to an asynchronous mode. When the 
   client subsequently sends data (or if there is already unread data waiting from the client), Thousand Island will call
   `c:handle_data/3` to allow this data to be processed.
-  * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` function to 
+  * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to 
   allow final cleanup to be done.
   """
   @callback handle_connection(socket :: ThousandIsland.Socket.t(), state :: term()) ::
               handler_result()
 
   @doc """
-  This function is called whenever client data is received after `c:handle_connection/2` or `c:handle_data/3` have returned an
+  This callback is called whenever client data is received after `c:handle_connection/2` or `c:handle_data/3` have returned an
   `{:ok, :continue, state}` tuple. The data received is passed as the first argument, and handlers may choose to interact 
-  synchronously with the socket in this function via calls to various `ThousandIsland.Socket` functions.
+  synchronously with the socket in this callback via calls to various `ThousandIsland.Socket` functions.
 
   The value returned by this callback causes Thousand Island to proceed in once of several ways:
 
-  * Returning `{:ok, :close, state}` will cause Thousand Island to close the socket & call the `c:handle_close/2` function to 
+  * Returning `{:ok, :close, state}` will cause Thousand Island to close the socket & call the `c:handle_close/2` callback to 
   allow final cleanup to be done.
   * Returning `{:ok, :continue, state}` will cause Thousand Island to switch the socket to an asynchronous mode. When the 
   client subsequently sends data (or if there is already unread data waiting from the client), Thousand Island will call
   `c:handle_data/3` to allow this data to be processed.
-  * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` function to 
+  * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to 
   allow final cleanup to be done.
   """
   @callback handle_data(data :: binary(), socket :: ThousandIsland.Socket.t(), state :: term()) ::
               handler_result()
 
   @doc """
-  This function is called when the underlying socket is closed by the remote end; it should perform any cleanup required
-  as it is the last function called before the process backing this connection is terminated. The underlying socket
-  has already been closed by the time this function is called. The return value is ignored.
+  This callback is called when the underlying socket is closed by the remote end; it should perform any cleanup required
+  as it is the last callback called before the process backing this connection is terminated. The underlying socket
+  has already been closed by the time this callback is called. The return value is ignored.
 
-  This function is not called if the connection is explicitly closed via `ThousandIsland.Socket.close/1`, however it 
+  This callback is not called if the connection is explicitly closed via `ThousandIsland.Socket.close/1`, however it 
   will be called in cases where `handle_connection/2` or `handle_data/3` return a `{:ok, :close, state}` tuple.
   """
   @callback handle_close(socket :: ThousandIsland.Socket.t(), state :: term()) :: term()
 
   @doc """
-  This function is called when the underlying socket encounters an error; it should perform any cleanup required
-  as it is the last function called before the process backing this connection is terminated. The underlying socket
-  has already been closed by the time this function is called. The return value is ignored.
+  This callback is called when the underlying socket encounters an error; it should perform any cleanup required
+  as it is the last callback called before the process backing this connection is terminated. The underlying socket
+  has already been closed by the time this callback is called. The return value is ignored.
 
-  In addition to socket level errors, this function is also called ifn cases where `handle_connection/2` or `handle_data/3`
+  In addition to socket level errors, this callback is also called in cases where `handle_connection/2` or `handle_data/3`
   return a `{:error, reason, state}` tuple.
   """
   @callback handle_error(
