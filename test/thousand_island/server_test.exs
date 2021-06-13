@@ -13,23 +13,23 @@ defmodule ThousandIsland.ServerTest do
     end
   end
 
-  describe "tests with an echo handler" do
-    test "should handle multiple connections as expected" do
-      {:ok, _, port} = start_handler(Echo)
-      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
-      {:ok, other_client} = :gen_tcp.connect(:localhost, port, active: false)
+  test "should handle multiple connections as expected" do
+    {:ok, _, port} = start_handler(Echo)
+    {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+    {:ok, other_client} = :gen_tcp.connect(:localhost, port, active: false)
 
-      :ok = :gen_tcp.send(client, "HELLO")
-      :ok = :gen_tcp.send(other_client, "BONJOUR")
+    :ok = :gen_tcp.send(client, "HELLO")
+    :ok = :gen_tcp.send(other_client, "BONJOUR")
 
-      # Invert the order to ensure we handle concurrently
-      assert :gen_tcp.recv(other_client, 0) == {:ok, 'BONJOUR'}
-      assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+    # Invert the order to ensure we handle concurrently
+    assert :gen_tcp.recv(other_client, 0) == {:ok, 'BONJOUR'}
+    assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
 
-      :gen_tcp.close(client)
-      :gen_tcp.close(other_client)
-    end
+    :gen_tcp.close(client)
+    :gen_tcp.close(other_client)
+  end
 
+  describe "shutdown" do
     test "it should stop accepting connections but allow existing ones to complete" do
       {:ok, server_pid, port} = start_handler(Echo)
       {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
