@@ -376,6 +376,7 @@ defmodule ThousandIsland.HandlerTest do
       end
     end
 
+    @tag capture_log: true
     test "it should send relevant telemetry events on error" do
       {:ok, collector_pid} =
         start_supervised(
@@ -385,10 +386,8 @@ defmodule ThousandIsland.HandlerTest do
 
       {:ok, port} = start_handler(Telemetry.Error)
 
-      capture_log(fn ->
-        :gen_tcp.connect(:localhost, port, active: false)
-        Process.sleep(100)
-      end)
+      :gen_tcp.connect(:localhost, port, active: false)
+      Process.sleep(100)
 
       events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
       assert length(events) == 2
