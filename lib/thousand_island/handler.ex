@@ -184,7 +184,25 @@ defmodule ThousandIsland.Handler do
             ) ::
               term()
 
-  @optional_callbacks handle_connection: 2, handle_data: 3, handle_close: 2, handle_error: 3
+  @doc """
+  This callback is called when the server process itself is being shut down; it should perform any cleanup required
+  as it is the last callback called before the process backing this connection is terminated. The underlying socket
+  has NOT been closed by the time this callback is called. The return value is ignored.
+
+  This callback is only called when the shutdown reason is `:normal`, and is subject to the same caveats described 
+  in `GenServer.terminate/2`. 
+  """
+  @callback handle_shutdown(
+              socket :: ThousandIsland.Socket.t(),
+              state :: term()
+            ) ::
+              term()
+
+  @optional_callbacks handle_connection: 2,
+                      handle_data: 3,
+                      handle_close: 2,
+                      handle_error: 3,
+                      handle_shutdown: 2
 
   defmacro __using__(_opts) do
     quote location: :keep do
@@ -199,6 +217,7 @@ defmodule ThousandIsland.Handler do
       def handle_data(_data, _socket, state), do: {:ok, :continue, state}
       def handle_close(_socket, _state), do: :ok
       def handle_error(_error, _socket, _state), do: :ok
+      def handle_shutdown(_socket, _state), do: :ok
 
       defoverridable ThousandIsland.Handler
 
@@ -247,7 +266,7 @@ defmodule ThousandIsland.Handler do
       end
 
       def handle_info({msg, _}, {socket, state}) when msg in [:tcp_closed, :ssl_closed] do
-        {:stop, :shutdown, {socket, state}}
+        {:stop, {:shutdown, :peer_closed}, {socket, state}}
       end
 
       def handle_info({msg, _, reason}, {socket, state}) when msg in [:tcp_error, :ssl_error] do
@@ -260,9 +279,20 @@ defmodule ThousandIsland.Handler do
 
       @impl GenServer
       def terminate(:shutdown, {socket, state}) do
+        :telemetry.execute([:handler, :shutdown], %{reason: :shutdown}, %{
+          connection_id: socket.connection_id
+        })
+
+        __MODULE__.handle_shutdown(socket, state)
+      end
+
+      @impl GenServer
+      def terminate({:shutdown, reason}, {socket, state}) do
         ThousandIsland.Socket.close(socket)
 
-        :telemetry.execute([:handler, :shutdown], %{}, %{connection_id: socket.connection_id})
+        :telemetry.execute([:handler, :shutdown], %{reason: reason}, %{
+          connection_id: socket.connection_id
+        })
 
         __MODULE__.handle_close(socket, state)
       end
@@ -288,7 +318,7 @@ defmodule ThousandIsland.Handler do
             {:noreply, {socket, state}, timeout}
 
           {:ok, :close, state} ->
-            {:stop, :shutdown, {socket, state}}
+            {:stop, {:shutdown, :local_closed}, {socket, state}}
 
           {:error, reason, state} ->
             {:stop, reason, {socket, state}}

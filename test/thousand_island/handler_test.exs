@@ -33,6 +33,7 @@ defmodule ThousandIsland.HandlerTest do
       messages =
         capture_log(fn ->
           :gen_tcp.send(client, "ping")
+          :gen_tcp.close(client)
           Process.sleep(100)
         end)
 

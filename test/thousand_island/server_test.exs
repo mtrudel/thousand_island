@@ -13,6 +13,16 @@ defmodule ThousandIsland.ServerTest do
     end
   end
 
+  defmodule Goodbye do
+    use ThousandIsland.Handler
+
+    @impl ThousandIsland.Handler
+    def handle_shutdown(socket, state) do
+      ThousandIsland.Socket.send(socket, "GOODBYE")
+      {:ok, :close, state}
+    end
+  end
+
   test "should handle multiple connections as expected" do
     {:ok, _, port} = start_handler(Echo)
     {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
@@ -44,6 +54,24 @@ defmodule ThousandIsland.ServerTest do
 
       :ok = :gen_tcp.send(client, "HELLO")
       assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+      :gen_tcp.close(client)
+
+      Task.await(task)
+
+      refute Process.alive?(server_pid)
+    end
+
+    test "it should give connections a chance to say goodbye" do
+      {:ok, server_pid, port} = start_handler(Goodbye)
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      # Make sure the socket has transitioned ownership to the connection process
+      Process.sleep(100)
+      task = Task.async(fn -> ThousandIsland.stop(server_pid) end)
+      # Make sure that the stop has had a chance to shutdown the acceptors
+      Process.sleep(100)
+
+      assert :gen_tcp.recv(client, 0) == {:ok, 'GOODBYE'}
       :gen_tcp.close(client)
 
       Task.await(task)
