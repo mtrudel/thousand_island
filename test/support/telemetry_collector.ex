@@ -16,7 +16,15 @@ defmodule ThousandIsland.TelemetryCollector do
   end
 
   def init(event_types) do
-    :telemetry.attach_many("#{inspect(self())}.trace", event_types, &record_event/4, self())
+    # Use __MODULE__ here to keep telemetry from warning about passing a local capture
+    # https://hexdocs.pm/telemetry/telemetry.html#attach/4
+    :telemetry.attach_many(
+      "#{inspect(self())}.trace",
+      event_types,
+      &__MODULE__.record_event/4,
+      self()
+    )
+
     {:ok, []}
   end
 
