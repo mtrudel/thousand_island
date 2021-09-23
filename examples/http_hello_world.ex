@@ -1,4 +1,4 @@
-defmodule ThousandIsland.Handlers.HTTPHelloWorld do
+defmodule HTTPHelloWorld do
   @moduledoc """
   A sample Handler implementation of a simple HTTP Server. Intended to be the
   simplest thing that can answer a browser request and nothing more. Not even

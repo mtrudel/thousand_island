@@ -1,4 +1,4 @@
-defmodule ThousandIsland.Handlers.Daytime do
+defmodule Daytime do
   @moduledoc """
   A sample Handler implementation of the Daytime protocol
 

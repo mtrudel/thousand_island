@@ -33,7 +33,7 @@ The `ThousandIsland.Handler` behaviour defines the interface that Thousand Islan
 uses to pass `ThousandIsland.Socket`s up to the application level; together they
 form the primary interface that most applications will have with Thousand Island.
 Thousand Island comes with a few simple protocol handlers to serve as examples;
-these can be found in the [handlers](https://github.com/mtrudel/thousand_island/tree/master/lib/thousand_island/handlers)
+these can be found in the [examples](https://github.com/mtrudel/thousand_island/tree/master/examples)
 folder of this project. A simple implementation would look like this:
 
 ```elixir

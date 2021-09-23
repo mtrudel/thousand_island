@@ -1,4 +1,4 @@
-defmodule ThousandIsland.Handlers.Messenger do
+defmodule Messenger do
   @moduledoc """
   A sample Handler implementation that allows for simultaneous bidirectional sending
   of messages to demonstrate that the Handler process is just a GenServer under the

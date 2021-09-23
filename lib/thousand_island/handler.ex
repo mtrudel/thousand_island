@@ -32,7 +32,7 @@ defmodule ThousandIsland.Handler do
   A simple example of a Hello World server is as follows:
 
   ```elixir
-  defmodule ThousandIsland.Handlers.HelloWorld do
+  defmodule HelloWorld do
     use ThousandIsland.Handler
 
     @impl ThousandIsland.Handler
@@ -46,7 +46,7 @@ defmodule ThousandIsland.Handler do
   Another example of a server that echoes back all data sent to it is as follows:
 
   ```elixir
-  defmodule ThousandIsland.Handlers.Echo do
+  defmodule Echo do
     use ThousandIsland.Handler
 
     @impl ThousandIsland.Handler
@@ -64,7 +64,7 @@ defmodule ThousandIsland.Handler do
   Another example of a server which can send and receive messages asynchronously is as follows:
 
   ```elixir
-  defmodule ThousandIsland.Handlers.Messenger do
+  defmodule Messenger do
     use ThousandIsland.Handler
 
     @impl ThousandIsland.Handler

@@ -1,4 +1,4 @@
-defmodule ThousandIsland.Handlers.Echo do
+defmodule Echo do
   @moduledoc """
   A sample Handler implementation of the Echo protocol
 
