@@ -55,7 +55,7 @@ defmodule ThousandIsland.Socket do
   @doc """
   Returns available bytes on the given socket. Up to `num_bytes` bytes will be
   returned (0 can be passed in to get the next 'available' bytes, typically the 
-  next packet). If insufficient bytes are available, the functino can wait `timeout` 
+  next packet). If insufficient bytes are available, the function can wait `timeout` 
   milliseconds for data to arrive.
   """
   @spec recv(t(), non_neg_integer(), timeout()) :: Transport.on_recv()

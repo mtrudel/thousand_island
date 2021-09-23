@@ -135,6 +135,9 @@ defmodule ThousandIsland.Handler do
   * Returning `{:ok, :continue, state}` will cause Thousand Island to switch the socket to an asynchronous mode. When the 
   client subsequently sends data (or if there is already unread data waiting from the client), Thousand Island will call
   `c:handle_data/3` to allow this data to be processed.
+  * Returning `{:ok, :continue, state, timeout}` is identical to the previous case with the
+  addition of a timeout. If `timeout` milliseconds passes with no data being received, the socket
+  will be closed and `c:handle_error/3` will be called with a reason of `:timeout`.
   * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to 
   allow final cleanup to be done.
   """
@@ -153,6 +156,9 @@ defmodule ThousandIsland.Handler do
   * Returning `{:ok, :continue, state}` will cause Thousand Island to switch the socket to an asynchronous mode. When the 
   client subsequently sends data (or if there is already unread data waiting from the client), Thousand Island will call
   `c:handle_data/3` to allow this data to be processed.
+  * Returning `{:ok, :continue, state, timeout}` is identical to the previous case with the
+  addition of a timeout. If `timeout` milliseconds passes with no data being received, the socket
+  will be closed and `c:handle_error/3` will be called with a reason of `:timeout`.
   * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to 
   allow final cleanup to be done.
   """
