@@ -22,7 +22,9 @@ defmodule ThousandIsland.Handler do
   application as needed. The implementation included in the `use ThousandIsland.Handler` macro uses a `GenServer` structure,
   so you may implement such behaviour via standard `GenServer` patterns. Note that in these cases that state is provided (and
   must be returned) in a `{socket, state}` format, where the second tuple is the same state value that is passed to the various `handle_*` callbacks
-  defined on this behaviour.
+  defined on this behaviour. Note also that any `GenServer` `handle_*` calls which are processed directly by an implementing module 
+  will cancel any async read timeout values which may have been set. Such calls are able to reset the timeout by returning a four element
+  tuple with `timeout` as the fourth argument as specified in the `GenServer` documentation.
 
   It is fully supported to intermix synchronous `ThousandIsland.Socket.recv` calls with async return values from `c:handle_connection/2`
   and `c:handle_data/3` callbacks. 
@@ -137,7 +139,7 @@ defmodule ThousandIsland.Handler do
   `c:handle_data/3` to allow this data to be processed.
   * Returning `{:ok, :continue, state, timeout}` is identical to the previous case with the
   addition of a timeout. If `timeout` milliseconds passes with no data being received, the socket
-  will be closed and `c:handle_error/3` will be called with a reason of `:timeout`.
+  will be closed and `c:handle_timeout/2` will be called.
   * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to 
   allow final cleanup to be done.
   """
@@ -158,7 +160,7 @@ defmodule ThousandIsland.Handler do
   `c:handle_data/3` to allow this data to be processed.
   * Returning `{:ok, :continue, state, timeout}` is identical to the previous case with the
   addition of a timeout. If `timeout` milliseconds passes with no data being received, the socket
-  will be closed and `c:handle_error/3` will be called with a reason of `:timeout`.
+  will be closed and `c:handle_timeout/2` will be called.
   * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to 
   allow final cleanup to be done.
   """
@@ -204,11 +206,24 @@ defmodule ThousandIsland.Handler do
             ) ::
               term()
 
+  @doc """
+  This callback is called when an async read call times out (ie: when a tuple of the form `{:ok, :continue, state, timeout}` 
+  is returned by `c:handle_connection/2` or `c:handle_data/3` and `timeout` ms have passed). Note that it is NOT called
+  on explicit `ThousandIsland.Socket.recv/3` calls as they have their own timeout semantics. The underlying socket
+  has NOT been closed by the time this callback is called. The return value is ignored.
+  """
+  @callback handle_timeout(
+              socket :: ThousandIsland.Socket.t(),
+              state :: term()
+            ) ::
+              term()
+
   @optional_callbacks handle_connection: 2,
                       handle_data: 3,
                       handle_close: 2,
                       handle_error: 3,
-                      handle_shutdown: 2
+                      handle_shutdown: 2,
+                      handle_timeout: 2
 
   defmacro __using__(_opts) do
     quote location: :keep do
@@ -224,6 +239,7 @@ defmodule ThousandIsland.Handler do
       def handle_close(_socket, _state), do: :ok
       def handle_error(_error, _socket, _state), do: :ok
       def handle_shutdown(_socket, _state), do: :ok
+      def handle_timeout(_socket, _state), do: :ok
 
       defoverridable ThousandIsland.Handler
 
@@ -301,6 +317,15 @@ defmodule ThousandIsland.Handler do
         })
 
         __MODULE__.handle_close(socket, state)
+      end
+
+      @impl GenServer
+      def terminate(:timeout, {socket, state}) do
+        :telemetry.execute([:handler, :shutdown], %{reason: :timeout}, %{
+          connection_id: socket.connection_id
+        })
+
+        __MODULE__.handle_timeout(socket, state)
       end
 
       def terminate(reason, {socket, state}) do

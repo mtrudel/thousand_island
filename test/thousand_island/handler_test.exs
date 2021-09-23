@@ -134,36 +134,6 @@ defmodule ThousandIsland.HandlerTest do
       # Ensure that we saw the message displayed by the handle_error callback
       assert messages =~ "handle_error: nope"
     end
-
-    defmodule HandleConnection.Timeout do
-      use ThousandIsland.Handler
-
-      require Logger
-
-      @impl ThousandIsland.Handler
-      def handle_connection(_socket, state) do
-        {:ok, :continue, state, 10}
-      end
-
-      @impl ThousandIsland.Handler
-      def handle_error(error, _socket, _state) do
-        Logger.error("handle_error: #{error}")
-      end
-    end
-
-    test "it should close the connection and call handle_error if no data is sent for timeout ms" do
-      {:ok, port} = start_handler(HandleConnection.Timeout)
-
-      messages =
-        capture_log(fn ->
-          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
-          assert :gen_tcp.recv(client, 0) == {:error, :closed}
-          Process.sleep(100)
-        end)
-
-      # Ensure that we saw the message displayed by the handle_error callback
-      assert messages =~ "handle_error: timeout"
-    end
   end
 
   describe "handle_data" do
@@ -262,41 +232,10 @@ defmodule ThousandIsland.HandlerTest do
       # Ensure that we saw the message displayed by the handle_error callback
       assert messages =~ "handle_error: nope"
     end
-
-    defmodule HandleData.Timeout do
-      use ThousandIsland.Handler
-
-      require Logger
-
-      @impl ThousandIsland.Handler
-      def handle_data("ping", _socket, state) do
-        {:ok, :continue, state, 10}
-      end
-
-      @impl ThousandIsland.Handler
-      def handle_error(error, _socket, _state) do
-        Logger.error("handle_error: #{error}")
-      end
-    end
-
-    test "it should close the connection and call handle_error if no data is sent for timeout ms" do
-      {:ok, port} = start_handler(HandleData.Timeout)
-
-      messages =
-        capture_log(fn ->
-          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
-          :gen_tcp.send(client, "ping")
-          assert :gen_tcp.recv(client, 0) == {:error, :closed}
-          Process.sleep(100)
-        end)
-
-      # Ensure that we saw the message displayed by the handle_error callback
-      assert messages =~ "handle_error: timeout"
-    end
   end
 
   describe "async waiting" do
-    defmodule Timeout do
+    defmodule TimeoutInitial do
       use ThousandIsland.Handler
 
       require Logger
@@ -307,13 +246,13 @@ defmodule ThousandIsland.HandlerTest do
       end
 
       @impl ThousandIsland.Handler
-      def handle_error(error, _socket, _state) do
-        Logger.error("handle_error: #{error}")
+      def handle_timeout(_socket, _state) do
+        Logger.error("handle_timeout")
       end
     end
 
-    test "it should close the connection and call handle_error the specified timeout is reached waiting for client data" do
-      {:ok, port} = start_handler(Timeout)
+    test "it should close the connection and call handle_timeout if the specified timeout is reached waiting for initial client data" do
+      {:ok, port} = start_handler(TimeoutInitial)
 
       messages =
         capture_log(fn ->
@@ -322,8 +261,39 @@ defmodule ThousandIsland.HandlerTest do
           Process.sleep(100)
         end)
 
-      # Ensure that we saw the message displayed by the handle_error callback
-      assert messages =~ "handle_error: timeout"
+      # Ensure that we saw the message displayed by the handle_timeout callback
+      assert messages =~ "handle_timeout"
+    end
+
+    defmodule TimeoutData do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_data("ping", _socket, state) do
+        {:ok, :continue, state, 50}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_timeout(_socket, _state) do
+        Logger.error("handle_timeout")
+      end
+    end
+
+    test "it should close the connection and call handle_timeout if the specified timeout is reached waiting for client data" do
+      {:ok, port} = start_handler(TimeoutData)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          :gen_tcp.send(client, "ping")
+          assert :gen_tcp.recv(client, 0) == {:error, :closed}
+          Process.sleep(100)
+        end)
+
+      # Ensure that we saw the message displayed by the handle_timeout callback
+      assert messages =~ "handle_timeout"
     end
 
     defmodule DoNothing do
