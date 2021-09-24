@@ -22,7 +22,7 @@ defmodule ThousandIsland.Logger do
       [:socket, :handshake_error]
     ]
 
-    :telemetry.attach_many("#{__MODULE__}.error", events, &log_error/4, nil)
+    :telemetry.attach_many("#{__MODULE__}.error", events, &__MODULE__.log_error/4, nil)
   end
 
   def attach_logger(:info) do
@@ -32,7 +32,7 @@ defmodule ThousandIsland.Logger do
       [:listener, :start]
     ]
 
-    :telemetry.attach_many("#{__MODULE__}.info", events, &log_info/4, nil)
+    :telemetry.attach_many("#{__MODULE__}.info", events, &__MODULE__.log_info/4, nil)
   end
 
   def attach_logger(:debug) do
@@ -46,7 +46,7 @@ defmodule ThousandIsland.Logger do
       [:handler, :shutdown]
     ]
 
-    :telemetry.attach_many("#{__MODULE__}.debug", events, &log_debug/4, nil)
+    :telemetry.attach_many("#{__MODULE__}.debug", events, &__MODULE__.log_debug/4, nil)
   end
 
   def attach_logger(:trace) do
@@ -62,7 +62,7 @@ defmodule ThousandIsland.Logger do
       [:socket, :close]
     ]
 
-    :telemetry.attach_many("#{__MODULE__}.trace", events, &log_trace/4, nil)
+    :telemetry.attach_many("#{__MODULE__}.trace", events, &__MODULE__.log_trace/4, nil)
   end
 
   @doc """
