@@ -132,6 +132,9 @@ defmodule ThousandIsland.Transports.SSL do
   end
 
   @impl Transport
+  def secure?, do: true
+
+  @impl Transport
   defdelegate getstat(socket), to: :ssl
 
   @impl Transport

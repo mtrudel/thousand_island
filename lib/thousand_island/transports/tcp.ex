@@ -106,6 +106,9 @@ defmodule ThousandIsland.Transports.TCP do
   end
 
   @impl Transport
+  def secure?, do: false
+
+  @impl Transport
   defdelegate getstat(socket), to: :inet
 
   @impl Transport

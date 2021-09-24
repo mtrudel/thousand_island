@@ -122,6 +122,11 @@ defmodule ThousandIsland.Transport do
   @callback peer_info(socket()) :: socket_info()
 
   @doc """
+  Returns whether or not this protocol is secure.
+  """
+  @callback secure?() :: boolean()
+
+  @doc """
   Returns stats about the connection on the socket.
   """
   @callback getstat(socket()) :: socket_stats()

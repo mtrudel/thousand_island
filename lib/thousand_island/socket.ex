@@ -202,6 +202,14 @@ defmodule ThousandIsland.Socket do
   end
 
   @doc """
+  Returns whether or not this protocol is secure.
+  """
+  @spec secure?(t()) :: boolean()
+  def secure?(%__MODULE__{transport_module: transport_module}) do
+    transport_module.secure?()
+  end
+
+  @doc """
   Returns information about the protocol negotiated during transport handshaking (if any).
   """
   @spec negotiated_protocol(t()) :: Transport.negotiated_protocol_info()
