@@ -1,9 +1,8 @@
 # 🏝🏝🏝 Thousand Island 🏝🏝🏝
 
 [![Build Status](https://github.com/mtrudel/thousand_island/workflows/Elixir%20CI/badge.svg)](https://github.com/mtrudel/thousand_island/actions)
+[![Docs](https://img.shields.io/badge/api-docs-green.svg?style=flat)](https://hexdocs.pm/thousand_island)
 [![Hex.pm](https://img.shields.io/hexpm/v/thousand_island.svg?style=flat-square)](https://hex.pm/packages/thousand_island)
-
-[Documentation](https://hexdocs.pm/thousand_island)
 
 Thousand Island is a modern, pure Elixir socket server, inspired heavily by
 [ranch](https://github.com/ninenines/ranch). It aims to be easy to understand
