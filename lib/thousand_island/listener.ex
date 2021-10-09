@@ -31,7 +31,7 @@ defmodule ThousandIsland.Listener do
         :telemetry.execute(
           [:listener, :start],
           %{
-            port: transport_module.listen_port(listener_socket)
+            port: transport_module.listen_port(listener_socket) |> elem(1)
           },
           %{
             transport_module: transport_module,
