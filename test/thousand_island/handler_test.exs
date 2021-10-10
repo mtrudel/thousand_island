@@ -348,8 +348,16 @@ defmodule ThousandIsland.HandlerTest do
       events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
       assert length(events) == 2
 
-      assert {[:handler, :start], _, %{remote_address: ^ip, remote_port: ^port}} =
-               Enum.at(events, 0)
+      assert {[:handler, :start], %{},
+              %{
+                acceptor_id: acceptor_id,
+                connection_id: connection_id,
+                remote_address: ^ip,
+                remote_port: ^port
+              }} = Enum.at(events, 0)
+
+      assert is_binary(acceptor_id)
+      assert is_binary(connection_id)
     end
 
     test "it should send relevant telemetry events on async receipt of data" do
@@ -367,8 +375,11 @@ defmodule ThousandIsland.HandlerTest do
 
       events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
       assert length(events) == 3
-      assert {[:handler, :start], _, _} = Enum.at(events, 0)
-      assert {[:handler, :async_recv], %{data: "ping"}, _} = Enum.at(events, 1)
+      assert {[:handler, :start], _, %{connection_id: connection_id}} = Enum.at(events, 0)
+
+      assert {[:handler, :async_recv], %{data: "ping"}, %{connection_id: ^connection_id}} =
+               Enum.at(events, 1)
+
       assert {[:handler, :shutdown], _, _} = Enum.at(events, 2)
     end
 
@@ -395,8 +406,10 @@ defmodule ThousandIsland.HandlerTest do
 
       events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
       assert length(events) == 2
-      assert {[:handler, :start], _, _} = Enum.at(events, 0)
-      assert {[:handler, :shutdown], _, _} = Enum.at(events, 1)
+      assert {[:handler, :start], _, %{connection_id: connection_id}} = Enum.at(events, 0)
+
+      assert {[:handler, :shutdown], %{reason: :local_closed}, %{connection_id: ^connection_id}} =
+               Enum.at(events, 1)
     end
 
     defmodule Telemetry.Error do
@@ -423,8 +436,10 @@ defmodule ThousandIsland.HandlerTest do
 
       events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
       assert length(events) == 2
-      assert {[:handler, :start], _, _} = Enum.at(events, 0)
-      assert {[:handler, :error], %{error: :nope}, _} = Enum.at(events, 1)
+      assert {[:handler, :start], _, %{connection_id: connection_id}} = Enum.at(events, 0)
+
+      assert {[:handler, :error], %{error: :nope}, %{connection_id: ^connection_id}} =
+               Enum.at(events, 1)
     end
   end
 

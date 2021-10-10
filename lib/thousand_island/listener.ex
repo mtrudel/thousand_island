@@ -28,16 +28,12 @@ defmodule ThousandIsland.Listener do
       }) do
     case transport_module.listen(port, transport_opts) do
       {:ok, listener_socket} ->
-        :telemetry.execute(
-          [:listener, :start],
-          %{
-            port: transport_module.listen_port(listener_socket)
-          },
-          %{
-            transport_module: transport_module,
-            transport_opts: transport_opts
-          }
-        )
+        {:ok, port} = transport_module.listen_port(listener_socket)
+
+        :telemetry.execute([:listener, :start], %{port: port}, %{
+          transport_module: transport_module,
+          transport_opts: transport_opts
+        })
 
         {:ok, %{listener_socket: listener_socket, transport_module: transport_module}}
 
