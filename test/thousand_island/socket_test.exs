@@ -116,13 +116,17 @@ defmodule ThousandIsland.SocketTest do
 
         events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
         assert length(events) == 4
-        assert {[:socket, :handshake], %{}, _} = Enum.at(events, 0)
-        assert {[:socket, :recv], %{result: {:ok, "HELLO"}}, _} = Enum.at(events, 1)
-        assert {[:socket, :send], %{data: "HELLO", result: :ok}, _} = Enum.at(events, 2)
+        assert {[:socket, :handshake], %{}, %{connection_id: connection_id}} = Enum.at(events, 0)
+
+        assert {[:socket, :recv], %{result: {:ok, "HELLO"}}, %{connection_id: ^connection_id}} =
+                 Enum.at(events, 1)
+
+        assert {[:socket, :send], %{data: "HELLO", result: :ok}, %{connection_id: ^connection_id}} =
+                 Enum.at(events, 2)
 
         assert {[:socket, :close],
                 %{octets_recv: _, octets_sent: _, packets_recv: _, packets_sent: _},
-                %{}} = Enum.at(events, 3)
+                %{connection_id: ^connection_id}} = Enum.at(events, 3)
       end
     end
   end)
