@@ -9,7 +9,7 @@ defmodule ThousandIsland.ServerTest do
     def handle_connection(socket, state) do
       {:ok, data} = ThousandIsland.Socket.recv(socket, 0)
       ThousandIsland.Socket.send(socket, data)
-      {:ok, :close, state}
+      {:close, state}
     end
   end
 
@@ -19,7 +19,7 @@ defmodule ThousandIsland.ServerTest do
     @impl ThousandIsland.Handler
     def handle_shutdown(socket, state) do
       ThousandIsland.Socket.send(socket, "GOODBYE")
-      {:ok, :close, state}
+      {:close, state}
     end
   end
 

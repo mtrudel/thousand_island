@@ -11,6 +11,6 @@ defmodule Daytime do
   def handle_connection(socket, state) do
     time = DateTime.utc_now() |> to_string()
     ThousandIsland.Socket.send(socket, time)
-    {:ok, :close, state}
+    {:close, state}
   end
 end
