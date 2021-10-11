@@ -33,7 +33,7 @@ defmodule ThousandIsland.SocketTest do
     def handle_connection(socket, state) do
       {:ok, data} = ThousandIsland.Socket.recv(socket, 0)
       ThousandIsland.Socket.send(socket, data)
-      {:ok, :close, state}
+      {:close, state}
     end
   end
 
@@ -44,7 +44,7 @@ defmodule ThousandIsland.SocketTest do
     def handle_connection(socket, state) do
       ThousandIsland.Socket.sendfile(socket, Path.join(__DIR__, "../support/sendfile"), 0, 6)
       ThousandIsland.Socket.sendfile(socket, Path.join(__DIR__, "../support/sendfile"), 1, 3)
-      {:ok, :close, state}
+      {:close, state}
     end
   end
 
@@ -53,7 +53,7 @@ defmodule ThousandIsland.SocketTest do
 
     @impl ThousandIsland.Handler
     def handle_connection(_socket, state) do
-      {:ok, :close, state}
+      {:close, state}
     end
   end
 
@@ -71,7 +71,7 @@ defmodule ThousandIsland.SocketTest do
         "#{inspect([local_info, peer_info, negotiated_protocol])}"
       )
 
-      {:ok, :close, state}
+      {:close, state}
     end
   end
 

@@ -42,7 +42,7 @@ defmodule Echo do
   @impl ThousandIsland.Handler
   def handle_data(data, socket, state) do
     ThousandIsland.Socket.send(socket, data)
-    {:ok, :continue, state}
+    {:continue, state}
   end
 end
 

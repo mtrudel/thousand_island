@@ -15,13 +15,13 @@ defmodule Messenger do
   def handle_connection(socket, state) do
     %{address: remote_address} = ThousandIsland.Socket.peer_info(socket)
     IO.puts("#{inspect(self())} received connection from #{remote_address}")
-    {:ok, :continue, state}
+    {:continue, state}
   end
 
   @impl ThousandIsland.Handler
   def handle_data(msg, _socket, state) do
     IO.puts("Received #{msg}")
-    {:ok, :continue, state}
+    {:continue, state}
   end
 
   @impl GenServer

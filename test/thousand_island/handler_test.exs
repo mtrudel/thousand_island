@@ -12,12 +12,12 @@ defmodule ThousandIsland.HandlerTest do
 
       @impl ThousandIsland.Handler
       def handle_connection(_socket, state) do
-        {:ok, :continue, state}
+        {:continue, state}
       end
 
       @impl ThousandIsland.Handler
       def handle_data("ping", _socket, state) do
-        {:ok, :close, state}
+        {:close, state}
       end
 
       @impl ThousandIsland.Handler
@@ -49,11 +49,11 @@ defmodule ThousandIsland.HandlerTest do
       @impl ThousandIsland.Handler
       def handle_connection(socket, state) do
         ThousandIsland.Socket.send(socket, "HELLO")
-        {:ok, :continue, state}
+        {:continue, state}
       end
     end
 
-    test "it should keep the connection open if {:ok, :continue, state} is returned" do
+    test "it should keep the connection open if {:continue, state} is returned" do
       {:ok, port} = start_handler(HandleConnection.HelloWorld)
       {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
       assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
@@ -65,11 +65,11 @@ defmodule ThousandIsland.HandlerTest do
 
       @impl ThousandIsland.Handler
       def handle_connection(_socket, state) do
-        {:ok, :close, state}
+        {:close, state}
       end
     end
 
-    test "it should close the connection if {:ok, :close, state} is returned" do
+    test "it should close the connection if {:close, state} is returned" do
       {:ok, port} = start_handler(HandleConnection.Closer)
       {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
       assert :gen_tcp.recv(client, 0) == {:error, :closed}
@@ -143,11 +143,11 @@ defmodule ThousandIsland.HandlerTest do
       @impl ThousandIsland.Handler
       def handle_data("ping", socket, state) do
         ThousandIsland.Socket.send(socket, "HELLO")
-        {:ok, :continue, state}
+        {:continue, state}
       end
     end
 
-    test "it should keep the connection open if {:ok, :continue, state} is returned" do
+    test "it should keep the connection open if {:continue, state} is returned" do
       {:ok, port} = start_handler(HandleData.HelloWorld)
       {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
       :gen_tcp.send(client, "ping")
@@ -160,11 +160,11 @@ defmodule ThousandIsland.HandlerTest do
 
       @impl ThousandIsland.Handler
       def handle_data("ping", _socket, state) do
-        {:ok, :close, state}
+        {:close, state}
       end
     end
 
-    test "it should close the connection if {:ok, :close, state} is returned" do
+    test "it should close the connection if {:close, state} is returned" do
       {:ok, port} = start_handler(HandleData.Closer)
       {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
       :gen_tcp.send(client, "ping")
@@ -242,7 +242,7 @@ defmodule ThousandIsland.HandlerTest do
 
       @impl ThousandIsland.Handler
       def handle_connection(_socket, state) do
-        {:ok, :continue, state, 50}
+        {:continue, state, 50}
       end
 
       @impl ThousandIsland.Handler
@@ -272,7 +272,7 @@ defmodule ThousandIsland.HandlerTest do
 
       @impl ThousandIsland.Handler
       def handle_data("ping", _socket, state) do
-        {:ok, :continue, state, 50}
+        {:continue, state, 50}
       end
 
       @impl ThousandIsland.Handler
@@ -328,7 +328,7 @@ defmodule ThousandIsland.HandlerTest do
 
       @impl ThousandIsland.Handler
       def handle_data(_data, _socket, state) do
-        {:ok, :close, state}
+        {:close, state}
       end
     end
 
@@ -388,7 +388,7 @@ defmodule ThousandIsland.HandlerTest do
 
       @impl ThousandIsland.Handler
       def handle_connection(_socket, state) do
-        {:ok, :close, state}
+        {:close, state}
       end
     end
 

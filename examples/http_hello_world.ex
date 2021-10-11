@@ -10,6 +10,6 @@ defmodule HTTPHelloWorld do
   @impl ThousandIsland.Handler
   def handle_data(_data, socket, state) do
     ThousandIsland.Socket.send(socket, "HTTP/1.0 200 OK\r\n\r\nHello, World")
-    {:ok, :close, state}
+    {:close, state}
   end
 end
