@@ -6,7 +6,7 @@ defmodule ThousandIsland do
 
   Thousand Island is implemented as a supervision tree which is intended to be hosted
   inside a host application, often as a dependency embedded within a higher-level
-  protocol library such as [bandit](https://github.com/mtrudel/bandit). Aside from
+  protocol library such as [Bandit](https://github.com/mtrudel/bandit). Aside from
   supervising the Thousand Island process tree, applications interact with Thousand
   Island primarily via the `ThousandIsland.Handler` behaviour.
 
