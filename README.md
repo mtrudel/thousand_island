@@ -151,7 +151,7 @@ can be installed by adding `thousand_island` to your list of dependencies in `mi
 ```elixir
 def deps do
   [
-    {:thousand_island, "~> 0.4.0"}
+    {:thousand_island, "~> 0.5.1"}
   ]
 end
 ```
