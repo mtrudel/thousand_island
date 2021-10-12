@@ -132,6 +132,17 @@ Thousand Island does not use named processes or other 'global' state internally
 (other than telemetry event names). It is completely supported for a single node
 to host any number of `Server` processes each listening on a different port.
 
+## Contributing
+
+Contributions to Thousand Island are very much welcome! Before undertaking any substantial work, please
+open an issue on the project to discuss ideas and planned approaches so we can ensure we keep
+progress moving in the same direction.
+
+All contributors must agree and adhere to the project's [Code of
+Conduct](https://github.com/mtrudel/thousand_island/blob/main/CODE_OF_CONDUCT.md).
+
+Security disclosures should be sent privately to mat@geeky.net.
+
 ## Installation
 
 Thousand Island is [available in Hex](https://hex.pm/packages/thousand_island). The package
