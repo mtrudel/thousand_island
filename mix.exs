@@ -17,7 +17,8 @@ defmodule ThousandIsland.MixProject do
         maintainers: ["Mat Trudel"],
         licenses: ["MIT"],
         links: %{"GitHub" => "https://github.com/mtrudel/thousand_island"}
-      ]
+      ],
+      docs: docs()
     ]
   end
 
@@ -36,5 +37,12 @@ defmodule ThousandIsland.MixProject do
 
   defp dialyzer do
     [plt_core_path: "priv/plts", plt_file: {:no_warn, "priv/plts/dialyzer.plt"}]
+  end
+
+  defp docs do
+    [
+      main: "ThousandIsland",
+      nest_modules_by_prefix: [ThousandIsland.Transports]
+    ]
   end
 end

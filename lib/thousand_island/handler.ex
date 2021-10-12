@@ -198,7 +198,7 @@ defmodule ThousandIsland.Handler do
   has NOT been closed by the time this callback is called. The return value is ignored.
 
   This callback is only called when the shutdown reason is `:normal`, and is subject to the same caveats described 
-  in `GenServer.terminate/2`. 
+  in `c:GenServer.terminate/2`. 
   """
   @callback handle_shutdown(
               socket :: ThousandIsland.Socket.t(),
