@@ -103,7 +103,7 @@ immediately waits for another connection. It is worth noting that `Acceptor`
 processes are long-lived, and normally live for the entire period that the
 `Server` is running.
 
-A handler process is tied to the lifecycle of a client connection, and
+A handler process is tied to the lifecycle of a client connection, and is
 only started when a client connects. The length of its lifetime beyond that of the
 underlying connection is dependent on the behaviour of the configured Handler module.
 In typical cases its lifetime is directly related to that of the underlying connection.

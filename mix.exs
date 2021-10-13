@@ -42,7 +42,13 @@ defmodule ThousandIsland.MixProject do
   defp docs do
     [
       main: "ThousandIsland",
-      nest_modules_by_prefix: [ThousandIsland.Transports]
+      groups_for_modules: [
+        Transport: [
+          ThousandIsland.Transport,
+          ThousandIsland.Transports.TCP,
+          ThousandIsland.Transports.SSL
+        ]
+      ]
     ]
   end
 end
