@@ -6,9 +6,9 @@
 
 Thousand Island is a modern, pure Elixir socket server, inspired heavily by
 [ranch](https://github.com/ninenines/ranch). It aims to be easy to understand
-& reason about, while also being at least as stable and performant as alternatives.
+and reason about, while also being at least as stable and performant as alternatives.
 Informal tests place ranch and Thousand Island at roughly the same level of
-performance & overhead; short of synthetic scenarios on the busiest of servers,
+performance and overhead; short of synthetic scenarios on the busiest of servers,
 they perform equally for all intents and purposes.
 
 Thousand Island is written entirely in Elixir, and is nearly dependency-free (the
@@ -90,7 +90,7 @@ complete or are `:brutal_kill`ed after their shutdown timeout expires.
 At a top-level, a `Server` coordinates the processes involved in responding to
 connections on a socket. A `Server` manages two top-level processes: a `Listener`
 which is responsible for actually binding to the port and managing the resultant
-listener socket, and an `AcceptorPoolSupervisor` which is responsible for maanging
+listener socket, and an `AcceptorPoolSupervisor` which is responsible for managing
 a pool of `AcceptorSupervisor` processes.
 
 Each `AcceptorSupervisor` process (there are 10 by default) manages two processes:
