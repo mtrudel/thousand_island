@@ -220,10 +220,11 @@ defmodule ThousandIsland.Handler do
 
   @doc """
   This callback is called when the handler process is started and allows to pass options to the `GenServer` process at startup.
-  This can be useful if you need to e.g. register the process using a via-tuple for later lookup or enable `GenServer` debug.
+  It is called with the server's configured `handler_options` value as initial state. This can be useful if you need to
+  e.g. register the process using a via-tuple for later lookup or enable `GenServer` debug.
   By default, not options are passed.
   """
-  @callback options :: GenServer.options()
+  @callback options(state :: term) :: GenServer.options()
 
   @optional_callbacks handle_connection: 2,
                       handle_data: 3,
@@ -231,7 +232,7 @@ defmodule ThousandIsland.Handler do
                       handle_error: 3,
                       handle_shutdown: 2,
                       handle_timeout: 2,
-                      options: 0
+                      options: 1
 
   defmacro __using__(_opts) do
     quote location: :keep do
@@ -248,12 +249,12 @@ defmodule ThousandIsland.Handler do
       def handle_error(_error, _socket, _state), do: :ok
       def handle_shutdown(_socket, _state), do: :ok
       def handle_timeout(_socket, _state), do: :ok
-      def options, do: []
+      def options(_state), do: []
 
       defoverridable ThousandIsland.Handler
 
       def start_link(arg) do
-        GenServer.start_link(__MODULE__, arg, __MODULE__.options())
+        GenServer.start_link(__MODULE__, arg, __MODULE__.options(arg))
       end
 
       @impl GenServer
