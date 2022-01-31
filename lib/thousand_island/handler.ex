@@ -264,7 +264,14 @@ defmodule ThousandIsland.Handler do
           acceptor_id: socket.acceptor_id
         })
 
-        ThousandIsland.Socket.handshake(socket)
+        case ThousandIsland.Socket.handshake(socket) do
+          {:ok, socket} ->
+            {:noreply, {socket, state}, {:continue, :handle_connection}}
+
+          {:error, reason} ->
+            {:stop, reason, {socket, state}}
+        end
+
         {:noreply, {socket, state}, {:continue, :handle_connection}}
       end
 
