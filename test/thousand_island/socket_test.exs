@@ -155,6 +155,31 @@ defmodule ThousandIsland.SocketTest do
   describe "behaviour specific to ssl" do
     setup :ssl_setup
 
+    test "it should return an error if the handshake fails", context do
+      {:ok, port} = start_handler(Closer, context.server_opts)
+
+      {:error, {:tls_alert, _}} =
+        context.client_mod.connect('localhost', port,
+          active: false,
+          ciphers: [%{cipher: :rc4_128, key_exchange: :rsa, mac: :md5, prf: :default_prf}],
+          verify: :verify_peer,
+          cacertfile: Path.join(__DIR__, "../support/ca.pem"),
+          alpn_advertised_protocols: ["foo"]
+        )
+    end
+
+    test "it should return an error if the ca certificate doesn't exist", context do
+      {:ok, port} = start_handler(Closer, context.server_opts)
+
+      {:error, {:options, _}} =
+        context.client_mod.connect('localhost', port,
+          active: false,
+          verify: :verify_peer,
+          cacertfile: Path.join(__DIR__, "./not/a/file"),
+          alpn_advertised_protocols: ["foo"]
+        )
+    end
+
     test "it should provide correct connection info", context do
       {:ok, port} = start_handler(Info, context.server_opts)
 
