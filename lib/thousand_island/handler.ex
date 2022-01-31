@@ -271,8 +271,6 @@ defmodule ThousandIsland.Handler do
           {:error, reason} ->
             {:stop, reason, {socket, state}}
         end
-
-        {:noreply, {socket, state}, {:continue, :handle_connection}}
       end
 
       # Use a continue pattern here so that we have committed the socket
