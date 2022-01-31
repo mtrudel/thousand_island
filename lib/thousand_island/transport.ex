@@ -24,8 +24,11 @@ defmodule ThousandIsland.Transport do
   @typedoc "Connection statistics for a given socket"
   @type socket_stats() :: {:ok, [{:inet.stat_option(), integer()}]} | {:error, :inet.posix()}
 
-  @typedoc "Options which can be set on a socket via setopts/2"
-  @type socket_options() :: [:inet.socket_setopt()]
+  @typedoc "Options which can be set on a socket via setopts/2 (or returned from getopts/1)"
+  @type socket_get_options() :: [:inet.socket_getopt()]
+
+  @typedoc "Options which can be set on a socket via setopts/2 (or returned from getopts/1)"
+  @type socket_set_options() :: [:inet.socket_setopt()]
 
   @typedoc "The direction in which to shutdown a connection in advance of closing it"
   @type way() :: :read | :write | :read_write
@@ -96,10 +99,16 @@ defmodule ThousandIsland.Transport do
               {:ok, non_neg_integer()} | {:error, String.t()}
 
   @doc """
+  Gets the given options on the socket.
+  """
+  @callback getopts(socket(), socket_get_options()) ::
+              {:ok, socket_set_options()} | {:error, String.t()}
+
+  @doc """
   Sets the given options on the socket. Should disallow setting of options which
   are not compatible with Thousand Island
   """
-  @callback setopts(socket(), socket_options()) :: :ok | {:error, String.t()}
+  @callback setopts(socket(), socket_set_options()) :: :ok | {:error, String.t()}
 
   @doc """
   Shuts down the socket in the given direction.

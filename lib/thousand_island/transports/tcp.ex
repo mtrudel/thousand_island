@@ -85,6 +85,9 @@ defmodule ThousandIsland.Transports.TCP do
   end
 
   @impl Transport
+  defdelegate getopts(socket, options), to: :inet
+
+  @impl Transport
   defdelegate setopts(socket, options), to: :inet
 
   @impl Transport

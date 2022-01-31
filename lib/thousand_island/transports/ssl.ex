@@ -104,6 +104,9 @@ defmodule ThousandIsland.Transports.SSL do
   end
 
   @impl Transport
+  defdelegate getopts(socket, options), to: :ssl
+
+  @impl Transport
   defdelegate setopts(socket, options), to: :ssl
 
   @impl Transport
