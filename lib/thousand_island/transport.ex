@@ -1,6 +1,6 @@
 defmodule ThousandIsland.Transport do
   @moduledoc """
-  This module describes the behaviour required for Thousand Island to interact 
+  This module describes the behaviour required for Thousand Island to interact
   with low-level sockets. It is largely internal to Thousand Island, however users
   are free to implement their own versions of this behaviour backed by whatever
   underlying transport they choose. Such a module can be used in Thousand Island
@@ -53,14 +53,14 @@ defmodule ThousandIsland.Transport do
 
   @doc """
   Wait for a client connection on the given listener socket. This call blocks until
-  such a connection arrives, or an error occurs (such as the listener socket being 
+  such a connection arrives, or an error occurs (such as the listener socket being
   closed).
   """
   @callback accept(listener_socket()) :: {:ok, socket()} | {:error, any()}
 
   @doc """
   Performs an initial handshake on a new client connection (such as that done
-  when negotiating an SSL connection). Transports which do not have such a 
+  when negotiating an SSL connection). Transports which do not have such a
   handshake can simply pass the socket through unchanged.
   """
   @callback handshake(socket()) :: on_handshake()
@@ -73,8 +73,8 @@ defmodule ThousandIsland.Transport do
 
   @doc """
   Returns available bytes on the given socket. Up to `num_bytes` bytes will be
-  returned (0 can be passed in to get the next 'available' bytes, typically the 
-  next packet). If insufficient bytes are available, the function can wait `timeout` 
+  returned (0 can be passed in to get the next 'available' bytes, typically the
+  next packet). If insufficient bytes are available, the function can wait `timeout`
   milliseconds for data to arrive.
   """
   @callback recv(socket(), num_bytes :: non_neg_integer(), timeout :: timeout()) :: on_recv()

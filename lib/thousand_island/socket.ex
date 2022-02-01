@@ -1,7 +1,7 @@
 defmodule ThousandIsland.Socket do
   @moduledoc """
   Encapsulates a client connection's underlying socket, providing a facility to
-  read, write, and otherwise manipulate a connection from a client. 
+  read, write, and otherwise manipulate a connection from a client.
   """
 
   defstruct socket: nil, transport_module: nil, connection_id: nil, acceptor_id: nil
@@ -28,7 +28,7 @@ defmodule ThousandIsland.Socket do
   end
 
   @doc """
-  Handshakes the underlying socket if it is required (as in the case of SSL sockets, for example). 
+  Handshakes the underlying socket if it is required (as in the case of SSL sockets, for example).
   """
   @spec handshake(t()) :: {:ok, t()} | {:error, String.t()}
   def handshake(
@@ -54,8 +54,8 @@ defmodule ThousandIsland.Socket do
 
   @doc """
   Returns available bytes on the given socket. Up to `num_bytes` bytes will be
-  returned (0 can be passed in to get the next 'available' bytes, typically the 
-  next packet). If insufficient bytes are available, the function can wait `timeout` 
+  returned (0 can be passed in to get the next 'available' bytes, typically the
+  next packet). If insufficient bytes are available, the function can wait `timeout`
   milliseconds for data to arrive.
   """
   @spec recv(t(), non_neg_integer(), timeout()) :: Transport.on_recv()
