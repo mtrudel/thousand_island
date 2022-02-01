@@ -6,7 +6,7 @@ defmodule ThousandIsland.Handler do
 
   The lifecycle of a Handler instance is as follows:
 
-  1. After a client connection to a Thousand Island server is made, Thousand Island will complete the initial setup of the 
+  1. After a client connection to a Thousand Island server is made, Thousand Island will complete the initial setup of the
   connection (performing a TLS handshake, for example), and then call `c:handle_connection/2`.
 
   2. A handler implementation may choose to process a client connection within the `c:handle_connection/2` callback by
@@ -14,22 +14,22 @@ defmodule ThousandIsland.Handler do
   an implementation & the value `{:close, state}` can be returned which will cause Thousand Island to close the connection
   to the client.
 
-  3. In cases where the server wishes to keep the connection open and wait for subsequent requests from the client on the 
+  3. In cases where the server wishes to keep the connection open and wait for subsequent requests from the client on the
   same socket, it may elect to return `{:continue, state}`. This will cause Thousand Island to wait for client data
-  asynchronously; `c:handle_data/3` will be invoked when the client sends more data. 
+  asynchronously; `c:handle_data/3` will be invoked when the client sends more data.
 
   4. In the meantime, the process which is hosting connection is idle & able to receive messages sent from elsewhere in your
   application as needed. The implementation included in the `use ThousandIsland.Handler` macro uses a `GenServer` structure,
   so you may implement such behaviour via standard `GenServer` patterns. Note that in these cases that state is provided (and
   must be returned) in a `{socket, state}` format, where the second tuple is the same state value that is passed to the various `handle_*` callbacks
-  defined on this behaviour. Note also that any `GenServer` `handle_*` calls which are processed directly by an implementing module 
+  defined on this behaviour. Note also that any `GenServer` `handle_*` calls which are processed directly by an implementing module
   will cancel any async read timeout values which may have been set. Such calls are able to reset the timeout by returning a four element
   tuple with `timeout` as the fourth argument as specified in the `GenServer` documentation.
 
   It is fully supported to intermix synchronous `ThousandIsland.Socket.recv` calls with async return values from `c:handle_connection/2`
-  and `c:handle_data/3` callbacks. 
+  and `c:handle_data/3` callbacks.
 
-  # Example 
+  # Example
 
   A simple example of a Hello World server is as follows:
 
@@ -60,7 +60,7 @@ defmodule ThousandIsland.Handler do
   ```
 
   Note that in this example there is no `c:handle_connection/2` callback defined. The default implementation of this
-  callback will simply return `{:continue, state}`, which is appropriate for cases where the client is the first 
+  callback will simply return `{:continue, state}`, which is appropriate for cases where the client is the first
   party to communicate.
 
   Another example of a server which can send and receive messages asynchronously is as follows:
@@ -132,15 +132,15 @@ defmodule ThousandIsland.Handler do
 
   The value returned by this callback causes Thousand Island to proceed in once of several ways:
 
-  * Returning `{:close, state}` will cause Thousand Island to close the socket & call the `c:handle_close/2` callback to 
+  * Returning `{:close, state}` will cause Thousand Island to close the socket & call the `c:handle_close/2` callback to
   allow final cleanup to be done.
-  * Returning `{:continue, state}` will cause Thousand Island to switch the socket to an asynchronous mode. When the 
+  * Returning `{:continue, state}` will cause Thousand Island to switch the socket to an asynchronous mode. When the
   client subsequently sends data (or if there is already unread data waiting from the client), Thousand Island will call
   `c:handle_data/3` to allow this data to be processed.
   * Returning `{:continue, state, timeout}` is identical to the previous case with the
   addition of a timeout. If `timeout` milliseconds passes with no data being received, the socket
   will be closed and `c:handle_timeout/2` will be called.
-  * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to 
+  * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to
   allow final cleanup to be done.
   """
   @callback handle_connection(socket :: ThousandIsland.Socket.t(), state :: term()) ::
@@ -148,20 +148,20 @@ defmodule ThousandIsland.Handler do
 
   @doc """
   This callback is called whenever client data is received after `c:handle_connection/2` or `c:handle_data/3` have returned an
-  `{:continue, state}` tuple. The data received is passed as the first argument, and handlers may choose to interact 
+  `{:continue, state}` tuple. The data received is passed as the first argument, and handlers may choose to interact
   synchronously with the socket in this callback via calls to various `ThousandIsland.Socket` functions.
 
   The value returned by this callback causes Thousand Island to proceed in once of several ways:
 
-  * Returning `{:close, state}` will cause Thousand Island to close the socket & call the `c:handle_close/2` callback to 
+  * Returning `{:close, state}` will cause Thousand Island to close the socket & call the `c:handle_close/2` callback to
   allow final cleanup to be done.
-  * Returning `{:continue, state}` will cause Thousand Island to switch the socket to an asynchronous mode. When the 
+  * Returning `{:continue, state}` will cause Thousand Island to switch the socket to an asynchronous mode. When the
   client subsequently sends data (or if there is already unread data waiting from the client), Thousand Island will call
   `c:handle_data/3` to allow this data to be processed.
   * Returning `{:continue, state, timeout}` is identical to the previous case with the
   addition of a timeout. If `timeout` milliseconds passes with no data being received, the socket
   will be closed and `c:handle_timeout/2` will be called.
-  * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to 
+  * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to
   allow final cleanup to be done.
   """
   @callback handle_data(data :: binary(), socket :: ThousandIsland.Socket.t(), state :: term()) ::
@@ -172,7 +172,7 @@ defmodule ThousandIsland.Handler do
   as it is the last callback called before the process backing this connection is terminated. The underlying socket
   has already been closed by the time this callback is called. The return value is ignored.
 
-  This callback is not called if the connection is explicitly closed via `ThousandIsland.Socket.close/1`, however it 
+  This callback is not called if the connection is explicitly closed via `ThousandIsland.Socket.close/1`, however it
   will be called in cases where `handle_connection/2` or `handle_data/3` return a `{:close, state}` tuple.
   """
   @callback handle_close(socket :: ThousandIsland.Socket.t(), state :: term()) :: term()
@@ -197,8 +197,8 @@ defmodule ThousandIsland.Handler do
   as it is the last callback called before the process backing this connection is terminated. The underlying socket
   has NOT been closed by the time this callback is called. The return value is ignored.
 
-  This callback is only called when the shutdown reason is `:normal`, and is subject to the same caveats described 
-  in `c:GenServer.terminate/2`. 
+  This callback is only called when the shutdown reason is `:normal`, and is subject to the same caveats described
+  in `c:GenServer.terminate/2`.
   """
   @callback handle_shutdown(
               socket :: ThousandIsland.Socket.t(),
@@ -207,7 +207,7 @@ defmodule ThousandIsland.Handler do
               term()
 
   @doc """
-  This callback is called when an async read call times out (ie: when a tuple of the form `{:continue, state, timeout}` 
+  This callback is called when an async read call times out (ie: when a tuple of the form `{:continue, state, timeout}`
   is returned by `c:handle_connection/2` or `c:handle_data/3` and `timeout` ms have passed). Note that it is NOT called
   on explicit `ThousandIsland.Socket.recv/3` calls as they have their own timeout semantics. The underlying socket
   has NOT been closed by the time this callback is called. The return value is ignored.

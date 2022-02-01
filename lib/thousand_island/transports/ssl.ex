@@ -1,20 +1,20 @@
 defmodule ThousandIsland.Transports.SSL do
   @moduledoc """
-  Defines a `ThousandIsland.Transport` implementation based on TCP SSL sockets 
+  Defines a `ThousandIsland.Transport` implementation based on TCP SSL sockets
   as provided by Erlang's `:ssl` module. For the most part, users of Thousand
   Island will only ever need to deal with this module via `transport_options`
   passed to `ThousandIsland` at startup time. A complete list of such options
-  is defined via the `t::ssl.tls_server_option` type. This list can be somewhat 
+  is defined via the `t::ssl.tls_server_option` type. This list can be somewhat
   difficult to decipher; a list of the most common options follows:
 
   * `key`: A DER encoded binary representation of the SSL key to use
   * `cert`: A DER encoded binary representation of the SSL key to use
   * `keyfile`: A string path to a PEM encoded key to use for SSL
   * `certfile`: A string path to a PEM encoded cert to use for SSL
-  * `ip`:  The IP to listen on (defaults to all interfaces). IPs should be 
-  described in tuple form (ie: `ip: {1, 2, 3, 4}`). The value `:loopback` can 
+  * `ip`:  The IP to listen on (defaults to all interfaces). IPs should be
+  described in tuple form (ie: `ip: {1, 2, 3, 4}`). The value `:loopback` can
   be used to only bind to localhost. On platforms which support it (macOS and
-  Linux at a minimum, likely others), you can also bind to a Unix domain socket 
+  Linux at a minimum, likely others), you can also bind to a Unix domain socket
   by specifying a value of `ip: {:local, "/path/to/socket"}`. Note that the port
   *must* be set to `0`, and that the socket is not removed from the filesystem
   after the server shuts down.
