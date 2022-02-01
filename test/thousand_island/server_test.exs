@@ -23,6 +23,23 @@ defmodule ThousandIsland.ServerTest do
     end
   end
 
+  defmodule Error do
+    use ThousandIsland.Handler
+
+    @impl ThousandIsland.Handler
+    def handle_error(error, _socket, state) do
+      # Send error to test process
+      case Keyword.fetch(state, :test_pid) do
+        {:ok, pid} ->
+          send(pid, error)
+          :ok
+
+        _ ->
+          raise "missing :test_pid for Error handler"
+      end
+    end
+  end
+
   test "should handle multiple connections as expected" do
     {:ok, _, port} = start_handler(Echo)
     {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
@@ -94,6 +111,69 @@ defmodule ThousandIsland.ServerTest do
                Enum.at(events, 0)
 
       assert {[:listener, :shutdown], %{}, _} = Enum.at(events, 1)
+    end
+  end
+
+  describe "invalid configuration" do
+    @tag capture_log: true
+    test "it should error if a certificate is not found" do
+      server_args = [
+        port: 0,
+        handler_module: Error,
+        handler_options: [test_pid: self()],
+        transport_module: ThousandIsland.Transports.SSL,
+        transport_options: [
+          certfile: Path.join(__DIR__, "./not/a/cert.pem"),
+          keyfile: Path.join(__DIR__, "./not/a/key.pem"),
+          alpn_preferred_protocols: ["foo"]
+        ]
+      ]
+
+      {:ok, server_pid} = start_supervised({ThousandIsland, server_args})
+      {:ok, port} = ThousandIsland.local_port(server_pid)
+
+      {:error, _} =
+        :ssl.connect('localhost', port,
+          active: false,
+          verify: :verify_peer,
+          cacertfile: Path.join(__DIR__, "../support/ca.pem")
+        )
+
+      ThousandIsland.stop(server_pid)
+
+      assert_received {:options, {:certfile, _, _}}
+    end
+
+    @tag capture_log: true
+    test "handshake should fail if the client offers only unsupported ciphers" do
+      server_args = [
+        port: 0,
+        handler_module: Error,
+        handler_options: [test_pid: self()],
+        transport_module: ThousandIsland.Transports.SSL,
+        transport_options: [
+          certfile: Path.join(__DIR__, "../support/cert.pem"),
+          keyfile: Path.join(__DIR__, "../support/key.pem"),
+          alpn_preferred_protocols: ["foo"]
+        ]
+      ]
+
+      {:ok, server_pid} = start_supervised({ThousandIsland, server_args})
+      {:ok, port} = ThousandIsland.local_port(server_pid)
+
+      {:error, _} =
+        :ssl.connect('localhost', port,
+          active: false,
+          verify: :verify_peer,
+          cacertfile: Path.join(__DIR__, "../support/ca.pem"),
+          ciphers: [
+            %{cipher: :rc4_128, key_exchange: :rsa, mac: :md5, prf: :default_prf}
+          ]
+        )
+
+      ThousandIsland.stop(server_pid)
+
+      assert_received {:tls_alert, {:insufficient_security, _}}
     end
   end
 
