@@ -2,6 +2,8 @@ defmodule ThousandIsland.ServerTest do
   # False due to telemetry raciness
   use ExUnit.Case, async: false
 
+  import ExUnit.CaptureLog
+
   defmodule Echo do
     use ThousandIsland.Handler
 
@@ -94,6 +96,65 @@ defmodule ThousandIsland.ServerTest do
                Enum.at(events, 0)
 
       assert {[:listener, :shutdown], %{}, _} = Enum.at(events, 1)
+    end
+  end
+
+  describe "invalid configuration" do
+    test "it should error if a certificate is not found" do
+      server_args = [
+        port: 0,
+        handler_module: Echo,
+        transport_module: ThousandIsland.Transports.SSL,
+        transport_options: [
+          certfile: Path.join(__DIR__, "./not/a/cert.pem"),
+          keyfile: Path.join(__DIR__, "./not/a/key.pem"),
+          alpn_preferred_protocols: ["foo"]
+        ]
+      ]
+
+      {:ok, server_pid} = start_supervised({ThousandIsland, server_args})
+      {:ok, port} = ThousandIsland.local_port(server_pid)
+
+      assert capture_log([level: :error], fn ->
+               {:error, _} =
+                 :ssl.connect('localhost', port,
+                   active: false,
+                   verify: :verify_peer,
+                   cacertfile: Path.join(__DIR__, "../support/ca.pem")
+                 )
+
+               ThousandIsland.stop(server_pid)
+             end) =~ "{:options, {:certfile,"
+    end
+
+    test "handshake should fail if the client offers only unsupported ciphers" do
+      server_args = [
+        port: 0,
+        handler_module: Echo,
+        transport_module: ThousandIsland.Transports.SSL,
+        transport_options: [
+          certfile: Path.join(__DIR__, "../support/cert.pem"),
+          keyfile: Path.join(__DIR__, "../support/key.pem"),
+          alpn_preferred_protocols: ["foo"]
+        ]
+      ]
+
+      {:ok, server_pid} = start_supervised({ThousandIsland, server_args})
+      {:ok, port} = ThousandIsland.local_port(server_pid)
+
+      assert capture_log([level: :error], fn ->
+               {:error, _} =
+                 :ssl.connect('localhost', port,
+                   active: false,
+                   verify: :verify_peer,
+                   cacertfile: Path.join(__DIR__, "../support/ca.pem"),
+                   ciphers: [
+                     %{cipher: :rc4_128, key_exchange: :rsa, mac: :md5, prf: :default_prf}
+                   ]
+                 )
+
+               ThousandIsland.stop(server_pid)
+             end) =~ "{:tls_alert, {:insufficient_security,"
     end
   end
 
