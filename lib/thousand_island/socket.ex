@@ -28,6 +28,17 @@ defmodule ThousandIsland.Socket do
   end
 
   @doc """
+  Gets the given flags on the socket
+
+  Errors are usually from :inet.posix(), however, SSL module defines return type as any()
+  """
+  @spec getopts(t(), Transport.socket_get_options()) ::
+          {:ok, Transport.socket_set_options()} | {:error, term()}
+  def getopts(%__MODULE__{socket: socket, transport_module: transport_module}, options) do
+    transport_module.getopts(socket, options)
+  end
+
+  @doc """
   Handshakes the underlying socket if it is required (as in the case of SSL sockets, for example).
   """
   @spec handshake(t()) :: {:ok, t()} | {:error, String.t()}
@@ -133,8 +144,10 @@ defmodule ThousandIsland.Socket do
 
   @doc """
   Sets the given flags on the socket
+
+  Errors are usually from :inet.posix(), however, SSL module defines return type as any()
   """
-  @spec setopts(t(), Transport.socket_options()) :: :ok | {:error, String.t()}
+  @spec setopts(t(), Transport.socket_set_options()) :: :ok | {:error, term()}
   def setopts(%__MODULE__{socket: socket, transport_module: transport_module}, options) do
     transport_module.setopts(socket, options)
   end
