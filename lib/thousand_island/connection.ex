@@ -4,7 +4,8 @@ defmodule ThousandIsland.Connection do
   def start(sup_pid, transport_socket, acceptor_id, %ThousandIsland.ServerConfig{
         transport_module: transport_module,
         handler_module: handler_module,
-        handler_opts: handler_opts
+        handler_opts: handler_opts,
+        genserver_opts: genserver_opts
       }) do
     connection_id = unique_id()
 
@@ -12,7 +13,11 @@ defmodule ThousandIsland.Connection do
     # the process which owns the socket (us, at this point).
 
     # Start by creating the worker process which will eventually handle this socket
-    {:ok, pid} = DynamicSupervisor.start_child(sup_pid, {handler_module, handler_opts})
+    {:ok, pid} =
+      DynamicSupervisor.start_child(
+        sup_pid,
+        {handler_module, [handler_opts: handler_opts, genserver_opts: genserver_opts]}
+      )
 
     # Since this process owns the socket at this point, it needs to be the
     # one to make this call. connection_pid is sitting and waiting for the

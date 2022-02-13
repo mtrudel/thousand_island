@@ -37,7 +37,7 @@ defmodule ThousandIsland do
 
   ## Starting a Thousand Island Server
 
-  A typical use of `ThousandIsland` might look like the following: 
+  A typical use of `ThousandIsland` might look like the following:
 
   ```elixir
   defmodule MyApp.Supervisor do
@@ -81,7 +81,7 @@ defmodule ThousandIsland do
 
   ## Logging & Telemetry
 
-  As a low-level library, Thousand Island purposely does not do any inline 
+  As a low-level library, Thousand Island purposely does not do any inline
   logging of any kind. The `ThousandIsland.Logging` module defines a number of
   functions to aid in tracing connections at various log levels, and such logging
   can be dynamically enabled and disabled against an already running server. This
@@ -106,8 +106,8 @@ defmodule ThousandIsland do
   * `[:socket, :shutdown]`: Emitted whenever a `ThousandIsland.Socket.shutdown/2` call completes.
   * `[:socket, :close]`: Emitted whenever a `ThousandIsland.Socket.close/1` call completes.
 
-  Where meaurements indicate a time duration they are are expressed in `System` 
-  `:native` units for performance reasons. They can be conveted to any desired 
+  Where meaurements indicate a time duration they are are expressed in `System`
+  `:native` units for performance reasons. They can be conveted to any desired
   time unit via `System.convert_time_unit/3`.
   """
 
@@ -116,7 +116,7 @@ defmodule ThousandIsland do
 
   * `handler_module`: The name of the module used to handle connections to this server.
   The module is expected to implement the `ThousandIsland.Handler` behaviour. Required.
-  * `handler_options`: A term which is passed as the initial state value to 
+  * `handler_options`: A term which is passed as the initial state value to
   `c:ThousandIsland.Handler.handle_connection/2` calls. Optional, defaulting to nil.
   * `port`: The TCP port number to listen on. If not specified this defaults to 4000.
   If a port number of `0` is given, the server will dynamically assign a port number
@@ -129,13 +129,14 @@ defmodule ThousandIsland do
   `c:ThousandIsland.Transport.listen/2` function. Valid values depend on the transport
   module specified in `transport_module` and can be found in the documentation for the
   `ThousandIsland.Transports.TCP` and `ThousandIsland.Transports.SSL` modules. Any options
-  in terms of interfaces to listen to / certificates and keys to use for SSL connections 
+  in terms of interfaces to listen to / certificates and keys to use for SSL connections
   will be passed in via this option.
   * `num_acceptors`: The numbner of acceptor processes to run. Defaults to 10.
   """
   @type options :: [
           handler_module: module(),
           handler_options: term(),
+          genserver_options: GenServer.options(),
           port: :inet.port_number(),
           transport_module: module(),
           transport_options: keyword(),
@@ -178,10 +179,10 @@ defmodule ThousandIsland do
   end
 
   @doc """
-  Synchronously stops the given server, waiting up to the given number of milliseconds 
-  for existing connections to finish up. Immediately upon calling this function, 
+  Synchronously stops the given server, waiting up to the given number of milliseconds
+  for existing connections to finish up. Immediately upon calling this function,
   the server stops listening for new connections, and then proceeds to wait until
-  either all existing connections have completed or the specified timeout has 
+  either all existing connections have completed or the specified timeout has
   elapsed.
   """
   @spec stop(pid(), timeout()) :: :ok

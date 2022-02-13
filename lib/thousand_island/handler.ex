@@ -86,7 +86,7 @@ defmodule ThousandIsland.Handler do
   which are able to make use of the underlying socket. This allows for bidirectional sending and receiving of messages in
   an asynchronous manner.
 
-  You can pass options to the default handler underlying `GenServer` by adding a `genserver_opts` key to `handler_opts`
+  You can pass options to the default handler underlying `GenServer` by passing a `genserver_options` key to `ThousandIsland.start_link/1`
   containing `t:GenServer.options/0` to be passed to the last argument of `GenServer.start_link/3`.
 
   Please note that you should not pass the `name` `t:Genserver.option/0`. If you need to register handler processes for
@@ -275,8 +275,7 @@ defmodule ThousandIsland.Handler do
 
       defoverridable ThousandIsland.Handler
 
-      def start_link(arg) do
-        {genserver_opts, handler_opts} = Keyword.pop(arg, :genserver_opts, [])
+      def start_link(handler_opts: handler_opts, genserver_opts: genserver_opts) do
         GenServer.start_link(__MODULE__, handler_opts, genserver_opts)
       end
 
