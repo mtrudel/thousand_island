@@ -86,6 +86,38 @@ defmodule ThousandIsland.Handler do
   which are able to make use of the underlying socket. This allows for bidirectional sending and receiving of messages in
   an asynchronous manner.
 
+  You can pass options to the default handler underlying `GenServer` by passing a `genserver_options` key to `ThousandIsland.start_link/1`
+  containing `t:GenServer.options/0` to be passed to the last argument of `GenServer.start_link/3`.
+
+  Please note that you should not pass the `name` `t:Genserver.option/0`. If you need to register handler processes for
+  later lookup and use, you should perform process registration in `handle_connection/2`, ensuring the handler process is
+  registered only after the underlying connection is established and you have access to the connection socket and metadata
+  via `ThousandIsland.Socket.peer_info/1`.
+
+  For example, using a custom process registry via `Registry`:
+
+  ```elixir
+
+    defmodule Messenger do
+    use ThousandIsland.Handler
+
+    @impl ThousandIsland.Handler
+    def handle_connection(socket, state) do
+      %{address: host} = ThousandIsland.Socket.peer_info(socket)
+      {:ok, _pid} = Registry.register(MessengerRegistry, {state[:my_key], address}, nil)
+      {:continue, state}
+    end
+
+    @impl ThousandIsland.Handler
+    def handle_data(data, socket, state) do
+      ThousandIsland.Socket.send(socket, data)
+      {:continue, state}
+    end
+  end
+  ```
+
+  This example assumes you have started a `Registry` and registered it under the name `MessengerRegistry`.
+
   # When Handler Isn't Enough
 
   The `use ThousandIsland.Handler` implementation should be flexible enough to power just about any handler, however if
@@ -243,8 +275,8 @@ defmodule ThousandIsland.Handler do
 
       defoverridable ThousandIsland.Handler
 
-      def start_link(arg) do
-        GenServer.start_link(__MODULE__, arg)
+      def start_link(handler_opts: handler_opts, genserver_opts: genserver_opts) do
+        GenServer.start_link(__MODULE__, handler_opts, genserver_opts)
       end
 
       @impl GenServer

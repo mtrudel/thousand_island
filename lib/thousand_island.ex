@@ -118,6 +118,8 @@ defmodule ThousandIsland do
   The module is expected to implement the `ThousandIsland.Handler` behaviour. Required.
   * `handler_options`: A term which is passed as the initial state value to
   `c:ThousandIsland.Handler.handle_connection/2` calls. Optional, defaulting to nil.
+  * `genserver_options`: A term which is passed as the value to the handler module's
+  underlying `GenServer.start_link/3` call. Optional, defaulting to [].
   * `port`: The TCP port number to listen on. If not specified this defaults to 4000.
   If a port number of `0` is given, the server will dynamically assign a port number
   which can then be obtained via `local_port/1`.
@@ -136,6 +138,7 @@ defmodule ThousandIsland do
   @type options :: [
           handler_module: module(),
           handler_options: term(),
+          genserver_options: GenServer.options(),
           port: :inet.port_number(),
           transport_module: module(),
           transport_options: keyword(),

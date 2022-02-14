@@ -8,6 +8,7 @@ defmodule ThousandIsland.ServerConfig do
           transport_opts: keyword(),
           handler_module: module(),
           handler_opts: term(),
+          genserver_opts: GenServer.options(),
           num_acceptors: pos_integer()
         }
 
@@ -18,6 +19,7 @@ defmodule ThousandIsland.ServerConfig do
           transport_opts: keyword(),
           handler_module: module(),
           handler_opts: keyword(),
+          genserver_opts: GenServer.options(),
           num_acceptors: pos_integer()
         ]
 
@@ -27,6 +29,7 @@ defmodule ThousandIsland.ServerConfig do
     :transport_opts,
     :handler_module,
     :handler_opts,
+    :genserver_opts,
     :num_acceptors
   ]
 
@@ -38,6 +41,7 @@ defmodule ThousandIsland.ServerConfig do
       transport_opts: Keyword.get(opts, :transport_options, []),
       handler_module: Keyword.fetch!(opts, :handler_module),
       handler_opts: Keyword.get(opts, :handler_options, []),
+      genserver_opts: Keyword.get(opts, :genserver_options, []),
       num_acceptors: Keyword.get(opts, :num_acceptors, 10)
     }
   end
