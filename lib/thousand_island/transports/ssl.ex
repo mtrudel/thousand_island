@@ -71,14 +71,6 @@ defmodule ThousandIsland.Transports.SSL do
   end
 
   @impl Transport
-  def listen_port(listener_socket) do
-    case :ssl.sockname(listener_socket) do
-      {:ok, {_, port}} -> {:ok, port}
-      {:error, _} = error -> error
-    end
-  end
-
-  @impl Transport
   defdelegate accept(listener_socket), to: :ssl, as: :transport_accept
 
   @impl Transport
@@ -116,9 +108,14 @@ defmodule ThousandIsland.Transports.SSL do
   defdelegate close(socket), to: :ssl
 
   @impl Transport
+  # :ssl's typespec is incorrect
+  @dialyzer {:no_match, local_info: 1}
   def local_info(socket) do
-    {:ok, {ip, port}} = :ssl.sockname(socket)
-    %{address: ip, port: port, ssl_cert: nil}
+    case :ssl.sockname(socket) do
+      {:ok, {:local, path}} -> %{address: {:local, path}, port: 0, ssl_cert: nil}
+      {:ok, {ip, port}} -> %{address: ip, port: port, ssl_cert: nil}
+      other -> other
+    end
   end
 
   @impl Transport

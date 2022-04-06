@@ -122,7 +122,7 @@ defmodule ThousandIsland do
   underlying `GenServer.start_link/3` call. Optional, defaulting to [].
   * `port`: The TCP port number to listen on. If not specified this defaults to 4000.
   If a port number of `0` is given, the server will dynamically assign a port number
-  which can then be obtained via `local_port/1`.
+  which can then be obtained via `local_info/1`.
   * `transport_module`: The name of the module which provides basic socket functions.
   Thousand Island provides `ThousandIsland.Transports.TCP` and `ThousandIsland.Transports.SSL`,
   which provide clear and TLS encrypted TCP sockets respectively. If not specified this
@@ -145,7 +145,7 @@ defmodule ThousandIsland do
           num_acceptors: pos_integer()
         ]
 
-  alias ThousandIsland.{Listener, Server, ServerConfig}
+  alias ThousandIsland.{Listener, Server, ServerConfig, Transport}
 
   @doc false
   @spec child_spec(options()) :: Supervisor.child_spec()
@@ -173,11 +173,11 @@ defmodule ThousandIsland do
   end
 
   @doc """
-  Returns the local port number that the servrer is listening on.
+  Returns information about the address and port that the server is listening on
   """
-  @spec local_port(pid()) :: {:ok, :inet.port_number()}
-  def local_port(pid) do
-    pid |> Server.listener_pid() |> Listener.listener_port()
+  @spec listener_info(pid()) :: {:ok, Transport.socket_info()}
+  def listener_info(pid) do
+    pid |> Server.listener_pid() |> Listener.listener_info()
   end
 
   @doc """

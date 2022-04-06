@@ -17,8 +17,8 @@ defmodule ThousandIsland.Listener do
     GenServer.call(pid, :listener_socket)
   end
 
-  def listener_port(pid) do
-    GenServer.call(pid, :listener_port)
+  def listener_info(pid) do
+    GenServer.call(pid, :listener_info)
   end
 
   def init(%ServerConfig{
@@ -28,9 +28,9 @@ defmodule ThousandIsland.Listener do
       }) do
     case transport_module.listen(port, transport_opts) do
       {:ok, listener_socket} ->
-        {:ok, port} = transport_module.listen_port(listener_socket)
+        info = transport_module.local_info(listener_socket)
 
-        :telemetry.execute([:listener, :start], %{port: port}, %{
+        :telemetry.execute([:listener, :start], info, %{
           transport_module: transport_module,
           transport_opts: transport_opts
         })
@@ -58,11 +58,11 @@ defmodule ThousandIsland.Listener do
   end
 
   def handle_call(
-        :listener_port,
+        :listener_info,
         _from,
         %{listener_socket: listener_socket, transport_module: transport_module} = state
       ) do
-    {:reply, transport_module.listen_port(listener_socket), state}
+    {:reply, transport_module.local_info(listener_socket), state}
   end
 
   def terminate(_reason, %{transport_module: transport_module}) do

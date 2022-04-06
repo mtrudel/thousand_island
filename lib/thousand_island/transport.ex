@@ -49,12 +49,6 @@ defmodule ThousandIsland.Transport do
   @callback listen(:inet.port_number(), keyword()) :: {:ok, listener_socket()}
 
   @doc """
-  Return the local port number that the given listener socket is accepting
-  connections on.
-  """
-  @callback listen_port(listener_socket()) :: {:ok, :inet.port_number()}
-
-  @doc """
   Wait for a client connection on the given listener socket. This call blocks until
   such a connection arrives, or an error occurs (such as the listener socket being
   closed).
@@ -123,7 +117,7 @@ defmodule ThousandIsland.Transport do
   @doc """
   Returns information in the form of `t:socket_info()` about the local end of the socket.
   """
-  @callback local_info(socket()) :: socket_info()
+  @callback local_info(socket() | listener_socket()) :: socket_info()
 
   @doc """
   Returns information in the form of `t:socket_info()` about the remote end of the socket.

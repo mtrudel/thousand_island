@@ -60,9 +60,6 @@ defmodule ThousandIsland.Transports.TCP do
   end
 
   @impl Transport
-  defdelegate listen_port(listener_socket), to: :inet, as: :port
-
-  @impl Transport
   defdelegate accept(listener_socket), to: :gen_tcp
 
   @impl Transport
@@ -98,8 +95,11 @@ defmodule ThousandIsland.Transports.TCP do
 
   @impl Transport
   def local_info(socket) do
-    {:ok, {ip, port}} = :inet.sockname(socket)
-    %{address: ip, port: port, ssl_cert: nil}
+    case :inet.sockname(socket) do
+      {:ok, {:local, path}} -> %{address: {:local, path}, port: 0, ssl_cert: nil}
+      {:ok, {ip, port}} -> %{address: ip, port: port, ssl_cert: nil}
+      other -> other
+    end
   end
 
   @impl Transport
