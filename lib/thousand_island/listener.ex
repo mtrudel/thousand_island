@@ -62,7 +62,7 @@ defmodule ThousandIsland.Listener do
         _from,
         %{listener_socket: listener_socket, transport_module: transport_module} = state
       ) do
-    {:reply, transport_module.local_info(listener_socket), state}
+    {:reply, {:ok, transport_module.local_info(listener_socket)}, state}
   end
 
   def terminate(_reason, %{transport_module: transport_module}) do
