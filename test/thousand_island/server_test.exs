@@ -99,7 +99,7 @@ defmodule ThousandIsland.ServerTest do
     test "it should emit telemetry events as expected" do
       {:ok, collector_pid} = start_collector()
       {:ok, server_pid, _} = start_handler(Echo)
-      %{port: port} = ThousandIsland.listener_info(server_pid)
+      {:ok, %{port: port}} = ThousandIsland.listener_info(server_pid)
 
       ThousandIsland.stop(server_pid)
 
@@ -130,7 +130,7 @@ defmodule ThousandIsland.ServerTest do
       ]
 
       {:ok, server_pid} = start_supervised({ThousandIsland, server_args})
-      %{port: port} = ThousandIsland.listener_info(server_pid)
+      {:ok, %{port: port}} = ThousandIsland.listener_info(server_pid)
 
       {:error, _} =
         :ssl.connect('localhost', port,
@@ -159,7 +159,7 @@ defmodule ThousandIsland.ServerTest do
       ]
 
       {:ok, server_pid} = start_supervised({ThousandIsland, server_args})
-      %{port: port} = ThousandIsland.listener_info(server_pid)
+      {:ok, %{port: port}} = ThousandIsland.listener_info(server_pid)
 
       {:error, _} =
         :ssl.connect('localhost', port,
@@ -180,7 +180,7 @@ defmodule ThousandIsland.ServerTest do
   defp start_handler(handler) do
     resolved_args = [port: 0, handler_module: handler]
     {:ok, server_pid} = start_supervised({ThousandIsland, resolved_args})
-    %{port: port} = ThousandIsland.listener_info(server_pid)
+    {:ok, %{port: port}} = ThousandIsland.listener_info(server_pid)
     {:ok, server_pid, port}
   end
 

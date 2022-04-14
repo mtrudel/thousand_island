@@ -16,7 +16,7 @@ defmodule ThousandIsland.Transport do
 
   @typedoc "Information about an endpoint (either remote ('peer') or local"
   @type socket_info() :: %{
-          address: :inet.ip_address(),
+          address: :inet.family_address(),
           port: :inet.port_number(),
           ssl_cert: String.t() | nil
         }
