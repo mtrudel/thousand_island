@@ -296,6 +296,33 @@ defmodule ThousandIsland.HandlerTest do
       assert messages =~ "handle_timeout"
     end
 
+    defmodule ReadTimeout do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_timeout(_socket, _state) do
+        Logger.error("handle_timeout")
+      end
+    end
+
+    test "it should close the connection and call handle_timeout if the global read_timeout is reached waiting for client data" do
+      # Start handle with a global read_timeout of 50ms for all connections
+      {:ok, port} = start_handler(ReadTimeout, read_timeout: 50)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          :gen_tcp.send(client, "ping")
+          assert :gen_tcp.recv(client, 0, 100) == {:error, :closed}
+          Process.sleep(100)
+        end)
+
+      # Ensure that we saw the message displayed by the handle_timeout callback
+      assert messages =~ "handle_timeout"
+    end
+
     defmodule DoNothing do
       use ThousandIsland.Handler
 

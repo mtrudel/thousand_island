@@ -4,7 +4,11 @@ defmodule ThousandIsland.Socket do
   read, write, and otherwise manipulate a connection from a client.
   """
 
-  defstruct socket: nil, transport_module: nil, connection_id: nil, acceptor_id: nil
+  defstruct socket: nil,
+            transport_module: nil,
+            connection_id: nil,
+            acceptor_id: nil,
+            read_timeout: nil
 
   alias ThousandIsland.Transport
 
@@ -13,17 +17,19 @@ defmodule ThousandIsland.Socket do
           socket: Transport.socket(),
           transport_module: module(),
           connection_id: String.t(),
-          acceptor_id: String.t()
+          acceptor_id: String.t(),
+          read_timeout: pos_integer()
         }
 
   @doc false
-  @spec new(Transport.socket(), module(), String.t(), String.t()) :: t()
-  def new(socket, transport_module, connection_id, acceptor_id) do
+  @spec new(Transport.socket(), module(), String.t(), String.t(), pos_integer()) :: t()
+  def new(socket, transport_module, connection_id, acceptor_id, read_timeout) do
     %__MODULE__{
       socket: socket,
       transport_module: transport_module,
       connection_id: connection_id,
-      acceptor_id: acceptor_id
+      acceptor_id: acceptor_id,
+      read_timeout: read_timeout
     }
   end
 
@@ -74,12 +80,13 @@ defmodule ThousandIsland.Socket do
         %__MODULE__{
           socket: socket,
           transport_module: transport_module,
-          connection_id: connection_id
+          connection_id: connection_id,
+          read_timeout: read_timeout
         },
         length \\ 0,
-        timeout \\ :infinity
+        timeout \\ nil
       ) do
-    result = transport_module.recv(socket, length, timeout)
+    result = transport_module.recv(socket, length, timeout || read_timeout)
 
     :telemetry.execute([:socket, :recv], %{result: result}, %{
       connection_id: connection_id

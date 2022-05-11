@@ -379,7 +379,7 @@ defmodule ThousandIsland.Handler do
         case continuation do
           {:continue, state} ->
             ThousandIsland.Socket.setopts(socket, active: :once)
-            {:noreply, {socket, state}}
+            {:noreply, {socket, state}, socket.read_timeout}
 
           {:continue, state, timeout} ->
             ThousandIsland.Socket.setopts(socket, active: :once)
