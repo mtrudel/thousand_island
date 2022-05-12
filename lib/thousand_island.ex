@@ -141,14 +141,11 @@ defmodule ThousandIsland do
           genserver_options: GenServer.options(),
           port: :inet.port_number(),
           transport_module: module(),
-          transport_options: transport_opts(),
+          transport_options:
+            ThousandIsland.Transports.TCP.options() | ThousandIsland.Transports.SSL.options(),
           num_acceptors: pos_integer(),
           read_timeout: pos_integer()
         ]
-
-  @type transport_opts() :: [tcp_opts() | ssl_opts()]
-  @type tcp_opts() :: [:inet.inet_backend() | :gen_tcp.listen_option()]
-  @type ssl_opts() :: [:ssl.tls_server_option()]
 
   alias ThousandIsland.{Listener, Server, ServerConfig, Transport}
 
