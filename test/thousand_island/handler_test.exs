@@ -302,6 +302,12 @@ defmodule ThousandIsland.HandlerTest do
       require Logger
 
       @impl ThousandIsland.Handler
+      def handle_data("ping", _socket, state) do
+        Logger.info("ping_received")
+        {:continue, state}
+      end
+
+      @impl ThousandIsland.Handler
       def handle_timeout(_socket, _state) do
         Logger.error("handle_timeout")
       end
@@ -320,6 +326,51 @@ defmodule ThousandIsland.HandlerTest do
           Process.sleep(100)
         end)
 
+      # Ensure the initial message was received
+      assert messages =~ "ping_received"
+      # Ensure that we saw the message displayed by the handle_timeout callback
+      assert messages =~ "handle_timeout"
+    end
+
+    defmodule SyncReadTimeout do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_data("ping", socket, state) do
+        Logger.info("ping_received")
+
+        case ThousandIsland.Socket.recv(socket, 0) do
+          {:error, reason} ->
+            {:error, reason, state}
+
+          {:ok, _binary} ->
+            {:continue, state}
+        end
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_timeout(_socket, _state) do
+        Logger.error("handle_timeout")
+      end
+    end
+
+    test "it should timeout after the global read_timeout on synchronous recv call" do
+      # Start handler with a global read_timeout of 50ms for all connections
+      read_timeout = 50
+      {:ok, port} = start_handler(SyncReadTimeout, read_timeout: read_timeout)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          :gen_tcp.send(client, "ping")
+          assert :gen_tcp.recv(client, 0, read_timeout * 2) == {:error, :closed}
+          Process.sleep(100)
+        end)
+
+      # Ensure the initial message was received
+      assert messages =~ "ping_received"
       # Ensure that we saw the message displayed by the handle_timeout callback
       assert messages =~ "handle_timeout"
     end
