@@ -143,7 +143,7 @@ defmodule ThousandIsland do
           transport_module: module(),
           transport_options: transport_options(),
           num_acceptors: pos_integer(),
-          read_timeout: pos_integer()
+          read_timeout: timeout()
         ]
 
   @type transport_options() ::

@@ -9,7 +9,8 @@ defmodule ThousandIsland.ServerConfig do
           handler_module: module(),
           handler_opts: term(),
           genserver_opts: GenServer.options(),
-          num_acceptors: pos_integer()
+          num_acceptors: pos_integer(),
+          read_timeout: timeout()
         }
 
   defstruct [
