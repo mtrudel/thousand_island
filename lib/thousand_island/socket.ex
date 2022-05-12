@@ -75,7 +75,7 @@ defmodule ThousandIsland.Socket do
   next packet). If insufficient bytes are available, the function can wait `timeout`
   milliseconds for data to arrive.
   """
-  @spec recv(t(), non_neg_integer(), timeout()) :: Transport.on_recv()
+  @spec recv(t(), non_neg_integer(), timeout() | nil) :: Transport.on_recv()
   def recv(
         %__MODULE__{
           socket: socket,
