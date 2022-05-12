@@ -5,7 +5,7 @@ defmodule ThousandIsland.ServerConfig do
   @type t :: %__MODULE__{
           port: :inet.port_number(),
           transport_module: module(),
-          transport_opts: ThousandIsland.transport_opts(),
+          transport_opts: ThousandIsland.transport_options(),
           handler_module: module(),
           handler_opts: term(),
           genserver_opts: GenServer.options(),
