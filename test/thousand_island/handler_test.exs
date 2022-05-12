@@ -375,6 +375,22 @@ defmodule ThousandIsland.HandlerTest do
       assert messages =~ "handle_timeout"
     end
 
+    test "it should use the timeout from the callback functions instead of the global read_timeout if specified" do
+      # TimeoutData specifies a 50ms timeout after the first ping message
+      {:ok, port} = start_handler(TimeoutData, read_timeout: 500)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          :gen_tcp.send(client, "ping")
+          assert :gen_tcp.recv(client, 0, 200) == {:error, :closed}
+          Process.sleep(100)
+        end)
+
+      # Ensure that we saw the message displayed by the handle_timeout callback
+      assert messages =~ "handle_timeout"
+    end
+
     defmodule DoNothing do
       use ThousandIsland.Handler
 
