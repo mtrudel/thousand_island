@@ -38,7 +38,7 @@ defmodule ThousandIsland.Transports.TCP do
 
   alias ThousandIsland.Transport
 
-  @type options() :: [:inet.inet_backend() | :gen_tcp.listen_option()]
+  @type options() :: [:gen_tcp.listen_option()]
 
   @behaviour Transport
 
