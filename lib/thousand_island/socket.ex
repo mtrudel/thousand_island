@@ -18,11 +18,11 @@ defmodule ThousandIsland.Socket do
           transport_module: module(),
           connection_id: String.t(),
           acceptor_id: String.t(),
-          read_timeout: pos_integer()
+          read_timeout: timeout()
         }
 
   @doc false
-  @spec new(Transport.socket(), module(), String.t(), String.t(), pos_integer()) :: t()
+  @spec new(Transport.socket(), module(), String.t(), String.t(), timeout()) :: t()
   def new(socket, transport_module, connection_id, acceptor_id, read_timeout) do
     %__MODULE__{
       socket: socket,
