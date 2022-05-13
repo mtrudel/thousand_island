@@ -141,9 +141,13 @@ defmodule ThousandIsland do
           genserver_options: GenServer.options(),
           port: :inet.port_number(),
           transport_module: module(),
-          transport_options: keyword(),
-          num_acceptors: pos_integer()
+          transport_options: transport_options(),
+          num_acceptors: pos_integer(),
+          read_timeout: timeout()
         ]
+
+  @type transport_options() ::
+          ThousandIsland.Transports.TCP.options() | ThousandIsland.Transports.SSL.options()
 
   alias ThousandIsland.{Listener, Server, ServerConfig, Transport}
 
@@ -165,7 +169,7 @@ defmodule ThousandIsland do
   this module in the case of success, or an error tuple describing the reason the
   server was unable to start in the case of failure.
   """
-  @spec start_link(options()) :: {:ok, pid} | {:error, term}
+  @spec start_link(options()) :: Supervisor.on_start()
   def start_link(opts \\ []) do
     opts
     |> ServerConfig.new()

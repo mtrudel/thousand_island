@@ -41,6 +41,8 @@ defmodule ThousandIsland.Transports.SSL do
 
   alias ThousandIsland.Transport
 
+  @type options() :: [:ssl.tls_server_option()]
+
   @behaviour Transport
 
   @hardcoded_options [mode: :binary, active: false]

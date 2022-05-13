@@ -5,23 +5,13 @@ defmodule ThousandIsland.ServerConfig do
   @type t :: %__MODULE__{
           port: :inet.port_number(),
           transport_module: module(),
-          transport_opts: keyword(),
+          transport_opts: ThousandIsland.transport_options(),
           handler_module: module(),
           handler_opts: term(),
           genserver_opts: GenServer.options(),
-          num_acceptors: pos_integer()
+          num_acceptors: pos_integer(),
+          read_timeout: timeout()
         }
-
-  @typedoc "Valid options when creating a ServerConfig struct"
-  @type options() :: [
-          port: :inet.port_number(),
-          transport_module: module(),
-          transport_opts: keyword(),
-          handler_module: module(),
-          handler_opts: keyword(),
-          genserver_opts: GenServer.options(),
-          num_acceptors: pos_integer()
-        ]
 
   defstruct [
     :port,
@@ -30,10 +20,11 @@ defmodule ThousandIsland.ServerConfig do
     :handler_module,
     :handler_opts,
     :genserver_opts,
-    :num_acceptors
+    :num_acceptors,
+    :read_timeout
   ]
 
-  @spec new(options()) :: t()
+  @spec new(ThousandIsland.options()) :: t()
   def new(opts \\ []) do
     %__MODULE__{
       port: Keyword.get(opts, :port, 4000),
@@ -42,7 +33,8 @@ defmodule ThousandIsland.ServerConfig do
       handler_module: Keyword.fetch!(opts, :handler_module),
       handler_opts: Keyword.get(opts, :handler_options, []),
       genserver_opts: Keyword.get(opts, :genserver_options, []),
-      num_acceptors: Keyword.get(opts, :num_acceptors, 10)
+      num_acceptors: Keyword.get(opts, :num_acceptors, 10),
+      read_timeout: Keyword.get(opts, :read_timeout, :infinity)
     }
   end
 end

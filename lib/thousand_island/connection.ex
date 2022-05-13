@@ -5,7 +5,8 @@ defmodule ThousandIsland.Connection do
         transport_module: transport_module,
         handler_module: handler_module,
         handler_opts: handler_opts,
-        genserver_opts: genserver_opts
+        genserver_opts: genserver_opts,
+        read_timeout: read_timeout
       }) do
     connection_id = unique_id()
 
@@ -31,7 +32,13 @@ defmodule ThousandIsland.Connection do
     # struct and send it to the new process via a message so it can start working
     # with the socket (note that the new process will still need to handshake with the remote end)
     socket =
-      ThousandIsland.Socket.new(transport_socket, transport_module, connection_id, acceptor_id)
+      ThousandIsland.Socket.new(
+        transport_socket,
+        transport_module,
+        connection_id,
+        acceptor_id,
+        read_timeout
+      )
 
     Process.send(pid, {:thousand_island_ready, socket}, [])
   end
