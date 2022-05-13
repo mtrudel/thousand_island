@@ -169,9 +169,7 @@ defmodule ThousandIsland do
   this module in the case of success, or an error tuple describing the reason the
   server was unable to start in the case of failure.
   """
-  @spec start_link(options()) ::
-          {:ok, pid()}
-          | {:error, {:already_started, pid()} | {:shutdown, term()} | term()}
+  @spec start_link(options()) :: Supervisor.on_start()
   def start_link(opts \\ []) do
     opts
     |> ServerConfig.new()
