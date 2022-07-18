@@ -155,7 +155,7 @@ defmodule ThousandIsland.Handler do
           {:continue, state :: term()}
           | {:continue, state :: term(), timeout()}
           | {:close, state :: term()}
-          | {:error, String.t(), state :: term()}
+          | {:error, term(), state :: term()}
 
   @doc """
   This callback is called shortly after a client connection has been made, immediately after the socket handshake process has
@@ -218,7 +218,7 @@ defmodule ThousandIsland.Handler do
   return a `{:error, reason, state}` tuple.
   """
   @callback handle_error(
-              reason :: String.t(),
+              reason :: any(),
               socket :: ThousandIsland.Socket.t(),
               state :: term()
             ) ::

@@ -33,11 +33,29 @@ defmodule ThousandIsland.Transport do
   @typedoc "The direction in which to shutdown a connection in advance of closing it"
   @type way() :: :read | :write | :read_write
 
+  @typedoc "The return value from a getopts/2 call"
+  @type on_getopts() :: {:ok, socket_set_options()} | {:error, any()}
+
+  @typedoc "The return value from a setopts/2 call"
+  @type on_setopts() :: :ok | {:error, any()}
+
   @typedoc "The return value from a recv/3 call"
-  @type on_recv() :: {:ok, binary()} | {:error, String.t()}
+  @type on_recv() :: {:ok, binary()} | {:error, any()}
+
+  @typedoc "The return value from a send/2 call"
+  @type on_send() :: :ok | {:error, any()}
+
+  @typedoc "The return value from a sendfile/4 call"
+  @type on_sendfile() :: {:ok, non_neg_integer()} | {:error, any()}
 
   @typedoc "The return value from a handshake/1 call"
   @type on_handshake() :: {:ok, socket()} | {:error, any()}
+
+  @typedoc "The return value from a shutdown/2 call"
+  @type on_shutdown() :: :ok
+
+  @typedoc "The return value from a close/1 call"
+  @type on_close() :: :ok
 
   @typedoc "The return value from a negotiated_protocol/1 call"
   @type negotiated_protocol_info() :: {:ok, binary()} | {:error, :protocol_not_negotiated}
@@ -79,7 +97,7 @@ defmodule ThousandIsland.Transport do
   @doc """
   Sends the given data (specified as a binary or an IO list) on the given socket.
   """
-  @callback send(socket(), data :: IO.chardata()) :: :ok | {:error, String.t()}
+  @callback send(socket(), data :: IO.chardata()) :: on_send()
 
   @doc """
   Sends the contents of the given file based on the provided offset & length
@@ -89,30 +107,28 @@ defmodule ThousandIsland.Transport do
               filename :: String.t(),
               offset :: non_neg_integer(),
               length :: non_neg_integer()
-            ) ::
-              {:ok, non_neg_integer()} | {:error, String.t()}
+            ) :: on_sendfile()
 
   @doc """
   Gets the given options on the socket.
   """
-  @callback getopts(socket(), socket_get_options()) ::
-              {:ok, socket_set_options()} | {:error, String.t()}
+  @callback getopts(socket(), socket_get_options()) :: on_getopts()
 
   @doc """
   Sets the given options on the socket. Should disallow setting of options which
   are not compatible with Thousand Island
   """
-  @callback setopts(socket(), socket_set_options()) :: :ok | {:error, String.t()}
+  @callback setopts(socket(), socket_set_options()) :: on_setopts()
 
   @doc """
   Shuts down the socket in the given direction.
   """
-  @callback shutdown(socket(), way()) :: :ok
+  @callback shutdown(socket(), way()) :: on_shutdown()
 
   @doc """
   Closes the given socket.
   """
-  @callback close(socket() | listener_socket()) :: :ok
+  @callback close(socket() | listener_socket()) :: on_close()
 
   @doc """
   Returns information in the form of `t:socket_info()` about the local end of the socket.

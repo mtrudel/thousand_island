@@ -38,8 +38,7 @@ defmodule ThousandIsland.Socket do
 
   Errors are usually from :inet.posix(), however, SSL module defines return type as any()
   """
-  @spec getopts(t(), Transport.socket_get_options()) ::
-          {:ok, Transport.socket_set_options()} | {:error, term()}
+  @spec getopts(t(), Transport.socket_get_options()) :: Transport.on_getopts()
   def getopts(%__MODULE__{socket: socket, transport_module: transport_module}, options) do
     transport_module.getopts(socket, options)
   end
@@ -47,7 +46,7 @@ defmodule ThousandIsland.Socket do
   @doc """
   Handshakes the underlying socket if it is required (as in the case of SSL sockets, for example).
   """
-  @spec handshake(t()) :: {:ok, t()} | {:error, String.t()}
+  @spec handshake(t()) :: Transport.on_handshake()
   def handshake(
         %__MODULE__{
           socket: transport_socket,
@@ -98,7 +97,7 @@ defmodule ThousandIsland.Socket do
   @doc """
   Sends the given data (specified as a binary or an IO list) on the given socket.
   """
-  @spec send(t(), IO.chardata()) :: :ok | {:error, term()}
+  @spec send(t(), IO.chardata()) :: Transport.on_send()
   def send(
         %__MODULE__{
           socket: socket,
@@ -119,8 +118,7 @@ defmodule ThousandIsland.Socket do
   @doc """
   Sends the contents of the given file based on the provided offset & length
   """
-  @spec sendfile(t(), String.t(), non_neg_integer(), non_neg_integer()) ::
-          {:ok, non_neg_integer()} | {:error, String.t()}
+  @spec sendfile(t(), String.t(), non_neg_integer(), non_neg_integer()) :: Transport.on_sendfile()
   def sendfile(
         %__MODULE__{
           socket: socket,
@@ -154,7 +152,7 @@ defmodule ThousandIsland.Socket do
 
   Errors are usually from :inet.posix(), however, SSL module defines return type as any()
   """
-  @spec setopts(t(), Transport.socket_set_options()) :: :ok | {:error, term()}
+  @spec setopts(t(), Transport.socket_set_options()) :: Transport.on_setopts()
   def setopts(%__MODULE__{socket: socket, transport_module: transport_module}, options) do
     transport_module.setopts(socket, options)
   end
@@ -162,7 +160,7 @@ defmodule ThousandIsland.Socket do
   @doc """
   Shuts down the socket in the given direction.
   """
-  @spec shutdown(t(), Transport.way()) :: :ok
+  @spec shutdown(t(), Transport.way()) :: Transport.on_shutdown()
   def shutdown(
         %__MODULE__{
           socket: socket,
@@ -180,7 +178,7 @@ defmodule ThousandIsland.Socket do
   Closes the given socket. Note that a socket is automatically closed when the handler
   process which owns it terminates
   """
-  @spec close(t()) :: :ok
+  @spec close(t()) :: Transport.on_close()
   def close(%__MODULE__{
         socket: socket,
         transport_module: transport_module,
