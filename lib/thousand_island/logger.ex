@@ -88,22 +88,16 @@ defmodule ThousandIsland.Logger do
   end
 
   @doc false
-  def log_error([:listener, :error], measurements, _metadata, _config) do
-    Logger.error("Listener error #{inspect(measurements.error)}")
-  end
-
-  def log_error([:handler, :error], measurements, metadata, _config) do
-    Logger.error("Handler #{metadata.connection_id} error #{inspect(measurements.error)}")
-  end
-
-  def log_error([:socket, :handshake_error], measurements, metadata, _config) do
+  def log_error(event, measurements, metadata, _config) do
     Logger.error(
-      "Connection #{metadata.connection_id} handshake error #{inspect(measurements.error)}"
+      "#{inspect(event)} metadata: #{inspect(metadata)}, measurements: #{inspect(measurements)}"
     )
   end
 
-  def log_info([:listener, :start], measurements, _metadata, _config) do
-    Logger.info("Listener listening on port #{measurements.port}")
+  def log_info(event, measurements, metadata, _config) do
+    Logger.info(
+      "#{inspect(event)} metadata: #{inspect(metadata)}, measurements: #{inspect(measurements)}"
+    )
   end
 
   def log_debug(event, measurements, metadata, _config) do
