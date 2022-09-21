@@ -34,16 +34,6 @@ defmodule ThousandIsland.Socket do
   end
 
   @doc """
-  Gets the given flags on the socket
-
-  Errors are usually from :inet.posix(), however, SSL module defines return type as any()
-  """
-  @spec getopts(t(), Transport.socket_get_options()) :: Transport.on_getopts()
-  def getopts(%__MODULE__{socket: socket, transport_module: transport_module}, options) do
-    transport_module.getopts(socket, options)
-  end
-
-  @doc """
   Handshakes the underlying socket if it is required (as in the case of SSL sockets, for example).
   """
   @spec handshake(t()) :: Transport.on_handshake()
@@ -148,16 +138,6 @@ defmodule ThousandIsland.Socket do
   end
 
   @doc """
-  Sets the given flags on the socket
-
-  Errors are usually from :inet.posix(), however, SSL module defines return type as any()
-  """
-  @spec setopts(t(), Transport.socket_set_options()) :: Transport.on_setopts()
-  def setopts(%__MODULE__{socket: socket, transport_module: transport_module}, options) do
-    transport_module.setopts(socket, options)
-  end
-
-  @doc """
   Shuts down the socket in the given direction.
   """
   @spec shutdown(t(), Transport.way()) :: Transport.on_shutdown()
@@ -201,6 +181,26 @@ defmodule ThousandIsland.Socket do
 
     :telemetry.execute([:socket, :close], measurements, %{connection_id: connection_id})
     result
+  end
+
+  @doc """
+  Gets the given flags on the socket
+
+  Errors are usually from :inet.posix(), however, SSL module defines return type as any()
+  """
+  @spec getopts(t(), Transport.socket_get_options()) :: Transport.on_getopts()
+  def getopts(%__MODULE__{socket: socket, transport_module: transport_module}, options) do
+    transport_module.getopts(socket, options)
+  end
+
+  @doc """
+  Sets the given flags on the socket
+
+  Errors are usually from :inet.posix(), however, SSL module defines return type as any()
+  """
+  @spec setopts(t(), Transport.socket_set_options()) :: Transport.on_setopts()
+  def setopts(%__MODULE__{socket: socket, transport_module: transport_module}, options) do
+    transport_module.setopts(socket, options)
   end
 
   @doc """
