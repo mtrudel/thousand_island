@@ -154,6 +154,7 @@ defmodule ThousandIsland.Handler do
   @type handler_result ::
           {:continue, state :: term()}
           | {:continue, state :: term(), timeout()}
+          | {:continue, state :: term(), {:persistent, timeout()}}
           | {:close, state :: term()}
           | {:error, term(), state :: term()}
 
@@ -170,8 +171,12 @@ defmodule ThousandIsland.Handler do
   client subsequently sends data (or if there is already unread data waiting from the client), Thousand Island will call
   `c:handle_data/3` to allow this data to be processed.
   * Returning `{:continue, state, timeout}` is identical to the previous case with the
-  addition of a timeout. If `timeout` milliseconds passes with no data being received, the socket
-  will be closed and `c:handle_timeout/2` will be called.
+  addition of a timeout. If `timeout` milliseconds passes with no data being received or messages
+  being sent to the process, the socket will be closed and `c:handle_timeout/2` will be called.
+  Note that this timeout is not persistent; it applies only to the interval until the next message
+  is received. In order to set a persistent timeout for all future messages (essentially
+  overwriting the value of `read_timeout` that was set at server startup), a value of
+  `{:persistent, timeout}` may be returned.
   * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to
   allow final cleanup to be done.
   """
@@ -191,8 +196,12 @@ defmodule ThousandIsland.Handler do
   client subsequently sends data (or if there is already unread data waiting from the client), Thousand Island will call
   `c:handle_data/3` to allow this data to be processed.
   * Returning `{:continue, state, timeout}` is identical to the previous case with the
-  addition of a timeout. If `timeout` milliseconds passes with no data being received, the socket
-  will be closed and `c:handle_timeout/2` will be called.
+  addition of a timeout. If `timeout` milliseconds passes with no data being received or messages
+  being sent to the process, the socket will be closed and `c:handle_timeout/2` will be called.
+  Note that this timeout is not persistent; it applies only to the interval until the next message
+  is received. In order to set a persistent timeout for all future messages (essentially
+  overwriting the value of `read_timeout` that was set at server startup), a value of
+  `{:persistent, timeout}` may be returned.
   * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to
   allow final cleanup to be done.
   """
@@ -239,10 +248,13 @@ defmodule ThousandIsland.Handler do
               term()
 
   @doc """
-  This callback is called when an async read call times out (ie: when a tuple of the form `{:continue, state, timeout}`
-  is returned by `c:handle_connection/2` or `c:handle_data/3` and `timeout` ms have passed). Note that it is NOT called
-  on explicit `ThousandIsland.Socket.recv/3` calls as they have their own timeout semantics. The underlying socket
-  has NOT been closed by the time this callback is called. The return value is ignored.
+  This callback is called when a handler process has gone more than `timeout` ms without receiving
+  either remote data or a local message. The value used for `timeout` defaults to the
+  `read_timeout` value specified at server startup, and may be overridden on a one-shot or
+  persistent basis based on values returned from `c:handle_connection/2` or `c:handle_data/3`
+  calls. Note that it is NOT called on explicit `ThousandIsland.Socket.recv/3` calls as they have
+  their own timeout semantics. The underlying socket has NOT been closed by the time this callback
+  is called. The return value is ignored.
   """
   @callback handle_timeout(
               socket :: ThousandIsland.Socket.t(),
@@ -380,6 +392,11 @@ defmodule ThousandIsland.Handler do
           {:continue, state} ->
             ThousandIsland.Socket.setopts(socket, active: :once)
             {:noreply, {socket, state}, socket.read_timeout}
+
+          {:continue, state, {:persistent, timeout}} ->
+            socket = %{socket | read_timeout: timeout}
+            ThousandIsland.Socket.setopts(socket, active: :once)
+            {:noreply, {socket, state}, timeout}
 
           {:continue, state, timeout} ->
             ThousandIsland.Socket.setopts(socket, active: :once)

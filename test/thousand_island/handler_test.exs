@@ -281,6 +281,26 @@ defmodule ThousandIsland.HandlerTest do
       end
     end
 
+    defmodule PersistentTimeoutData do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_data("ping", _socket, state) do
+        {:continue, state, {:persistent, 50}}
+      end
+
+      def handle_data("pong", _socket, state) do
+        {:continue, state}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_timeout(_socket, _state) do
+        Logger.error("handle_timeout")
+      end
+    end
+
     test "it should close the connection and call handle_timeout if the specified timeout is reached waiting for client data" do
       {:ok, port} = start_handler(TimeoutData)
 
@@ -383,6 +403,24 @@ defmodule ThousandIsland.HandlerTest do
         capture_log(fn ->
           {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
           :gen_tcp.send(client, "ping")
+          assert :gen_tcp.recv(client, 0, 200) == {:error, :closed}
+          Process.sleep(100)
+        end)
+
+      # Ensure that we saw the message displayed by the handle_timeout callback
+      assert messages =~ "handle_timeout"
+    end
+
+    test "it should persist the timeout from the callback functions as the global read_timeout if specified" do
+      # PersistentTimeoutData specifies a 50ms timeout after the first ping message
+      {:ok, port} = start_handler(PersistentTimeoutData, read_timeout: 500)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          :gen_tcp.send(client, "ping")
+          Process.sleep(100)
+          :gen_tcp.send(client, "pong")
           assert :gen_tcp.recv(client, 0, 200) == {:error, :closed}
           Process.sleep(100)
         end)
