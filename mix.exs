@@ -4,7 +4,7 @@ defmodule ThousandIsland.MixProject do
   def project do
     [
       app: :thousand_island,
-      version: "0.5.10",
+      version: "0.5.11",
       elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
