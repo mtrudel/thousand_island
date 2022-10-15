@@ -107,7 +107,7 @@ defmodule ThousandIsland do
   * `[:socket, :close]`: Emitted whenever a `ThousandIsland.Socket.close/1` call completes.
 
   Where meaurements indicate a time duration they are are expressed in `System`
-  `:native` units for performance reasons. They can be conveted to any desired
+  `:native` units for performance reasons. They can be converted to any desired
   time unit via `System.convert_time_unit/3`.
   """
 
@@ -133,7 +133,7 @@ defmodule ThousandIsland do
   `ThousandIsland.Transports.TCP` and `ThousandIsland.Transports.SSL` modules. Any options
   in terms of interfaces to listen to / certificates and keys to use for SSL connections
   will be passed in via this option.
-  * `num_acceptors`: The numbner of acceptor processes to run. Defaults to 10.
+  * `num_acceptors`: The number of acceptor processes to run. Defaults to 10.
   """
   @type options :: [
           handler_module: module(),
