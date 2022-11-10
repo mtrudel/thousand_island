@@ -141,7 +141,7 @@ progress moving in the same direction.
 All contributors must agree and adhere to the project's [Code of
 Conduct](https://github.com/mtrudel/thousand_island/blob/main/CODE_OF_CONDUCT.md).
 
-Security disclosures should be sent privately to mat@geeky.net.
+Security disclosures should be handled per Thousand Island's published [security policy](https://github.com/mtrudel/thousand_island/blob/main/SECURITY.md).
 
 ## Installation
 
