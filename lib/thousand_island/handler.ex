@@ -349,6 +349,14 @@ defmodule ThousandIsland.Handler do
       end
 
       @impl GenServer
+      # This clause could happen if we are shut down before we have had a chance to fully set up
+      # the handler process. In this case we would have never called any of the `Handler`
+      # callbacks so the connection hasn't started yet from the perspective of the user
+      # See https://github.com/mtrudel/bandit/issues/54 for details
+      def terminate(_, {nil, state}) do
+        :ok
+      end
+
       def terminate(:shutdown, {socket, state}) do
         :telemetry.execute([:handler, :shutdown], %{reason: :shutdown}, %{
           connection_id: socket.connection_id
