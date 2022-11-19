@@ -353,7 +353,7 @@ defmodule ThousandIsland.Handler do
       # the handler process. In this case we would have never called any of the `Handler`
       # callbacks so the connection hasn't started yet from the perspective of the user
       # See https://github.com/mtrudel/bandit/issues/54 for details
-      def terminate(_, {nil, state}) do
+      def terminate(_reason, {nil, _state}) do
         :ok
       end
 
