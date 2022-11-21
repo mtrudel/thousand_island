@@ -60,13 +60,11 @@ defmodule ThousandIsland.Transports.SSL do
 
     resolved_options = @hardcoded_options ++ user_options ++ default_options
 
-    if !(:proplists.is_defined(:keyfile, resolved_options) ||
-           :proplists.is_defined(:key, resolved_options)) do
+    if not Enum.any?([:keyfile, :key], &:proplists.is_defined(&1, resolved_options)) do
       raise "transport_options must include one of keyfile or key"
     end
 
-    if !(:proplists.is_defined(:certfile, resolved_options) ||
-           :proplists.is_defined(:cert, resolved_options)) do
+    if not Enum.any?([:certfile, :cert], &:proplists.is_defined(&1, resolved_options)) do
       raise "transport_options must include one of certfile or cert"
     end
 
