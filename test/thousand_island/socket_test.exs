@@ -182,7 +182,7 @@ defmodule ThousandIsland.SocketTest do
   end
 
   defp start_handler(handler, server_args) do
-    resolved_args = server_args |> Keyword.merge(port: 0, handler_module: handler)
+    resolved_args = [port: 0, handler_module: handler] ++ server_args
     {:ok, server_pid} = start_supervised({ThousandIsland, resolved_args})
     {:ok, %{port: port}} = ThousandIsland.listener_info(server_pid)
     {:ok, port}

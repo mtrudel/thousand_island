@@ -58,14 +58,13 @@ defmodule ThousandIsland.Transports.SSL do
       reuseaddr: true
     ]
 
-    resolved_options =
-      default_options |> Keyword.merge(user_options) |> Keyword.merge(@hardcoded_options)
+    resolved_options = @hardcoded_options ++ user_options ++ default_options
 
-    if Keyword.take(resolved_options, [:keyfile, :key]) == [] do
+    if not Enum.any?([:keyfile, :key], &:proplists.is_defined(&1, resolved_options)) do
       raise "transport_options must include one of keyfile or key"
     end
 
-    if Keyword.take(resolved_options, [:certfile, :cert]) == [] do
+    if not Enum.any?([:certfile, :cert], &:proplists.is_defined(&1, resolved_options)) do
       raise "transport_options must include one of certfile or cert"
     end
 

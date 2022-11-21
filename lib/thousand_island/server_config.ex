@@ -26,15 +26,19 @@ defmodule ThousandIsland.ServerConfig do
 
   @spec new(ThousandIsland.options()) :: t()
   def new(opts \\ []) do
+    if !:proplists.is_defined(:handler_module, opts),
+      do: raise("No handler_module defined in server configuration")
+
     %__MODULE__{
-      port: Keyword.get(opts, :port, 4000),
-      transport_module: Keyword.get(opts, :transport_module, ThousandIsland.Transports.TCP),
-      transport_opts: Keyword.get(opts, :transport_options, []),
-      handler_module: Keyword.fetch!(opts, :handler_module),
-      handler_opts: Keyword.get(opts, :handler_options, []),
-      genserver_opts: Keyword.get(opts, :genserver_options, []),
-      num_acceptors: Keyword.get(opts, :num_acceptors, 10),
-      read_timeout: Keyword.get(opts, :read_timeout, :infinity)
+      port: :proplists.get_value(:port, opts, 4000),
+      transport_module:
+        :proplists.get_value(:transport_module, opts, ThousandIsland.Transports.TCP),
+      transport_opts: :proplists.get_value(:transport_options, opts, []),
+      handler_module: :proplists.get_value(:handler_module, opts),
+      handler_opts: :proplists.get_value(:handler_options, opts, []),
+      genserver_opts: :proplists.get_value(:genserver_options, opts, []),
+      num_acceptors: :proplists.get_value(:num_acceptors, opts, 10),
+      read_timeout: :proplists.get_value(:read_timeout, opts, :infinity)
     }
   end
 end
