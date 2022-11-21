@@ -29,8 +29,8 @@ defmodule ThousandIsland.ServerTest do
     @impl ThousandIsland.Handler
     def handle_error(error, _socket, state) do
       # Send error to test process
-      case Keyword.fetch(state, :test_pid) do
-        {:ok, pid} ->
+      case :proplists.get_value(:test_pid, state) do
+        pid when is_pid(pid) ->
           send(pid, error)
           :ok
 
