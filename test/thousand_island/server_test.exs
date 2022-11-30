@@ -95,23 +95,6 @@ defmodule ThousandIsland.ServerTest do
 
       refute Process.alive?(server_pid)
     end
-
-    test "it should emit telemetry events as expected" do
-      {:ok, collector_pid} = start_collector()
-      {:ok, server_pid, _} = start_handler(Echo)
-      {:ok, %{port: port}} = ThousandIsland.listener_info(server_pid)
-
-      ThousandIsland.stop(server_pid)
-
-      events = ThousandIsland.TelemetryCollector.get_events(collector_pid)
-      assert length(events) == 2
-
-      assert {[:listener, :start], %{port: ^port},
-              %{transport_module: ThousandIsland.Transports.TCP, transport_opts: []}} =
-               Enum.at(events, 0)
-
-      assert {[:listener, :shutdown], %{}, _} = Enum.at(events, 1)
-    end
   end
 
   describe "invalid configuration" do
@@ -182,11 +165,5 @@ defmodule ThousandIsland.ServerTest do
     {:ok, server_pid} = start_supervised({ThousandIsland, resolved_args})
     {:ok, %{port: port}} = ThousandIsland.listener_info(server_pid)
     {:ok, server_pid, port}
-  end
-
-  defp start_collector do
-    start_supervised(
-      {ThousandIsland.TelemetryCollector, [[:listener, :start], [:listener, :shutdown]]}
-    )
   end
 end

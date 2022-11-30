@@ -3,69 +3,22 @@ defmodule ThousandIsland.Listener do
 
   use GenServer, restart: :transient
 
-  alias ThousandIsland.ServerConfig
+  def start_link(config), do: GenServer.start_link(__MODULE__, config)
+  def stop(pid), do: GenServer.stop(pid)
+  def listener_info(pid), do: GenServer.call(pid, :listener_info)
+  def acceptor_info(pid), do: GenServer.call(pid, :acceptor_info)
 
-  def start_link(%ServerConfig{} = config) do
-    GenServer.start_link(__MODULE__, config)
-  end
-
-  def stop(pid) do
-    GenServer.stop(pid)
-  end
-
-  def listener_socket(pid) do
-    GenServer.call(pid, :listener_socket)
-  end
-
-  def listener_info(pid) do
-    GenServer.call(pid, :listener_info)
-  end
-
-  def init(%ServerConfig{
-        port: port,
-        transport_module: transport_module,
-        transport_opts: transport_opts
-      }) do
-    case transport_module.listen(port, transport_opts) do
+  def init(%ThousandIsland.ServerConfig{} = server_config) do
+    case server_config.transport_module.listen(server_config.port, server_config.transport_opts) do
       {:ok, listener_socket} ->
-        info = transport_module.local_info(listener_socket)
+        local_info = server_config.transport_module.local_info(listener_socket)
+        {:ok, %{listener_socket: listener_socket, local_info: local_info}}
 
-        :telemetry.execute([:listener, :start], info, %{
-          transport_module: transport_module,
-          transport_opts: transport_opts
-        })
-
-        {:ok, %{listener_socket: listener_socket, transport_module: transport_module}}
-
-      {:error, reason} = error ->
-        :telemetry.execute(
-          [:listener, :error],
-          %{
-            error: reason
-          },
-          %{
-            transport_module: transport_module,
-            transport_opts: transport_opts
-          }
-        )
-
-        {:stop, error}
+      {:error, reason} ->
+        {:stop, reason}
     end
   end
 
-  def handle_call(:listener_socket, _from, %{listener_socket: listener_socket} = state) do
-    {:reply, {:ok, listener_socket}, state}
-  end
-
-  def handle_call(
-        :listener_info,
-        _from,
-        %{listener_socket: listener_socket, transport_module: transport_module} = state
-      ) do
-    {:reply, {:ok, transport_module.local_info(listener_socket)}, state}
-  end
-
-  def terminate(_reason, %{transport_module: transport_module}) do
-    :telemetry.execute([:listener, :shutdown], %{}, %{transport_module: transport_module})
-  end
+  def handle_call(:listener_info, _from, state), do: {:reply, state.local_info, state}
+  def handle_call(:acceptor_info, _from, state), do: {:reply, state.listener_socket, state}
 end

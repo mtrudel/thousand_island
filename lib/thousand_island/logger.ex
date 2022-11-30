@@ -16,52 +16,26 @@ defmodule ThousandIsland.Logger do
   # level implicitly enables all higher log levels as well.
   @spec attach_logger(atom()) :: :ok | {:error, :already_exists}
   def attach_logger(:error) do
-    events = [
-      [:listener, :error],
-      [:handler, :error],
-      [:socket, :handshake_error]
-    ]
-
+    events = []
     :telemetry.attach_many("#{__MODULE__}.error", events, &__MODULE__.log_error/4, nil)
   end
 
   def attach_logger(:info) do
     attach_logger(:error)
-
-    events = [
-      [:listener, :start]
-    ]
+    events = []
 
     :telemetry.attach_many("#{__MODULE__}.info", events, &__MODULE__.log_info/4, nil)
   end
 
   def attach_logger(:debug) do
     attach_logger(:info)
-
-    events = [
-      [:acceptor, :start],
-      [:acceptor, :accept],
-      [:acceptor, :shutdown],
-      [:handler, :start],
-      [:handler, :shutdown]
-    ]
-
+    events = []
     :telemetry.attach_many("#{__MODULE__}.debug", events, &__MODULE__.log_debug/4, nil)
   end
 
   def attach_logger(:trace) do
     attach_logger(:debug)
-
-    events = [
-      [:handler, :async_recv],
-      [:socket, :handshake],
-      [:socket, :recv],
-      [:socket, :send],
-      [:socket, :sendfile],
-      [:socket, :shutdown],
-      [:socket, :close]
-    ]
-
+    events = []
     :telemetry.attach_many("#{__MODULE__}.trace", events, &__MODULE__.log_trace/4, nil)
   end
 

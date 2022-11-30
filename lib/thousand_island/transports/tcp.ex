@@ -36,15 +36,13 @@ defmodule ThousandIsland.Transports.TCP do
   ```
   """
 
-  alias ThousandIsland.Transport
-
   @type options() :: [:gen_tcp.listen_option()]
 
-  @behaviour Transport
+  @behaviour ThousandIsland.Transport
 
   @hardcoded_options [mode: :binary, active: false]
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   def listen(port, user_options) do
     default_options = [
       backlog: 1024,
@@ -59,41 +57,41 @@ defmodule ThousandIsland.Transports.TCP do
     :gen_tcp.listen(port, resolved_options)
   end
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   defdelegate accept(listener_socket), to: :gen_tcp
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   def handshake(socket), do: {:ok, socket}
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   defdelegate controlling_process(socket, pid), to: :gen_tcp
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   defdelegate recv(socket, length, timeout), to: :gen_tcp
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   defdelegate send(socket, data), to: :gen_tcp
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   def sendfile(socket, filename, offset, length) do
     with {:ok, fd} <- :file.open(filename, [:raw]) do
       :file.sendfile(fd, socket, offset, length, [])
     end
   end
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   defdelegate getopts(socket, options), to: :inet
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   defdelegate setopts(socket, options), to: :inet
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   defdelegate shutdown(socket, way), to: :gen_tcp
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   defdelegate close(socket), to: :gen_tcp
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   def local_info(socket) do
     case :inet.sockname(socket) do
       {:ok, {:local, path}} -> %{address: {:local, path}, port: 0, ssl_cert: nil}
@@ -102,18 +100,18 @@ defmodule ThousandIsland.Transports.TCP do
     end
   end
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   def peer_info(socket) do
     {:ok, {ip, port}} = :inet.peername(socket)
     %{address: ip, port: port, ssl_cert: nil}
   end
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   def secure?, do: false
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   defdelegate getstat(socket), to: :inet
 
-  @impl Transport
+  @impl ThousandIsland.Transport
   def negotiated_protocol(_socket), do: {:error, :protocol_not_negotiated}
 end

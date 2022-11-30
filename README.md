@@ -24,12 +24,13 @@ Thousand Island is implemented as a supervision tree which is intended to be hos
 inside a host application, often as a dependency embedded within a higher-level
 protocol library such as [Bandit](https://github.com/mtrudel/bandit). Aside from
 supervising the Thousand Island process tree, applications interact with Thousand
-Island primarily via the `ThousandIsland.Handler` behaviour.
+Island primarily via the
+[`ThousandIsland.Handler`](https://hexdocs.pm/thousand_island/ThousandIsland.Handler.html) behaviour.
 
 ### Handlers
 
-The `ThousandIsland.Handler` behaviour defines the interface that Thousand Island
-uses to pass `ThousandIsland.Socket`s up to the application level; together they
+The [`ThousandIsland.Handler`](https://hexdocs.pm/thousand_island/ThousandIsland.Handler.html) behaviour defines the interface that Thousand Island
+uses to pass [`ThousandIsland.Socket`](https://hexdocs.pm/thousand_island/ThousandIsland.Socket.html)s up to the application level; together they
 form the primary interface that most applications will have with Thousand Island.
 Thousand Island comes with a few simple protocol handlers to serve as examples;
 these can be found in the [examples](https://github.com/mtrudel/thousand_island/tree/main/examples)
@@ -49,27 +50,26 @@ end
 {:ok, pid} = ThousandIsland.start_link(port: 1234, handler_module: Echo)
 ```
 
-For more information, please consult the `ThousandIsland.Handler` documentation.
+For more information, please consult the [`ThousandIsland.Handler`](https://hexdocs.pm/thousand_island/ThousandIsland.Handler.html) documentation.
 
 ### Starting a Thousand Island Server
 
 Thousand Island servers exist as a supervision tree, and are started by a call
-to `ThousandIsland.start_link/1`. There are a number of options supported (for a
-complete description, consult `ThousandIsland.start_link/1`):
+to [`ThousandIsland.start_link/1`](https://hexdocs.pm/thousand_island/ThousandIsland.html#start_link/1). There are a number of options supported (for a
+complete description, consult the docs linked above):
 
 * `handler_module`: The name of the module used to handle connections to this server.
-The module is expected to implement the `ThousandIsland.Handler` behaviour. Required.
+The module is expected to implement the [`ThousandIsland.Handler`](https://hexdocs.pm/thousand_island/ThousandIsland.Handler.html) behaviour. Required.
 * `handler_options`: A term which is passed as the initial state value to
-`c:ThousandIsland.Handler.handle_connection/2` calls. Optional, defaulting to nil.
+[`c:ThousandIsland.Handler.handle_connection/2`](https://hexdocs.pm/thousand_island/ThousandIsland.Handler.html#c:handle_connection/2) calls. Optional, defaulting to nil.
 * `port`: The TCP port number to listen on. If not specified this defaults to 4000.
 * `transport_module`: The name of the module which provides basic socket functions.
 Thousand Island provides `ThousandIsland.Transports.TCP` and `ThousandIsland.Transports.SSL`,
 which provide clear and TLS encrypted TCP sockets respectively. If not specified this
 defaults to `ThousandIsland.Transports.TCP`.
-* `transport_options`: A keyword list of options to be passed to the transport module's
-`c:ThousandIsland.Transport.listen/2` function. Valid values depend on the transport
+* `transport_options`: A keyword list of options to be passed to the transport at startup. Valid values depend on the transport
 module specified in `transport_module` and can be found in the documentation for the
-`ThousandIsland.Transports.TCP` and `ThousandIsland.Transports.SSL` modules.
+[`ThousandIsland.Transports.TCP`](https://hexdocs.pm/thousand_island/ThousandIsland.Transports.TCP.html) and [`ThousandIsland.Transports.SSL`](https://hexdocs.pm/thousand_island/ThousandIsland.Transports.SSL.html) modules.
 * `num_acceptors`: The number of acceptor processes to run. Defaults to 10.
 
 ### Connection Draining & Shutdown
