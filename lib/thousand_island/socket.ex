@@ -14,14 +14,14 @@ defmodule ThousandIsland.Socket do
           socket: ThousandIsland.Transport.socket(),
           transport_module: module(),
           read_timeout: timeout(),
-          span: ThousandIsland.Telemetry.t()
+          span: Telemetrex.Telemetry.t()
         }
 
   @doc false
   @spec new(
           ThousandIsland.Transport.socket(),
           ThousandIsland.ServerConfig.t(),
-          ThousandIsland.Telemetry.t()
+          Telemetrex.Telemetry.t()
         ) ::
           t()
   def new(socket, server_config, span) do
