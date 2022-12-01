@@ -7,7 +7,7 @@ defmodule ThousandIsland.Logger do
   # within a Thousand Island server via the use of telemetry hooks. Should you wish
   # to do your own logging or tracking of these events, a complete list of the
   # telemetry events emitted by Thousand Island is described in the module
-  # documentation for `ThousandIsland`.
+  # documentation for `ThousandIsland.Telemetry`.
 
   require Logger
 
@@ -17,25 +17,51 @@ defmodule ThousandIsland.Logger do
   @spec attach_logger(atom()) :: :ok | {:error, :already_exists}
   def attach_logger(:error) do
     events = []
+
     :telemetry.attach_many("#{__MODULE__}.error", events, &__MODULE__.log_error/4, nil)
   end
 
   def attach_logger(:info) do
     attach_logger(:error)
-    events = []
+
+    events = [
+      [:thousand_island, :listener, :start],
+      [:thousand_island, :listener, :stop]
+    ]
 
     :telemetry.attach_many("#{__MODULE__}.info", events, &__MODULE__.log_info/4, nil)
   end
 
   def attach_logger(:debug) do
     attach_logger(:info)
-    events = []
+
+    events = [
+      [:thousand_island, :acceptor, :start],
+      [:thousand_island, :acceptor, :stop],
+      [:thousand_island, :connection, :start],
+      [:thousand_island, :connection, :stop]
+    ]
+
     :telemetry.attach_many("#{__MODULE__}.debug", events, &__MODULE__.log_debug/4, nil)
   end
 
   def attach_logger(:trace) do
     attach_logger(:debug)
-    events = []
+
+    events = [
+      [:thousand_island, :connection, :ready],
+      [:thousand_island, :connection, :handshake],
+      [:thousand_island, :connection, :handshake_error],
+      [:thousand_island, :connection, :async_recv],
+      [:thousand_island, :connection, :recv],
+      [:thousand_island, :connection, :recv_error],
+      [:thousand_island, :connection, :send],
+      [:thousand_island, :connection, :send_error],
+      [:thousand_island, :connection, :sendfile],
+      [:thousand_island, :connection, :sendfile_error],
+      [:thousand_island, :connection, :socket_shutdown]
+    ]
+
     :telemetry.attach_many("#{__MODULE__}.trace", events, &__MODULE__.log_trace/4, nil)
   end
 

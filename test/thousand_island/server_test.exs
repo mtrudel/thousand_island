@@ -2,6 +2,8 @@ defmodule ThousandIsland.ServerTest do
   # False due to telemetry raciness
   use ExUnit.Case, async: false
 
+  use Machete
+
   defmodule Echo do
     use ThousandIsland.Handler
 
@@ -95,6 +97,42 @@ defmodule ThousandIsland.ServerTest do
 
       refute Process.alive?(server_pid)
     end
+
+    test "it should emit telemetry events as expected" do
+      {:ok, collector_pid} =
+        start_supervised(
+          {ThousandIsland.TelemetryCollector,
+           [
+             [:thousand_island, :listener, :start],
+             [:thousand_island, :listener, :stop],
+             [:thousand_island, :acceptor, :start],
+             [:thousand_island, :acceptor, :stop]
+           ]}
+        )
+
+      {:ok, server_pid, _} = start_handler(Echo, num_acceptors: 1, parent_span_id: "PARENTSPAN")
+
+      ThousandIsland.stop(server_pid)
+
+      assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
+             ~> [
+               {[:thousand_island, :listener, :start], %{time: integer()},
+                %{
+                  span_id: string(),
+                  parent_id: "PARENTSPAN",
+                  local_address: {0, 0, 0, 0},
+                  local_port: integer(),
+                  transport_module: ThousandIsland.Transports.TCP,
+                  transport_opts: []
+                }},
+               {[:thousand_island, :acceptor, :start], %{time: integer()},
+                %{parent_id: string(), span_id: string()}},
+               {[:thousand_island, :listener, :stop], %{duration: integer(), time: integer()},
+                %{span_id: string()}},
+               {[:thousand_island, :acceptor, :stop],
+                %{connections: 0, duration: integer(), time: integer()}, %{span_id: string()}}
+             ]
+    end
   end
 
   describe "invalid configuration" do
@@ -160,8 +198,8 @@ defmodule ThousandIsland.ServerTest do
     end
   end
 
-  defp start_handler(handler) do
-    resolved_args = [port: 0, handler_module: handler]
+  defp start_handler(handler, opts \\ []) do
+    resolved_args = opts ++ [port: 0, handler_module: handler]
     {:ok, server_pid} = start_supervised({ThousandIsland, resolved_args})
     {:ok, %{port: port}} = ThousandIsland.listener_info(server_pid)
     {:ok, server_pid, port}
