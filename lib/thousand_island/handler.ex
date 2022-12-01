@@ -89,7 +89,7 @@ defmodule ThousandIsland.Handler do
   You can pass options to the default handler underlying `GenServer` by passing a `genserver_options` key to `ThousandIsland.start_link/1`
   containing `t:GenServer.options/0` to be passed to the last argument of `GenServer.start_link/3`.
 
-  Please note that you should not pass the `name` `t:Genserver.option/0`. If you need to register handler processes for
+  Please note that you should not pass the `name` `t:GenServer.option/0`. If you need to register handler processes for
   later lookup and use, you should perform process registration in `handle_connection/2`, ensuring the handler process is
   registered only after the underlying connection is established and you have access to the connection socket and metadata
   via `ThousandIsland.Socket.peer_info/1`.
@@ -126,9 +126,10 @@ defmodule ThousandIsland.Handler do
   `handler_module` parameter. The process of getting from this new process to a ready-to-use socket is somewhat
   delicate, however. The steps required are as follows:
 
-  1. Thousand Island calls `start_link/1` on the configured `handler_module`, passing in the configured
-  `handler_options` as the sole argument. This function is expected to return a conventional `GenServer.on_start()`
-  style tuple. Note that this newly created process is not passed the connection socket immediately.
+  1. Thousand Island calls `start_link/1` on the configured `handler_module`, passing in a tuple
+  consisting of the configured handler and genserver opts. This function is expected to return a 
+  conventional `GenServer.on_start()` style tuple. Note that this newly created process is not 
+  passed the connection socket immediately.
   2. The socket will be passed to the new process via a message of the form `{:thousand_island_ready, socket}`.
   3. Once the process receives the socket, it must call `ThousandIsland.Socket.handshake/1` with the socket as the sole
   argument in order to finalize the setup of the socket.
@@ -144,8 +145,6 @@ defmodule ThousandIsland.Handler do
   * Handler processes should trap exit if possible so that existing connections can be given a chance to cleanly shut
   down when shutting down a Thousand Island server instance.
 
-  * The `:handler` family of telemetry events are emitted by the `ThousandIsland.Handler` implementation. If you use your
-  own implementation in its place you will not see any such telemetry events.
   """
 
   @typedoc """
@@ -160,7 +159,7 @@ defmodule ThousandIsland.Handler do
 
   @doc """
   This callback is called shortly after a client connection has been made, immediately after the socket handshake process has
-  completed. It is called with the server's configured `handler_options` value as initial state. Handlers may choose to
+  completed. It is called with the server's configured `handler_opts` value as initial state. Handlers may choose to
   interact synchronously with the socket in this callback via calls to various `ThousandIsland.Socket` functions.
 
   The value returned by this callback causes Thousand Island to proceed in once of several ways:
@@ -287,33 +286,21 @@ defmodule ThousandIsland.Handler do
 
       defoverridable ThousandIsland.Handler
 
-      def start_link(handler_opts: handler_opts, genserver_opts: genserver_opts) do
+      def start_link({handler_opts, genserver_opts}) do
         GenServer.start_link(__MODULE__, handler_opts, genserver_opts)
       end
 
       @impl GenServer
-      def init(handler_options) do
+      def init(handler_opts) do
         Process.flag(:trap_exit, true)
-        {:ok, {nil, handler_options}}
+        {:ok, {nil, handler_opts}}
       end
 
       @impl GenServer
-      def handle_info({:thousand_island_ready, socket}, {_, state}) do
-        %{address: address, port: port} = ThousandIsland.Socket.peer_info(socket)
-
-        :telemetry.execute([:handler, :start], %{}, %{
-          remote_address: address,
-          remote_port: port,
-          connection_id: socket.connection_id,
-          acceptor_id: socket.acceptor_id
-        })
-
+      def handle_info({:thousand_island_ready, socket}, {nil, state}) do
         case ThousandIsland.Socket.handshake(socket) do
-          {:ok, socket} ->
-            {:noreply, {socket, state}, {:continue, :handle_connection}}
-
-          {:error, reason} ->
-            {:stop, reason, {socket, state}}
+          {:ok, socket} -> {:noreply, {socket, state}, {:continue, :handle_connection}}
+          {:error, reason} -> {:stop, reason, {socket, state}}
         end
       end
 
@@ -328,10 +315,6 @@ defmodule ThousandIsland.Handler do
       end
 
       def handle_info({msg, _, data}, {socket, state}) when msg in [:tcp, :ssl] do
-        :telemetry.execute([:handler, :async_recv], %{data: data}, %{
-          connection_id: socket.connection_id
-        })
-
         __MODULE__.handle_data(data, socket, state)
         |> handle_continuation(socket)
       end
@@ -357,42 +340,47 @@ defmodule ThousandIsland.Handler do
         :ok
       end
 
-      def terminate(:shutdown, {socket, state}) do
-        :telemetry.execute([:handler, :shutdown], %{reason: :shutdown}, %{
-          connection_id: socket.connection_id
-        })
-
-        __MODULE__.handle_shutdown(socket, state)
-      end
-
       @impl GenServer
-      def terminate({:shutdown, reason}, {socket, state}) do
-        ThousandIsland.Socket.close(socket)
-
-        :telemetry.execute([:handler, :shutdown], %{reason: reason}, %{
-          connection_id: socket.connection_id
-        })
-
-        __MODULE__.handle_close(socket, state)
-      end
-
-      @impl GenServer
+      # Called by GenServer if we hit our read_timeout. Socket is still open
       def terminate(:timeout, {socket, state}) do
-        :telemetry.execute([:handler, :shutdown], %{reason: :timeout}, %{
-          connection_id: socket.connection_id
-        })
-
         __MODULE__.handle_timeout(socket, state)
+        do_socket_close(socket, :timeout)
       end
 
+      # Called if we're being shutdown in an orderly manner. Socket is still open
+      def terminate(:shutdown, {socket, state}) do
+        __MODULE__.handle_shutdown(socket, state)
+        do_socket_close(socket, :shutdown)
+      end
+
+      # Called if the remote end shut down the connection, or if the local end closed the
+      # connection by returning a `{:close,...}` tuple (in which case the socket will be open)
+      def terminate({:shutdown, reason}, {socket, state}) do
+        __MODULE__.handle_close(socket, state)
+        do_socket_close(socket, reason)
+      end
+
+      # Called if the socket encountered an error. Socket is closed
       def terminate(reason, {socket, state}) do
-        ThousandIsland.Socket.close(socket)
-
-        :telemetry.execute([:handler, :error], %{error: reason}, %{
-          connection_id: socket.connection_id
-        })
-
         __MODULE__.handle_error(reason, socket, state)
+        do_socket_close(socket, reason)
+      end
+
+      defp do_socket_close(socket, reason) do
+        measurements = if reason in [:shutdown, :local_closed], do: %{}, else: %{error: reason}
+
+        measurements =
+          case ThousandIsland.Socket.getstat(socket) do
+            {:ok, stats} ->
+              stats
+              |> Keyword.take([:send_oct, :send_cnt, :recv_oct, :recv_cnt])
+              |> Enum.into(measurements)
+
+            _ ->
+              measurements
+          end
+
+        ThousandIsland.Socket.close(socket)
       end
 
       defp handle_continuation(continuation, socket) do

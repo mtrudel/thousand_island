@@ -6,55 +6,40 @@ defmodule ThousandIsland.Socket do
 
   defstruct socket: nil,
             transport_module: nil,
-            connection_id: nil,
-            acceptor_id: nil,
             read_timeout: nil
-
-  alias ThousandIsland.Transport
 
   @typedoc "A reference to a socket along with metadata describing how to use it"
   @type t :: %__MODULE__{
-          socket: Transport.socket(),
+          socket: ThousandIsland.Transport.socket(),
           transport_module: module(),
-          connection_id: String.t(),
-          acceptor_id: String.t(),
           read_timeout: timeout()
         }
 
   @doc false
-  @spec new(Transport.socket(), module(), String.t(), String.t(), timeout()) :: t()
-  def new(socket, transport_module, connection_id, acceptor_id, read_timeout) do
+  @spec new(
+          ThousandIsland.Transport.socket(),
+          ThousandIsland.ServerConfig.t()
+        ) ::
+          t()
+  def new(socket, server_config) do
     %__MODULE__{
       socket: socket,
-      transport_module: transport_module,
-      connection_id: connection_id,
-      acceptor_id: acceptor_id,
-      read_timeout: read_timeout
+      transport_module: server_config.transport_module,
+      read_timeout: server_config.read_timeout
     }
   end
 
   @doc """
   Handshakes the underlying socket if it is required (as in the case of SSL sockets, for example).
+
+  This is normally called internally by `ThousandIsland.Handler` and does not need to be
+  called by implementations which are based on `ThousandIsland.Handler`
   """
-  @spec handshake(t()) :: Transport.on_handshake()
-  def handshake(
-        %__MODULE__{
-          socket: transport_socket,
-          transport_module: transport_module,
-          connection_id: connection_id
-        } = socket
-      ) do
-    case transport_module.handshake(transport_socket) do
-      {:ok, _} ->
-        :telemetry.execute([:socket, :handshake], %{}, %{connection_id: connection_id})
-        {:ok, socket}
-
-      {:error, error} ->
-        :telemetry.execute([:socket, :handshake_error], %{error: error}, %{
-          connection_id: connection_id
-        })
-
-        {:error, error}
+  @spec handshake(t()) :: ThousandIsland.Transport.on_handshake()
+  def handshake(%__MODULE__{} = socket) do
+    case socket.transport_module.handshake(socket.socket) do
+      {:ok, _} -> {:ok, socket}
+      {:error, error} -> {:error, error}
     end
   end
 
@@ -64,123 +49,52 @@ defmodule ThousandIsland.Socket do
   next packet). If insufficient bytes are available, the function can wait `timeout`
   milliseconds for data to arrive.
   """
-  @spec recv(t(), non_neg_integer(), timeout() | nil) :: Transport.on_recv()
-  def recv(
-        %__MODULE__{
-          socket: socket,
-          transport_module: transport_module,
-          connection_id: connection_id,
-          read_timeout: read_timeout
-        },
-        length \\ 0,
-        timeout \\ nil
-      ) do
-    result = transport_module.recv(socket, length, timeout || read_timeout)
-
-    :telemetry.execute([:socket, :recv], %{result: result}, %{
-      connection_id: connection_id
-    })
-
-    result
+  @spec recv(t(), non_neg_integer(), timeout() | nil) :: ThousandIsland.Transport.on_recv()
+  def recv(%__MODULE__{} = socket, length \\ 0, timeout \\ nil) do
+    case socket.transport_module.recv(socket.socket, length, timeout || socket.read_timeout) do
+      {:ok, data} -> {:ok, data}
+      {:error, error} -> {:error, error}
+    end
   end
 
   @doc """
   Sends the given data (specified as a binary or an IO list) on the given socket.
   """
-  @spec send(t(), IO.chardata()) :: Transport.on_send()
-  def send(
-        %__MODULE__{
-          socket: socket,
-          transport_module: transport_module,
-          connection_id: connection_id
-        },
-        data
-      ) do
-    result = transport_module.send(socket, data)
-
-    :telemetry.execute([:socket, :send], %{result: result, data: data}, %{
-      connection_id: connection_id
-    })
-
-    result
+  @spec send(t(), IO.chardata()) :: ThousandIsland.Transport.on_send()
+  def send(%__MODULE__{} = socket, data) do
+    case socket.transport_module.send(socket.socket, data) do
+      :ok -> :ok
+      {:error, error} -> {:error, error}
+    end
   end
 
   @doc """
   Sends the contents of the given file based on the provided offset & length
   """
-  @spec sendfile(t(), String.t(), non_neg_integer(), non_neg_integer()) :: Transport.on_sendfile()
-  def sendfile(
-        %__MODULE__{
-          socket: socket,
-          transport_module: transport_module,
-          connection_id: connection_id
-        },
-        filename,
-        offset,
-        length
-      ) do
-    result = transport_module.sendfile(socket, filename, offset, length)
-
-    :telemetry.execute(
-      [:socket, :sendfile],
-      %{
-        result: result,
-        file: filename,
-        offset: offset,
-        length: length
-      },
-      %{
-        connection_id: connection_id
-      }
-    )
-
-    result
+  @spec sendfile(t(), String.t(), non_neg_integer(), non_neg_integer()) ::
+          ThousandIsland.Transport.on_sendfile()
+  def sendfile(%__MODULE__{} = socket, filename, offset, length) do
+    case socket.transport_module.sendfile(socket.socket, filename, offset, length) do
+      {:ok, bytes_written} -> {:ok, bytes_written}
+      {:error, error} -> {:error, error}
+    end
   end
 
   @doc """
   Shuts down the socket in the given direction.
   """
-  @spec shutdown(t(), Transport.way()) :: Transport.on_shutdown()
-  def shutdown(
-        %__MODULE__{
-          socket: socket,
-          transport_module: transport_module,
-          connection_id: connection_id
-        },
-        way
-      ) do
-    result = transport_module.shutdown(socket, way)
-    :telemetry.execute([:socket, :shutdown], %{}, %{connection_id: connection_id})
-    result
+  @spec shutdown(t(), ThousandIsland.Transport.way()) :: ThousandIsland.Transport.on_shutdown()
+  def shutdown(%__MODULE__{} = socket, way) do
+    socket.transport_module.shutdown(socket.socket, way)
   end
 
   @doc """
   Closes the given socket. Note that a socket is automatically closed when the handler
   process which owns it terminates
   """
-  @spec close(t()) :: Transport.on_close()
-  def close(%__MODULE__{
-        socket: socket,
-        transport_module: transport_module,
-        connection_id: connection_id
-      }) do
-    stats =
-      case transport_module.getstat(socket) do
-        {:ok, stats} -> stats
-        _ -> %{}
-      end
-
-    measurements = %{
-      octets_sent: stats[:send_oct],
-      packets_sent: stats[:send_cnt],
-      octets_recv: stats[:recv_oct],
-      packets_recv: stats[:recv_cnt]
-    }
-
-    result = transport_module.close(socket)
-
-    :telemetry.execute([:socket, :close], measurements, %{connection_id: connection_id})
-    result
+  @spec close(t()) :: ThousandIsland.Transport.on_close()
+  def close(%__MODULE__{} = socket) do
+    socket.transport_module.close(socket.socket)
   end
 
   @doc """
@@ -188,9 +102,10 @@ defmodule ThousandIsland.Socket do
 
   Errors are usually from :inet.posix(), however, SSL module defines return type as any()
   """
-  @spec getopts(t(), Transport.socket_get_options()) :: Transport.on_getopts()
-  def getopts(%__MODULE__{socket: socket, transport_module: transport_module}, options) do
-    transport_module.getopts(socket, options)
+  @spec getopts(t(), ThousandIsland.Transport.socket_get_options()) ::
+          ThousandIsland.Transport.on_getopts()
+  def getopts(%__MODULE__{} = socket, options) do
+    socket.transport_module.getopts(socket.socket, options)
   end
 
   @doc """
@@ -198,40 +113,49 @@ defmodule ThousandIsland.Socket do
 
   Errors are usually from :inet.posix(), however, SSL module defines return type as any()
   """
-  @spec setopts(t(), Transport.socket_set_options()) :: Transport.on_setopts()
-  def setopts(%__MODULE__{socket: socket, transport_module: transport_module}, options) do
-    transport_module.setopts(socket, options)
+  @spec setopts(t(), ThousandIsland.Transport.socket_set_options()) ::
+          ThousandIsland.Transport.on_setopts()
+  def setopts(%__MODULE__{} = socket, options) do
+    socket.transport_module.setopts(socket.socket, options)
   end
 
   @doc """
   Returns information in the form of `t:ThousandIsland.Transport.socket_info()` about the local end of the socket.
   """
-  @spec local_info(t()) :: Transport.socket_info()
-  def local_info(%__MODULE__{socket: socket, transport_module: transport_module}) do
-    transport_module.local_info(socket)
+  @spec local_info(t()) :: ThousandIsland.Transport.socket_info()
+  def local_info(%__MODULE__{} = socket) do
+    socket.transport_module.local_info(socket.socket)
   end
 
   @doc """
   Returns information in the form of `t:ThousandIsland.Transport.socket_info()` about the remote end of the socket.
   """
-  @spec peer_info(t()) :: Transport.socket_info()
-  def peer_info(%__MODULE__{socket: socket, transport_module: transport_module}) do
-    transport_module.peer_info(socket)
+  @spec peer_info(t()) :: ThousandIsland.Transport.socket_info()
+  def peer_info(%__MODULE__{} = socket) do
+    socket.transport_module.peer_info(socket.socket)
   end
 
   @doc """
   Returns whether or not this protocol is secure.
   """
   @spec secure?(t()) :: boolean()
-  def secure?(%__MODULE__{transport_module: transport_module}) do
-    transport_module.secure?()
+  def secure?(%__MODULE__{} = socket) do
+    socket.transport_module.secure?()
+  end
+
+  @doc """
+  Returns statistics about the connection.
+  """
+  @spec getstat(t()) :: ThousandIsland.Transport.socket_stats()
+  def getstat(%__MODULE__{} = socket) do
+    socket.transport_module.getstat(socket.socket)
   end
 
   @doc """
   Returns information about the protocol negotiated during transport handshaking (if any).
   """
-  @spec negotiated_protocol(t()) :: Transport.negotiated_protocol_info()
-  def negotiated_protocol(%__MODULE__{socket: socket, transport_module: transport_module}) do
-    transport_module.negotiated_protocol(socket)
+  @spec negotiated_protocol(t()) :: ThousandIsland.Transport.negotiated_protocol_info()
+  def negotiated_protocol(%__MODULE__{} = socket) do
+    socket.transport_module.negotiated_protocol(socket.socket)
   end
 end

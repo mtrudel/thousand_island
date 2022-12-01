@@ -82,7 +82,7 @@ defmodule ThousandIsland do
   ## Logging & Telemetry
 
   As a low-level library, Thousand Island purposely does not do any inline
-  logging of any kind. The `ThousandIsland.Logging` module defines a number of
+  logging of any kind. The `ThousandIsland.Logger` module defines a number of
   functions to aid in tracing connections at various log levels, and such logging
   can be dynamically enabled and disabled against an already running server. This
   logging is backed by `:telemetry` events internally, and if desired these events
@@ -149,8 +149,6 @@ defmodule ThousandIsland do
   @type transport_options() ::
           ThousandIsland.Transports.TCP.options() | ThousandIsland.Transports.SSL.options()
 
-  alias ThousandIsland.{Listener, Server, ServerConfig, Transport}
-
   @doc false
   @spec child_spec(options()) :: Supervisor.child_spec()
   def child_spec(opts) do
@@ -172,16 +170,16 @@ defmodule ThousandIsland do
   @spec start_link(options()) :: Supervisor.on_start()
   def start_link(opts \\ []) do
     opts
-    |> ServerConfig.new()
-    |> Server.start_link()
+    |> ThousandIsland.ServerConfig.new()
+    |> ThousandIsland.Server.start_link()
   end
 
   @doc """
   Returns information about the address and port that the server is listening on
   """
-  @spec listener_info(pid()) :: {:ok, Transport.socket_info()}
+  @spec listener_info(pid()) :: {:ok, ThousandIsland.Transport.socket_info()}
   def listener_info(pid) do
-    pid |> Server.listener_pid() |> Listener.listener_info()
+    {:ok, pid |> ThousandIsland.Server.listener_pid() |> ThousandIsland.Listener.listener_info()}
   end
 
   @doc """
