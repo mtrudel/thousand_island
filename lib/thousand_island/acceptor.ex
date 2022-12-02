@@ -1,28 +1,35 @@
 defmodule ThousandIsland.Acceptor do
   @moduledoc false
 
-  use Task, restart: :transient
+  use GenServer, restart: :transient
 
-  def start_link(arg), do: Task.start_link(__MODULE__, :run, [arg])
+  def start_link(arg), do: GenServer.start_link(__MODULE__, arg)
 
-  def run({server_pid, parent_pid, %ThousandIsland.ServerConfig{} = server_config}) do
-    listener_pid = ThousandIsland.Server.listener_pid(server_pid)
-    listener_socket = ThousandIsland.Listener.acceptor_info(listener_pid)
-    connection_sup_pid = ThousandIsland.AcceptorSupervisor.connection_sup_pid(parent_pid)
-    accept(listener_socket, connection_sup_pid, server_config)
+  def init(arg) do
+    {:ok, nil, {:continue, arg}}
   end
 
-  defp accept(listener_socket, connection_sup_pid, server_config) do
-    case server_config.transport_module.accept(listener_socket) do
-      {:ok, socket} ->
-        ThousandIsland.Connection.start(connection_sup_pid, socket, server_config)
-        accept(listener_socket, connection_sup_pid, server_config)
+  def handle_continue(
+        {server_pid, parent_pid, %ThousandIsland.ServerConfig{} = server_config},
+        nil
+      ) do
+    listener_socket =
+      server_pid
+      |> ThousandIsland.Server.listener_pid()
+      |> ThousandIsland.Listener.acceptor_info()
 
-      {:error, :closed} ->
-        :ok
+    state = %{
+      sup_pid: ThousandIsland.AcceptorSupervisor.connection_sup_pid(parent_pid),
+      child_spec: {server_config.handler_module, {self(), listener_socket, server_config}}
+    }
 
-      {:error, reason} ->
-        raise "Unexpected error in accept: #{inspect(reason)}"
-    end
+    for _ <- 1..10, do: GenServer.cast(self(), :new)
+
+    {:noreply, state}
+  end
+
+  def handle_cast(:new, state) do
+    DynamicSupervisor.start_child(state.sup_pid, state.child_spec)
+    {:noreply, state}
   end
 end

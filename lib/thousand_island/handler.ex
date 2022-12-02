@@ -286,34 +286,30 @@ defmodule ThousandIsland.Handler do
 
       defoverridable ThousandIsland.Handler
 
-      def start_link({handler_opts, genserver_opts}) do
-        GenServer.start_link(__MODULE__, handler_opts, genserver_opts)
+      def start_link({_, _, server_config} = arg) do
+        GenServer.start_link(__MODULE__, arg, server_config.genserver_opts)
       end
 
       @impl GenServer
-      def init(handler_opts) do
+      def init(arg) do
         Process.flag(:trap_exit, true)
-        {:ok, {nil, handler_opts}}
+        {:ok, arg, {:continue, :startup}}
       end
 
       @impl GenServer
-      def handle_info({:thousand_island_ready, socket}, {nil, state}) do
-        case ThousandIsland.Socket.handshake(socket) do
-          {:ok, socket} -> {:noreply, {socket, state}, {:continue, :handle_connection}}
-          {:error, reason} -> {:stop, reason, {socket, state}}
+      def handle_continue(:startup, {acceptor_pid, listener_socket, server_config} = state) do
+        with {:ok, raw_socket} <- server_config.transport_module.accept(listener_socket),
+             :ok <- GenServer.cast(acceptor_pid, :new),
+             socket <- ThousandIsland.Socket.new(raw_socket, server_config),
+             {:ok, socket} <- ThousandIsland.Socket.handshake(socket) do
+          __MODULE__.handle_connection(socket, server_config.handler_opts)
+          |> handle_continuation(socket)
+        else
+          {:error, reason} -> {:stop, reason, nil}
         end
       end
 
-      # Use a continue pattern here so that we have committed the socket
-      # to state in case the `c:handle_connection/2` callback raises an error.
-      # This ensures that the `c:terminate/2` calls below are able to properly
-      # close down the process
       @impl GenServer
-      def handle_continue(:handle_connection, {socket, state}) do
-        __MODULE__.handle_connection(socket, state)
-        |> handle_continuation(socket)
-      end
-
       def handle_info(
             {msg, raw_socket, data},
             {%ThousandIsland.Socket{socket: raw_socket} = socket, state}
@@ -344,8 +340,8 @@ defmodule ThousandIsland.Handler do
       end
 
       @impl GenServer
-      # This clause could happen if we are shut down before we have had a chance to fully set up
-      # the handler process. In this case we would have never called any of the `Handler`
+      # This clause could happen if we are shut down by bailing on the handle_continue call that
+      # sets up this process. In this case we would have never called any of the `Handler`
       # callbacks so the connection hasn't started yet from the perspective of the user
       # See https://github.com/mtrudel/bandit/issues/54 for details
       def terminate(_reason, {nil, _state}) do
