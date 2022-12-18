@@ -119,10 +119,7 @@ Graphically, this shakes out like so:
 graph TD;
   Server(Server: supervisor, rest_for_one)-->Listener;
   Server-->AcceptorPoolSupervisor(AcceptorPoolSupervisor: dynamic supervisor);
-  AcceptorPoolSupervisor--1-->AcceptorSupervisor(AcceptorSupervisor: supervisor, rest_for_one)
-  AcceptorPoolSupervisor--2-->AcceptorSupervisor
-  AcceptorPoolSupervisor--3-->AcceptorSupervisor
-  AcceptorPoolSupervisor--n-->AcceptorSupervisor
+  AcceptorPoolSupervisor--1...n-->AcceptorSupervisor(AcceptorSupervisor: supervisor, rest_for_one)
   AcceptorSupervisor-->Acceptor(Acceptor: task)
   AcceptorSupervisor-->DynamicSupervisor
   DynamicSupervisor--1-->Handler(Handler: gen_server)
