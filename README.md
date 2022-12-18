@@ -115,17 +115,15 @@ autonomously, improving scalability and crash resiliency.
 
 Graphically, this shakes out like so:
 
-```
-                        Server (sup, rest_for_one)
-              ____________/        |          \___________________
-             /                     |                              \
-      Listener         AcceptorPoolSupervisor (dyn_sup)      ShutdownListener
-                             / ....n.... \
-                 AcceptorSupervisor (sup, rest_for_one)
-                            /      \
-              Acceptor (task)     DynamicSupervisor
-                                    / ....n.... \
-                                 Handler (gen_server)
+```mermaid
+graph TD;
+  Server(Server: supervisor, rest_for_one)-->Listener;
+  Server-->AcceptorPoolSupervisor(AcceptorPoolSupervisor: dynamic supervisor);
+  AcceptorPoolSupervisor--1...n-->AcceptorSupervisor(AcceptorSupervisor: supervisor, rest_for_one)
+  AcceptorSupervisor-->Acceptor(Acceptor: task)
+  AcceptorSupervisor-->DynamicSupervisor
+  DynamicSupervisor--1...n-->Handler(Handler: gen_server)
+  Server-->ShutdownListener;
 ```
 
 Thousand Island does not use named processes or other 'global' state internally
