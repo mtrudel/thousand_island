@@ -120,8 +120,8 @@ graph TD;
   Server(Server: supervisor, rest_for_one)-->Listener;
   Server-->AcceptorPoolSupervisor(AcceptorPoolSupervisor: dynamic supervisor);
   AcceptorPoolSupervisor--1...n-->AcceptorSupervisor(AcceptorSupervisor: supervisor, rest_for_one)
-  AcceptorSupervisor-->Acceptor(Acceptor: task)
   AcceptorSupervisor-->DynamicSupervisor
+  AcceptorSupervisor-->Acceptor(Acceptor: task)
   DynamicSupervisor--1...n-->Handler(Handler: gen_server)
   Server-->ShutdownListener;
 ```
