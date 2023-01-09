@@ -362,6 +362,9 @@ defmodule ThousandIsland.HandlerTest do
         Logger.info("ping_received")
 
         case ThousandIsland.Socket.recv(socket, 0) do
+          {:error, :timeout} ->
+            {:error, {:shutdown, :timeout}, state}
+
           {:error, reason} ->
             {:error, reason, state}
 

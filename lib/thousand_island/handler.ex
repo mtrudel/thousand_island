@@ -328,7 +328,7 @@ defmodule ThousandIsland.Handler do
       end
 
       def handle_info(:timeout, {socket, state}) do
-        {:stop, :timeout, {socket, state}}
+        {:stop, {:shutdown, :timeout}, {socket, state}}
       end
 
       @impl GenServer
@@ -342,7 +342,7 @@ defmodule ThousandIsland.Handler do
 
       @impl GenServer
       # Called by GenServer if we hit our read_timeout. Socket is still open
-      def terminate(:timeout, {socket, state}) do
+      def terminate({:shutdown, :timeout}, {socket, state}) do
         __MODULE__.handle_timeout(socket, state)
         do_socket_close(socket, :timeout)
       end
