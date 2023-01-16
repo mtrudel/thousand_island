@@ -71,7 +71,7 @@ defmodule ThousandIsland.Handler do
 
     @impl ThousandIsland.Handler
     def handle_data(msg, _socket, state) do
-      send(self(), {:send, msg})
+      IO.puts(msg)
       {:continue, state}
     end
 
