@@ -103,7 +103,7 @@ defmodule ThousandIsland.Handler do
 
     @impl ThousandIsland.Handler
     def handle_connection(socket, state) do
-      %{address: host} = ThousandIsland.Socket.peer_info(socket)
+      %{address: address} = ThousandIsland.Socket.peer_info(socket)
       {:ok, _pid} = Registry.register(MessengerRegistry, {state[:my_key], address}, nil)
       {:continue, state}
     end
@@ -162,7 +162,7 @@ defmodule ThousandIsland.Handler do
   completed. It is called with the server's configured `handler_opts` value as initial state. Handlers may choose to
   interact synchronously with the socket in this callback via calls to various `ThousandIsland.Socket` functions.
 
-  The value returned by this callback causes Thousand Island to proceed in once of several ways:
+  The value returned by this callback causes Thousand Island to proceed in one of several ways:
 
   * Returning `{:close, state}` will cause Thousand Island to close the socket & call the `c:handle_close/2` callback to
   allow final cleanup to be done.
@@ -187,7 +187,7 @@ defmodule ThousandIsland.Handler do
   `{:continue, state}` tuple. The data received is passed as the first argument, and handlers may choose to interact
   synchronously with the socket in this callback via calls to various `ThousandIsland.Socket` functions.
 
-  The value returned by this callback causes Thousand Island to proceed in once of several ways:
+  The value returned by this callback causes Thousand Island to proceed in one of several ways:
 
   * Returning `{:close, state}` will cause Thousand Island to close the socket & call the `c:handle_close/2` callback to
   allow final cleanup to be done.
