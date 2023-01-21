@@ -314,16 +314,28 @@ defmodule ThousandIsland.Handler do
         |> handle_continuation(socket)
       end
 
-      def handle_info({msg, _, data}, {socket, state}) when msg in [:tcp, :ssl] do
+      def handle_info(
+            {msg, raw_socket, data},
+            {%ThousandIsland.Socket{socket: raw_socket} = socket, state}
+          )
+          when msg in [:tcp, :ssl] do
         __MODULE__.handle_data(data, socket, state)
         |> handle_continuation(socket)
       end
 
-      def handle_info({msg, _}, {socket, state}) when msg in [:tcp_closed, :ssl_closed] do
+      def handle_info(
+            {msg, raw_socket},
+            {%ThousandIsland.Socket{socket: raw_socket} = socket, state}
+          )
+          when msg in [:tcp_closed, :ssl_closed] do
         {:stop, {:shutdown, :peer_closed}, {socket, state}}
       end
 
-      def handle_info({msg, _, reason}, {socket, state}) when msg in [:tcp_error, :ssl_error] do
+      def handle_info(
+            {msg, raw_socket, reason},
+            {%ThousandIsland.Socket{socket: raw_socket} = socket, state}
+          )
+          when msg in [:tcp_error, :ssl_error] do
         {:stop, reason, {socket, state}}
       end
 
