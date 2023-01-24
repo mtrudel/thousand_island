@@ -305,6 +305,7 @@ defmodule ThousandIsland.Handler do
           __MODULE__.handle_connection(socket, server_config.handler_opts)
           |> handle_continuation(socket)
         else
+          {:error, :closed} -> {:stop, :shutdown, {nil, state}}
           {:error, reason} -> {:stop, reason, nil}
         end
       end
@@ -372,6 +373,10 @@ defmodule ThousandIsland.Handler do
       def terminate(reason, {socket, state}) do
         __MODULE__.handle_error(reason, socket, state)
         do_socket_close(socket, reason)
+      end
+
+      def terminate(_reason, _state) do
+        :ok
       end
 
       defp do_socket_close(socket, reason) do
