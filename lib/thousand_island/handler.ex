@@ -145,6 +145,9 @@ defmodule ThousandIsland.Handler do
   * Handler processes should trap exit if possible so that existing connections can be given a chance to cleanly shut
   down when shutting down a Thousand Island server instance.
 
+  * Some of the `:connection` family of telemetry span events are emitted by the 
+  `ThousandIsland.Handler` implementation. If you use your own implementation in its place it is
+  likely that such spans will not behave as expected.
   """
 
   @typedoc """
@@ -269,6 +272,7 @@ defmodule ThousandIsland.Handler do
                       handle_timeout: 2
 
   defmacro __using__(_opts) do
+    # credo:disable-for-next-line Credo.Check.Refactor.LongQuoteBlocks
     quote location: :keep do
       @behaviour ThousandIsland.Handler
 
@@ -298,6 +302,8 @@ defmodule ThousandIsland.Handler do
 
       @impl GenServer
       def handle_info({:thousand_island_ready, socket}, {nil, state}) do
+        ThousandIsland.Telemetry.span_event(socket.span, :ready)
+
         case ThousandIsland.Socket.handshake(socket) do
           {:ok, socket} -> {:noreply, {socket, state}, {:continue, :handle_connection}}
           {:error, reason} -> {:stop, reason, {socket, state}}
@@ -319,6 +325,8 @@ defmodule ThousandIsland.Handler do
             {%ThousandIsland.Socket{socket: raw_socket} = socket, state}
           )
           when msg in [:tcp, :ssl] do
+        ThousandIsland.Telemetry.untimed_span_event(socket.span, :async_recv, %{data: data})
+
         __MODULE__.handle_data(data, socket, state)
         |> handle_continuation(socket)
       end
@@ -393,6 +401,7 @@ defmodule ThousandIsland.Handler do
           end
 
         ThousandIsland.Socket.close(socket)
+        ThousandIsland.Telemetry.stop_span(socket.span, measurements)
       end
 
       defp handle_continuation(continuation, socket) do

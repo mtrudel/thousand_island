@@ -85,30 +85,11 @@ defmodule ThousandIsland do
   logging of any kind. The `ThousandIsland.Logger` module defines a number of
   functions to aid in tracing connections at various log levels, and such logging
   can be dynamically enabled and disabled against an already running server. This
-  logging is backed by `:telemetry` events internally, and if desired these events
-  can also be hooked by your application for logging or metric purposes. The following is a complete list of events emitted by Thousand Island:
+  logging is backed by telemetry events internally.
 
-  * `[:listener, :start]`: Emitted when the server successfully listens on the configured port.
-  * `[:listener, :error]`: Emitted when the server encounters an error listening on the configured port.
-  * `[:listener, :shutdown]`: Emitted when the server shuts down.
-  * `[:acceptor, :start]`: Emitted when an acceptor process starts up.
-  * `[:acceptor, :accept]`: Emitted when an acceptor process accepts a new client connection.
-  * `[:acceptor, :shutdown]`: Emitted when an acceptor process shuts down.
-  * `[:handler, :start]`: Emitted whenever a `ThousandIsland.Handler` process is made ready
-  * `[:handler, :async_recv]`: Emitted whenever a `ThousandIsland.Handler` process receives data asynchronously
-  * `[:handler, :shutdown]`: Emitted whenever a `ThousandIsland.Handler` process terminates
-  * `[:handler, :error]`: Emitted whenever a `ThousandIsland.Handler` process shuts down due to error
-  * `[:socket, :handshake]`: Emitted whenever a `ThousandIsland.Socket.handshake/1` call completes.
-  * `[:socket, :handshake_error]`: Emitted whenever a `ThousandIsland.Socket.handshake/1` call errors.
-  * `[:socket, :recv]`: Emitted whenever a `ThousandIsland.Socket.recv/3` call completes.
-  * `[:socket, :send]`: Emitted whenever a `ThousandIsland.Socket.send/2` call completes.
-  * `[:socket, :sendfile]`: Emitted whenever a `ThousandIsland.Socket.sendfile/4` call completes.
-  * `[:socket, :shutdown]`: Emitted whenever a `ThousandIsland.Socket.shutdown/2` call completes.
-  * `[:socket, :close]`: Emitted whenever a `ThousandIsland.Socket.close/1` call completes.
-
-  Where meaurements indicate a time duration they are are expressed in `System`
-  `:native` units for performance reasons. They can be converted to any desired
-  time unit via `System.convert_time_unit/3`.
+  Thousand Island emits a rich set of telemetry events including spans for each
+  server, acceptor process, and individual client connection. These telemetry
+  events are documented in the `ThousandIsland.Telemetry` module.
   """
 
   @typedoc """
@@ -134,6 +115,8 @@ defmodule ThousandIsland do
   in terms of interfaces to listen to / certificates and keys to use for SSL connections
   will be passed in via this option.
   * `num_acceptors`: The number of acceptor processes to run. Defaults to 10.
+  * `parent_span_id`: The span ID to use as the parent of the top-level `:listener` span for
+  telemetry. Optional.
   """
   @type options :: [
           handler_module: module(),

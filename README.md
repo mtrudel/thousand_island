@@ -85,6 +85,18 @@ timeout semantics give existing connections a chance to finish things up. `Handl
 processes trap exit, so they continue running beyond shutdown until they either
 complete or are `:brutal_kill`ed after their shutdown timeout expires.
 
+### Logging & Telemetry
+
+As a low-level library, Thousand Island purposely does not do any inline
+logging of any kind. The [`ThousandIsland.Logger`](https://hexdocs.pm/thousand_island/ThousandIsland.Logger.html) module defines a number of
+functions to aid in tracing connections at various log levels, and such logging
+can be dynamically enabled and disabled against an already running server. This
+logging is backed by telemetry events internally.
+
+Thousand Island emits a rich set of telemetry events including spans for each
+server, acceptor process, and individual client connection. These telemetry
+events are documented in the [`ThousandIsland.Telemetry`](https://hexdocs.pm/thousand_island/ThousandIsland.Telemetry.html) module.
+
 ## Implementation Notes
 
 At a top-level, a `Server` coordinates the processes involved in responding to

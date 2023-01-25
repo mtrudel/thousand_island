@@ -3,8 +3,8 @@ defmodule ThousandIsland.TelemetryCollector do
 
   use GenServer
 
-  def start_link(event_types) do
-    GenServer.start_link(__MODULE__, event_types)
+  def start_link(event_names) do
+    GenServer.start_link(__MODULE__, event_names)
   end
 
   def record_event(event, measurements, metadata, pid) do
@@ -15,12 +15,12 @@ defmodule ThousandIsland.TelemetryCollector do
     GenServer.call(pid, :get_events)
   end
 
-  def init(event_types) do
+  def init(event_names) do
     # Use __MODULE__ here to keep telemetry from warning about passing a local capture
     # https://hexdocs.pm/telemetry/telemetry.html#attach/4
     :telemetry.attach_many(
       "#{inspect(self())}.trace",
-      event_types,
+      event_names,
       &__MODULE__.record_event/4,
       self()
     )
