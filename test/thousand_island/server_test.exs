@@ -40,6 +40,16 @@ defmodule ThousandIsland.ServerTest do
     end
   end
 
+  defmodule Whoami do
+    use ThousandIsland.Handler
+
+    @impl ThousandIsland.Handler
+    def handle_connection(socket, state) do
+      ThousandIsland.Socket.send(socket, :erlang.pid_to_list(self()))
+      {:continue, state}
+    end
+  end
+
   test "should handle multiple connections as expected" do
     {:ok, _, port} = start_handler(Echo)
     {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
@@ -54,6 +64,27 @@ defmodule ThousandIsland.ServerTest do
 
     :gen_tcp.close(client)
     :gen_tcp.close(other_client)
+  end
+
+  test "should enumerate active connection processes" do
+    {:ok, server_pid, port} = start_handler(Whoami)
+    {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+    {:ok, other_client} = :gen_tcp.connect(:localhost, port, active: false)
+
+    {:ok, pid_1} = :gen_tcp.recv(client, 0)
+    {:ok, pid_2} = :gen_tcp.recv(other_client, 0)
+    pid_1 = :erlang.list_to_pid(pid_1)
+    pid_2 = :erlang.list_to_pid(pid_2)
+
+    assert {:ok, [pid_2, pid_1]} == ThousandIsland.connection_pids(server_pid)
+
+    :gen_tcp.close(client)
+
+    assert {:ok, [pid_2]} == ThousandIsland.connection_pids(server_pid)
+
+    :gen_tcp.close(other_client)
+
+    assert {:ok, []} == ThousandIsland.connection_pids(server_pid)
   end
 
   describe "shutdown" do

@@ -183,6 +183,28 @@ defmodule ThousandIsland do
   end
 
   @doc """
+  Gets a list of active connection processes. This is inherently a bit of a leaky notion in the
+  face of concurrency, as there may be connections coming and going during the period that this
+  function takes to run. Callers should account for the possibility that new connections may have
+  been made since / during this call, and that processes returned by this call may have since
+  completed. The order that connection processes are returned in is not specified
+  """
+  @spec connection_pids(pid()) :: {:ok, [pid()]}
+  def connection_pids(pid) do
+    {:ok,
+     pid
+     |> ThousandIsland.Server.acceptor_pool_supervisor_pid()
+     |> ThousandIsland.AcceptorPoolSupervisor.acceptor_supervisor_pids()
+     |> Enum.map(&ThousandIsland.AcceptorSupervisor.connection_sup_pid/1)
+     |> Enum.flat_map(fn pid ->
+       pid
+       |> DynamicSupervisor.which_children()
+       |> Enum.map(fn {_, connection_pid, _, _} -> connection_pid end)
+       |> Enum.filter(&Kernel.is_pid/1)
+     end)}
+  end
+
+  @doc """
   Synchronously stops the given server, waiting up to the given number of milliseconds
   for existing connections to finish up. Immediately upon calling this function,
   the server stops listening for new connections, and then proceeds to wait until

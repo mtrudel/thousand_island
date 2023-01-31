@@ -16,10 +16,21 @@ defmodule ThousandIsland.Server do
     listener_pid
   end
 
+  def acceptor_pool_supervisor_pid(pid) do
+    {_, acceptor_pool_supervisor_pid, _, _} =
+      pid
+      |> Supervisor.which_children()
+      |> Enum.find(&Kernel.match?({:acceptor_pool_supervisor, _, _, _}, &1))
+
+    acceptor_pool_supervisor_pid
+  end
+
   def init(config) do
     children = [
       Supervisor.child_spec({ThousandIsland.Listener, config}, id: :listener),
-      {ThousandIsland.AcceptorPoolSupervisor, {self(), config}},
+      Supervisor.child_spec({ThousandIsland.AcceptorPoolSupervisor, {self(), config}},
+        id: :acceptor_pool_supervisor
+      ),
       {ThousandIsland.ShutdownListener, self()}
     ]
 
