@@ -1,5 +1,11 @@
 # Changelog for 0.5.x
 
+## 0.5.17 (31 Jan 2023)
+
+### Enhancements
+
+* Add `ThousandIsland.connection_pids/1` to enumerate connection processes
+
 ## 0.5.16 (21 Jan 2023)
 
 ### Enhancements
