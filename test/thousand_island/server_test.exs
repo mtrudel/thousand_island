@@ -79,10 +79,12 @@ defmodule ThousandIsland.ServerTest do
     assert {:ok, [pid_2, pid_1]} == ThousandIsland.connection_pids(server_pid)
 
     :gen_tcp.close(client)
+    Process.sleep(100)
 
     assert {:ok, [pid_2]} == ThousandIsland.connection_pids(server_pid)
 
     :gen_tcp.close(other_client)
+    Process.sleep(100)
 
     assert {:ok, []} == ThousandIsland.connection_pids(server_pid)
   end
