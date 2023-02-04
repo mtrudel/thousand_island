@@ -7,21 +7,23 @@ defmodule ThousandIsland.Acceptor do
 
   def run({server_pid, parent_pid, %ThousandIsland.ServerConfig{} = server_config}) do
     listener_pid = ThousandIsland.Server.listener_pid(server_pid)
-    listener_socket = ThousandIsland.Listener.acceptor_info(listener_pid)
+    {listener_socket, listener_span} = ThousandIsland.Listener.acceptor_info(listener_pid)
     connection_sup_pid = ThousandIsland.AcceptorSupervisor.connection_sup_pid(parent_pid)
-    accept(listener_socket, connection_sup_pid, server_config)
+    span = ThousandIsland.Telemetry.start_child_span(listener_span, :acceptor)
+    accept(listener_socket, connection_sup_pid, server_config, span, 0)
   end
 
-  defp accept(listener_socket, connection_sup_pid, server_config) do
+  defp accept(listener_socket, connection_sup_pid, server_config, span, count) do
     case server_config.transport_module.accept(listener_socket) do
       {:ok, socket} ->
-        ThousandIsland.Connection.start(connection_sup_pid, socket, server_config)
-        accept(listener_socket, connection_sup_pid, server_config)
+        ThousandIsland.Connection.start(connection_sup_pid, socket, server_config, span)
+        accept(listener_socket, connection_sup_pid, server_config, span, count + 1)
 
       {:error, :closed} ->
-        :ok
+        ThousandIsland.Telemetry.stop_span(span, %{connections: count})
 
       {:error, reason} ->
+        ThousandIsland.Telemetry.stop_span(span, %{error: reason, connections: count})
         raise "Unexpected error in accept: #{inspect(reason)}"
     end
   end

@@ -6,26 +6,30 @@ defmodule ThousandIsland.Socket do
 
   defstruct socket: nil,
             transport_module: nil,
-            read_timeout: nil
+            read_timeout: nil,
+            span: nil
 
   @typedoc "A reference to a socket along with metadata describing how to use it"
   @type t :: %__MODULE__{
           socket: ThousandIsland.Transport.socket(),
           transport_module: module(),
-          read_timeout: timeout()
+          read_timeout: timeout(),
+          span: ThousandIsland.Telemetry.t()
         }
 
   @doc false
   @spec new(
           ThousandIsland.Transport.socket(),
-          ThousandIsland.ServerConfig.t()
+          ThousandIsland.ServerConfig.t(),
+          ThousandIsland.Telemetry.t()
         ) ::
           t()
-  def new(socket, server_config) do
+  def new(socket, server_config, span) do
     %__MODULE__{
       socket: socket,
       transport_module: server_config.transport_module,
-      read_timeout: server_config.read_timeout
+      read_timeout: server_config.read_timeout,
+      span: span
     }
   end
 
@@ -38,8 +42,12 @@ defmodule ThousandIsland.Socket do
   @spec handshake(t()) :: ThousandIsland.Transport.on_handshake()
   def handshake(%__MODULE__{} = socket) do
     case socket.transport_module.handshake(socket.socket) do
-      {:ok, _} -> {:ok, socket}
-      {:error, error} -> {:error, error}
+      {:ok, _} ->
+        {:ok, socket}
+
+      {:error, error} ->
+        ThousandIsland.Telemetry.stop_span(socket.span, %{error: error})
+        {:error, error}
     end
   end
 
@@ -52,8 +60,13 @@ defmodule ThousandIsland.Socket do
   @spec recv(t(), non_neg_integer(), timeout() | nil) :: ThousandIsland.Transport.on_recv()
   def recv(%__MODULE__{} = socket, length \\ 0, timeout \\ nil) do
     case socket.transport_module.recv(socket.socket, length, timeout || socket.read_timeout) do
-      {:ok, data} -> {:ok, data}
-      {:error, error} -> {:error, error}
+      {:ok, data} ->
+        ThousandIsland.Telemetry.untimed_span_event(socket.span, :recv, %{data: data})
+        {:ok, data}
+
+      {:error, error} ->
+        ThousandIsland.Telemetry.span_event(socket.span, :recv_error, %{error: error})
+        {:error, error}
     end
   end
 
@@ -63,8 +76,13 @@ defmodule ThousandIsland.Socket do
   @spec send(t(), IO.chardata()) :: ThousandIsland.Transport.on_send()
   def send(%__MODULE__{} = socket, data) do
     case socket.transport_module.send(socket.socket, data) do
-      :ok -> :ok
-      {:error, error} -> {:error, error}
+      :ok ->
+        ThousandIsland.Telemetry.untimed_span_event(socket.span, :send, %{data: data})
+        :ok
+
+      {:error, error} ->
+        ThousandIsland.Telemetry.span_event(socket.span, :send_error, %{data: data, error: error})
+        {:error, error}
     end
   end
 
@@ -75,8 +93,15 @@ defmodule ThousandIsland.Socket do
           ThousandIsland.Transport.on_sendfile()
   def sendfile(%__MODULE__{} = socket, filename, offset, length) do
     case socket.transport_module.sendfile(socket.socket, filename, offset, length) do
-      {:ok, bytes_written} -> {:ok, bytes_written}
-      {:error, error} -> {:error, error}
+      {:ok, bytes_written} ->
+        measurements = %{filename: filename, offset: offset, bytes_written: bytes_written}
+        ThousandIsland.Telemetry.untimed_span_event(socket.span, :sendfile, measurements)
+        {:ok, bytes_written}
+
+      {:error, error} ->
+        measurements = %{filename: filename, offset: offset, length: length, error: error}
+        ThousandIsland.Telemetry.span_event(socket.span, :sendfile_error, measurements)
+        {:error, error}
     end
   end
 
@@ -85,6 +110,7 @@ defmodule ThousandIsland.Socket do
   """
   @spec shutdown(t(), ThousandIsland.Transport.way()) :: ThousandIsland.Transport.on_shutdown()
   def shutdown(%__MODULE__{} = socket, way) do
+    ThousandIsland.Telemetry.span_event(socket.span, :socket_shutdown, %{way: way})
     socket.transport_module.shutdown(socket.socket, way)
   end
 
@@ -157,5 +183,13 @@ defmodule ThousandIsland.Socket do
   @spec negotiated_protocol(t()) :: ThousandIsland.Transport.negotiated_protocol_info()
   def negotiated_protocol(%__MODULE__{} = socket) do
     socket.transport_module.negotiated_protocol(socket.socket)
+  end
+
+  @doc """
+  Returns the telemetry span representing the lifetime of this socket
+  """
+  @spec telemetry_span(t()) :: ThousandIsland.Telemetry.t()
+  def telemetry_span(%__MODULE__{} = socket) do
+    socket.span
   end
 end

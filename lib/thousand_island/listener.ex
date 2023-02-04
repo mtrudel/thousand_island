@@ -12,7 +12,18 @@ defmodule ThousandIsland.Listener do
     case server_config.transport_module.listen(server_config.port, server_config.transport_opts) do
       {:ok, listener_socket} ->
         local_info = server_config.transport_module.local_info(listener_socket)
-        {:ok, %{listener_socket: listener_socket, local_info: local_info}}
+
+        span_meta = %{
+          local_address: local_info.address,
+          local_port: local_info.port,
+          transport_module: server_config.transport_module,
+          transport_opts: server_config.transport_opts,
+          parent_id: server_config.parent_span_id
+        }
+
+        span = ThousandIsland.Telemetry.start_span(:listener, %{}, span_meta)
+
+        {:ok, %{listener_socket: listener_socket, local_info: local_info, span: span}}
 
       {:error, reason} ->
         {:stop, reason}
@@ -20,5 +31,9 @@ defmodule ThousandIsland.Listener do
   end
 
   def handle_call(:listener_info, _from, state), do: {:reply, state.local_info, state}
-  def handle_call(:acceptor_info, _from, state), do: {:reply, state.listener_socket, state}
+
+  def handle_call(:acceptor_info, _from, state),
+    do: {:reply, {state.listener_socket, state.span}, state}
+
+  def terminate(_reason, state), do: ThousandIsland.Telemetry.stop_span(state.span)
 end

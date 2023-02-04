@@ -29,6 +29,7 @@ defmodule ThousandIsland.MixProject do
   defp deps() do
     [
       {:telemetry, "~> 0.4 or ~> 1.0"},
+      {:machete, ">= 0.0.0", only: [:dev, :test]},
       {:ex_doc, "~> 0.25", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false}

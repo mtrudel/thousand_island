@@ -2,6 +2,8 @@ defmodule ThousandIsland.SocketTest do
   # False due to telemetry raciness
   use ExUnit.Case, async: false
 
+  use Machete
+
   def gen_tcp_setup(_context) do
     {:ok, %{client_mod: :gen_tcp, client_opts: [active: false], server_opts: []}}
   end
@@ -100,6 +102,33 @@ defmodule ThousandIsland.SocketTest do
         {:ok, client} = context.client_mod.connect('localhost', port, context.client_opts)
 
         assert context.client_mod.recv(client, 0) == {:error, :closed}
+      end
+
+      test "it should emit telemetry events as expected", context do
+        {:ok, collector_pid} =
+          start_supervised(
+            {ThousandIsland.TelemetryCollector,
+             [
+               [:thousand_island, :connection, :recv],
+               [:thousand_island, :connection, :send]
+             ]}
+          )
+
+        {:ok, port} = start_handler(Echo, context.server_opts)
+        {:ok, client} = context.client_mod.connect('localhost', port, context.client_opts)
+
+        :ok = context.client_mod.send(client, "HELLO")
+        {:ok, 'HELLO'} = context.client_mod.recv(client, 0)
+        context.client_mod.close(client)
+
+        # Give the server process a chance to shut down
+        Process.sleep(100)
+
+        assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
+               ~> [
+                 {[:thousand_island, :connection, :recv], %{data: "HELLO"}, %{span_id: string()}},
+                 {[:thousand_island, :connection, :send], %{data: "HELLO"}, %{span_id: string()}}
+               ]
       end
     end
   end)
