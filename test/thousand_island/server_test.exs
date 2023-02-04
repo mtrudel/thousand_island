@@ -76,7 +76,8 @@ defmodule ThousandIsland.ServerTest do
     pid_1 = :erlang.list_to_pid(pid_1)
     pid_2 = :erlang.list_to_pid(pid_2)
 
-    assert {:ok, [pid_2, pid_1]} == ThousandIsland.connection_pids(server_pid)
+    {:ok, pids} = ThousandIsland.connection_pids(server_pid)
+    assert Enum.sort(pids) == Enum.sort([pid_1, pid_2])
 
     :gen_tcp.close(client)
     Process.sleep(100)
