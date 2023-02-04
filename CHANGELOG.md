@@ -1,3 +1,12 @@
+# Changelog for 0.6.x
+
+## 0.6.0 (4 Feb 2023)
+
+### Enhancements
+
+* (Re)introduce telemetry support as specified in the `ThousandIsland.Telemetry`
+  module
+
 # Changelog for 0.5.x
 
 ## 0.5.17 (31 Jan 2023)
