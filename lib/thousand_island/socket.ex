@@ -46,7 +46,7 @@ defmodule ThousandIsland.Socket do
         {:ok, socket}
 
       {:error, error} ->
-        ThousandIsland.Telemetry.stop_span(socket.span, %{error: error})
+        ThousandIsland.Telemetry.stop_span(socket.span, %{}, %{error: error})
         {:error, error}
     end
   end

@@ -587,14 +587,13 @@ defmodule ThousandIsland.HandlerTest do
              ~> [
                {[:thousand_island, :connection, :stop],
                 %{
-                  error: :nope,
                   duration: integer(),
                   time: integer(),
                   recv_cnt: 0,
                   recv_oct: 0,
                   send_cnt: 0,
                   send_oct: 0
-                }, %{span_id: string()}}
+                }, %{error: :nope, span_id: string()}}
              ]
     end
   end

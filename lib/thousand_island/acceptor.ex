@@ -23,7 +23,7 @@ defmodule ThousandIsland.Acceptor do
         ThousandIsland.Telemetry.stop_span(span, %{connections: count})
 
       {:error, reason} ->
-        ThousandIsland.Telemetry.stop_span(span, %{error: reason, connections: count})
+        ThousandIsland.Telemetry.stop_span(span, %{connections: count}, %{error: reason})
         raise "Unexpected error in accept: #{inspect(reason)}"
     end
   end

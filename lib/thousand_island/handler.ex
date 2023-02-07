@@ -387,21 +387,21 @@ defmodule ThousandIsland.Handler do
       end
 
       defp do_socket_close(socket, reason) do
-        measurements = if reason in [:shutdown, :local_closed], do: %{}, else: %{error: reason}
-
         measurements =
           case ThousandIsland.Socket.getstat(socket) do
             {:ok, stats} ->
               stats
               |> Keyword.take([:send_oct, :send_cnt, :recv_oct, :recv_cnt])
-              |> Enum.into(measurements)
+              |> Enum.into(%{})
 
             _ ->
-              measurements
+              %{}
           end
 
+        metadata = if reason in [:shutdown, :local_closed], do: %{}, else: %{error: reason}
+
         ThousandIsland.Socket.close(socket)
-        ThousandIsland.Telemetry.stop_span(socket.span, measurements)
+        ThousandIsland.Telemetry.stop_span(socket.span, measurements, metadata)
       end
 
       defp handle_continuation(continuation, socket) do
