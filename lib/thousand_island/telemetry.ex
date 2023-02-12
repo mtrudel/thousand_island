@@ -36,7 +36,6 @@ defmodule ThousandIsland.Telemetry do
 
       * `time`: The time of this event, in `:native` units
       * `duration`: The span duration, in `:native` units
-      * `error`: The error that caused the span to end, if it ended in error
 
       This event contains the following metadata:
 
@@ -71,12 +70,12 @@ defmodule ThousandIsland.Telemetry do
 
       * `time`: The time of this event, in `:native` units
       * `duration`: The span duration, in `:native` units
-      * `error`: The error that caused the span to end, if it ended in error
       * `connections`: The number of client requests that the acceptor handled
 
       This event contains the following metadata:
 
       * `span_id`: The ID of this span
+      * `error`: The error that caused the span to end, if it ended in error
 
   ## `[:thousand_island, :connection, *]`
 
@@ -109,7 +108,6 @@ defmodule ThousandIsland.Telemetry do
 
       * `time`: The time of this event, in `:native` units
       * `duration`: The span duration, in `:native` units
-      * `error`: The error that caused the span to end, if it ended in error
       * `send_oct`: The number of octets sent on the connection
       * `send_cnt`: The number of packets sent on the connection
       * `recv_oct`: The number of octets received on the connection
@@ -118,6 +116,7 @@ defmodule ThousandIsland.Telemetry do
       This event contains the following metadata:
 
       * `span_id`: The ID of this span
+      * `error`: The error that caused the span to end, if it ended in error
 
   The following events may be emitted within this span:
 
