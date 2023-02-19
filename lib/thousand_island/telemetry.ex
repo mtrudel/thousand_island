@@ -238,11 +238,11 @@ defmodule ThousandIsland.Telemetry do
 
   defstruct span_name: nil, span_id: nil, start_time: nil
 
-  @opaque t :: %__MODULE__{
-            span_name: atom(),
-            span_id: String.t(),
-            start_time: integer()
-          }
+  @type t :: %__MODULE__{
+          span_name: atom(),
+          span_id: String.t(),
+          start_time: integer()
+        }
 
   @app_name :thousand_island
 
