@@ -1,5 +1,13 @@
 # Changelog for 0.6.x
 
+## 0.6.1 (19 Feb 2023)
+
+### Changes
+
+* Expose ThousandIsland.Telemetry.t() as a transparent type
+* Pass telemetry errors in metadata rather than metrics
+* Allow explicit passing of start times into telemetry spans
+
 ## 0.6.0 (4 Feb 2023)
 
 ### Enhancements
