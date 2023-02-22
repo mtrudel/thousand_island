@@ -1,5 +1,13 @@
 # Changelog for 0.6.x
 
+## 0.6.2 (22 Feb 2023)
+
+### Fixes
+
+* Fixes a race condition at application shutdown that caused spurious acceptor
+  crashes to litter the logs (#44). Thanks @danschultzer!
+
+
 ## 0.6.1 (19 Feb 2023)
 
 ### Changes
