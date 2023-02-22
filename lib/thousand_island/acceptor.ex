@@ -19,7 +19,7 @@ defmodule ThousandIsland.Acceptor do
         ThousandIsland.Connection.start(connection_sup_pid, socket, server_config, span)
         accept(listener_socket, connection_sup_pid, server_config, span, count + 1)
 
-      {:error, :closed} ->
+      {:error, reason} when reason in [:closed, :einval] ->
         ThousandIsland.Telemetry.stop_span(span, %{connections: count})
 
       {:error, reason} ->
