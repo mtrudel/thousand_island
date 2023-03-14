@@ -112,7 +112,7 @@ which is responsible for actually binding to the port and managing the resultant
 listener socket, and an `AcceptorPoolSupervisor` which is responsible for managing
 a pool of `AcceptorSupervisor` processes.
 
-Each `AcceptorSupervisor` process (there are 10 by default) manages two processes:
+Each `AcceptorSupervisor` process (there are 100 by default) manages two processes:
 an `Acceptor` which accepts connections made to the server's listener socket,
 and a `DynamicSupervisor` which supervises the processes backing individual
 client connections. Every time a client connects to the server's port, one of
