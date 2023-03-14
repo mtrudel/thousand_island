@@ -117,6 +117,10 @@ defmodule ThousandIsland do
   * `num_acceptors`: The number of acceptor processes to run. Defaults to 100.
   * `read_timeout`: How long to wait for client data before closing the connection, in
   milliseconds. Defaults to 60_000.
+  * `shutdown_timeout`: How long to wait for existing client connections to complete before
+  forcibly shutting those connections down at server shutdown time, in milliseconds. Defaults to
+  15_000. May also be `:infinity` or `:brutal_kill` as described in the `Supervisor`
+  documentation.
   * `parent_span_id`: The span ID to use as the parent of the top-level `:listener` span for
   telemetry. Optional.
   """
@@ -129,6 +133,7 @@ defmodule ThousandIsland do
           transport_options: transport_options(),
           num_acceptors: pos_integer(),
           read_timeout: timeout(),
+          shutdown_timeout: timeout(),
           parent_span_id: String.t()
         ]
 
@@ -142,8 +147,7 @@ defmodule ThousandIsland do
       id: __MODULE__,
       start: {__MODULE__, :start_link, [opts]},
       type: :supervisor,
-      restart: :permanent,
-      shutdown: 5000
+      restart: :permanent
     }
   end
 

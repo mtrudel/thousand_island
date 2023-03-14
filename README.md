@@ -70,7 +70,11 @@ defaults to `ThousandIsland.Transports.TCP`.
 * `transport_options`: A keyword list of options to be passed to the transport at startup. Valid values depend on the transport
 module specified in `transport_module` and can be found in the documentation for the
 [`ThousandIsland.Transports.TCP`](https://hexdocs.pm/thousand_island/ThousandIsland.Transports.TCP.html) and [`ThousandIsland.Transports.SSL`](https://hexdocs.pm/thousand_island/ThousandIsland.Transports.SSL.html) modules.
-* `num_acceptors`: The number of acceptor processes to run. Defaults to 10.
+* `num_acceptors`: The number of acceptor processes to run. Defaults to 100.
+* `read_timeout`: How long to wait for client data before closing the connection. Defaults to 60000 ms.
+* `shutdown_timeout`: How long to wait for existing client connections to complete before
+forcibly shutting those connections down at server shutdown time. Defaults to 15000 ms. May also
+be `:infinity` or `:brutal_kill` as described in the `Supervisor` documentation.
 
 ### Connection Draining & Shutdown
 
@@ -84,6 +88,9 @@ in progress when shutdown was initiated. At this point, standard Supervisor shut
 timeout semantics give existing connections a chance to finish things up. `Handler`
 processes trap exit, so they continue running beyond shutdown until they either
 complete or are `:brutal_kill`ed after their shutdown timeout expires.
+
+The `shutdown_timeout` configuration option allows for fine grained control of
+the shutdown timeout value. It defaults to 15000 ms.
 
 ### Logging & Telemetry
 

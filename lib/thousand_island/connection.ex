@@ -15,6 +15,7 @@ defmodule ThousandIsland.Connection do
     child_spec =
       {server_config.handler_module,
        {server_config.handler_options, server_config.genserver_options}}
+      |> Supervisor.child_spec(shutdown: server_config.shutdown_timeout)
 
     {:ok, pid} = DynamicSupervisor.start_child(sup_pid, child_spec)
 

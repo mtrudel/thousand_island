@@ -132,6 +132,27 @@ defmodule ThousandIsland.ServerTest do
       refute Process.alive?(server_pid)
     end
 
+    test "it should forcibly shutdown connections after shutdown_timeout" do
+      {:ok, server_pid, port} = start_handler(Echo, shutdown_timeout: 500)
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      # Make sure the socket has transitioned ownership to the connection process
+      Process.sleep(100)
+      task = Task.async(fn -> ThousandIsland.stop(server_pid) end)
+      # Make sure that the stop is still waiting on the open client, and the client is still alive
+      Process.sleep(100)
+      assert Process.alive?(server_pid)
+      :gen_tcp.send(client, "HELLO")
+      assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+
+      # Make sure that the stop finished by shutdown_timeout
+      Process.sleep(500)
+      refute Process.alive?(server_pid)
+
+      # Clean up by waiting on the shutdown task
+      Task.await(task)
+    end
+
     test "it should emit telemetry events as expected" do
       {:ok, collector_pid} =
         start_supervised(
