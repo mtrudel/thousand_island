@@ -1,5 +1,21 @@
 # Changelog for 0.6.x
 
+## 0.6.3 (14 Mar 2023)
+
+### Enhancements
+
+* Added `shutdown_timeout` configuration parameter to configure how long to wait
+  for existing connections to shutdown before forcibly killing them at shutdown
+
+### Changes
+
+* Default value for `num_acceptors` is now 100
+* Default value for `read_timeout` is now 60000 ms
+
+### Fixes
+
+* Added missing documentation for read_timeout configuration parameter
+
 ## 0.6.2 (22 Feb 2023)
 
 ### Fixes
