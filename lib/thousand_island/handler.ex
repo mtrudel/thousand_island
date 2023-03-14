@@ -162,7 +162,7 @@ defmodule ThousandIsland.Handler do
 
   @doc """
   This callback is called shortly after a client connection has been made, immediately after the socket handshake process has
-  completed. It is called with the server's configured `handler_opts` value as initial state. Handlers may choose to
+  completed. It is called with the server's configured `handler_options` value as initial state. Handlers may choose to
   interact synchronously with the socket in this callback via calls to various `ThousandIsland.Socket` functions.
 
   The value returned by this callback causes Thousand Island to proceed in one of several ways:
@@ -258,11 +258,7 @@ defmodule ThousandIsland.Handler do
   their own timeout semantics. The underlying socket has NOT been closed by the time this callback
   is called. The return value is ignored.
   """
-  @callback handle_timeout(
-              socket :: ThousandIsland.Socket.t(),
-              state :: term()
-            ) ::
-              term()
+  @callback handle_timeout(socket :: ThousandIsland.Socket.t(), state :: term()) :: term()
 
   @optional_callbacks handle_connection: 2,
                       handle_data: 3,
@@ -290,14 +286,14 @@ defmodule ThousandIsland.Handler do
 
       defoverridable ThousandIsland.Handler
 
-      def start_link({handler_opts, genserver_opts}) do
-        GenServer.start_link(__MODULE__, handler_opts, genserver_opts)
+      def start_link({handler_options, genserver_options}) do
+        GenServer.start_link(__MODULE__, handler_options, genserver_options)
       end
 
       @impl GenServer
-      def init(handler_opts) do
+      def init(handler_options) do
         Process.flag(:trap_exit, true)
-        {:ok, {nil, handler_opts}}
+        {:ok, {nil, handler_options}}
       end
 
       @impl GenServer

@@ -9,7 +9,10 @@ defmodule ThousandIsland.Listener do
   def acceptor_info(pid), do: GenServer.call(pid, :acceptor_info)
 
   def init(%ThousandIsland.ServerConfig{} = server_config) do
-    case server_config.transport_module.listen(server_config.port, server_config.transport_opts) do
+    case server_config.transport_module.listen(
+           server_config.port,
+           server_config.transport_options
+         ) do
       {:ok, listener_socket} ->
         local_info = server_config.transport_module.local_info(listener_socket)
 
@@ -17,7 +20,7 @@ defmodule ThousandIsland.Listener do
           local_address: local_info.address,
           local_port: local_info.port,
           transport_module: server_config.transport_module,
-          transport_opts: server_config.transport_opts,
+          transport_options: server_config.transport_options,
           parent_id: server_config.parent_span_id
         }
 

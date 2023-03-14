@@ -23,7 +23,7 @@ defmodule ThousandIsland.Telemetry do
       * `local_address`: The IP address that the listener is bound to
       * `local_port`: The port that the listener is bound to
       * `transport_module`: The transport module in use
-      * `transport_opts`: Options passed to the transport module at startup
+      * `transport_options`: Options passed to the transport module at startup
 
 
   This span is ended by the following event:

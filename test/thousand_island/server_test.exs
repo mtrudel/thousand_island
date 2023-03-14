@@ -157,7 +157,7 @@ defmodule ThousandIsland.ServerTest do
                   local_address: {0, 0, 0, 0},
                   local_port: integer(),
                   transport_module: ThousandIsland.Transports.TCP,
-                  transport_opts: []
+                  transport_options: []
                 }},
                {[:thousand_island, :acceptor, :start], %{time: integer()},
                 %{parent_id: string(), span_id: string()}},

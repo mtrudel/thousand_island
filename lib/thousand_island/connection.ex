@@ -13,7 +13,8 @@ defmodule ThousandIsland.Connection do
 
     # Start by creating the worker process which will eventually handle this socket
     child_spec =
-      {server_config.handler_module, {server_config.handler_opts, server_config.genserver_opts}}
+      {server_config.handler_module,
+       {server_config.handler_options, server_config.genserver_options}}
 
     {:ok, pid} = DynamicSupervisor.start_child(sup_pid, child_spec)
 

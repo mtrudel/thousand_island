@@ -114,7 +114,9 @@ defmodule ThousandIsland do
   `ThousandIsland.Transports.TCP` and `ThousandIsland.Transports.SSL` modules. Any options
   in terms of interfaces to listen to / certificates and keys to use for SSL connections
   will be passed in via this option.
-  * `num_acceptors`: The number of acceptor processes to run. Defaults to 10.
+  * `num_acceptors`: The number of acceptor processes to run. Defaults to 100.
+  * `read_timeout`: How long to wait for client data before closing the connection, in
+  milliseconds. Defaults to 60_000.
   * `parent_span_id`: The span ID to use as the parent of the top-level `:listener` span for
   telemetry. Optional.
   """
@@ -126,7 +128,8 @@ defmodule ThousandIsland do
           transport_module: module(),
           transport_options: transport_options(),
           num_acceptors: pos_integer(),
-          read_timeout: timeout()
+          read_timeout: timeout(),
+          parent_span_id: String.t()
         ]
 
   @type transport_options() ::
