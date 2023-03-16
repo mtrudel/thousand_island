@@ -39,6 +39,10 @@ defmodule ThousandIsland.Telemetry do
       This event contains the following metadata:
 
       * `telemetry_span_context`: A unique identifier for this span
+      * `local_address`: The IP address that the listener is bound to
+      * `local_port`: The port that the listener is bound to
+      * `transport_module`: The transport module in use
+      * `transport_options`: Options passed to the transport module at startup
 
   ## `[:thousand_island, :acceptor, *]`
 
@@ -74,6 +78,7 @@ defmodule ThousandIsland.Telemetry do
       This event contains the following metadata:
 
       * `telemetry_span_context`: A unique identifier for this span
+      * `telemetry_parent_span_context`: The span context of the `:listener` which created this acceptor
       * `error`: The error that caused the span to end, if it ended in error
 
   ## `[:thousand_island, :connection, *]`
@@ -116,6 +121,10 @@ defmodule ThousandIsland.Telemetry do
       This event contains the following metadata:
 
       * `telemetry_span_context`: A unique identifier for this span
+      * `telemetry_parent_span_context`: The span context of the `:acceptor` span which accepted
+      this connection
+      * `remote_address`: The IP address of the connected client
+      * `remote_port`: The port of the connected client
       * `error`: The error that caused the span to end, if it ended in error
 
   The following events may be emitted within this span:
@@ -236,12 +245,13 @@ defmodule ThousandIsland.Telemetry do
       * `telemetry_span_context`: A unique identifier for this span
   """
 
-  defstruct span_name: nil, telemetry_span_context: nil, start_time: nil
+  defstruct span_name: nil, telemetry_span_context: nil, start_time: nil, start_metadata: nil
 
   @type t :: %__MODULE__{
           span_name: atom(),
           telemetry_span_context: reference(),
-          start_time: integer()
+          start_time: integer(),
+          start_metadata: map()
         }
 
   @app_name :thousand_island
@@ -257,7 +267,8 @@ defmodule ThousandIsland.Telemetry do
     %__MODULE__{
       span_name: span_name,
       telemetry_span_context: telemetry_span_context,
-      start_time: measurements[:monotonic_time]
+      start_time: measurements[:monotonic_time],
+      start_metadata: metadata
     }
   end
 
@@ -277,6 +288,8 @@ defmodule ThousandIsland.Telemetry do
 
     measurements =
       Map.put(measurements, :duration, measurements[:monotonic_time] - span.start_time)
+
+    metadata = Map.merge(span.start_metadata, metadata)
 
     untimed_span_event(span, :stop, measurements, metadata)
   end

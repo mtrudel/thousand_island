@@ -546,6 +546,9 @@ defmodule ThousandIsland.HandlerTest do
 
       {:ok, port} = start_handler(Telemetry.Closer)
 
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      {:ok, {ip, port}} = :inet.sockname(client)
+
       :gen_tcp.connect(:localhost, port, active: false)
       Process.sleep(100)
 
@@ -559,7 +562,13 @@ defmodule ThousandIsland.HandlerTest do
                   recv_oct: 0,
                   send_cnt: 1,
                   send_oct: 5
-                }, %{telemetry_span_context: reference()}}
+                },
+                %{
+                  telemetry_parent_span_context: reference(),
+                  remote_address: ip,
+                  remote_port: port,
+                  telemetry_span_context: reference()
+                }}
              ]
     end
 
@@ -581,7 +590,8 @@ defmodule ThousandIsland.HandlerTest do
 
       {:ok, port} = start_handler(Telemetry.Error)
 
-      :gen_tcp.connect(:localhost, port, active: false)
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      {:ok, {ip, port}} = :inet.sockname(client)
       Process.sleep(100)
 
       assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
@@ -594,7 +604,14 @@ defmodule ThousandIsland.HandlerTest do
                   recv_oct: 0,
                   send_cnt: 0,
                   send_oct: 0
-                }, %{error: :nope, telemetry_span_context: reference()}}
+                },
+                %{
+                  error: :nope,
+                  telemetry_parent_span_context: reference(),
+                  remote_address: ip,
+                  remote_port: port,
+                  telemetry_span_context: reference()
+                }}
              ]
     end
   end
