@@ -122,7 +122,7 @@ defmodule ThousandIsland.Telemetry do
 
       * `telemetry_span_context`: A unique identifier for this span
       * `parent_telemetry_span_context`: The span context of the `:acceptor` span which accepted
-      this connection
+        this connection
       * `remote_address`: The IP address of the connected client
       * `remote_port`: The port of the connected client
       * `error`: The error that caused the span to end, if it ended in error
