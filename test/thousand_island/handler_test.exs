@@ -483,7 +483,7 @@ defmodule ThousandIsland.HandlerTest do
              ~> [
                {[:thousand_island, :connection, :start], %{monotonic_time: integer()},
                 %{
-                  telemetry_parent_span_context: reference(),
+                  parent_telemetry_span_context: reference(),
                   remote_address: ip,
                   remote_port: port,
                   telemetry_span_context: reference()
@@ -564,7 +564,7 @@ defmodule ThousandIsland.HandlerTest do
                   send_oct: 5
                 },
                 %{
-                  telemetry_parent_span_context: reference(),
+                  parent_telemetry_span_context: reference(),
                   remote_address: ip,
                   remote_port: port,
                   telemetry_span_context: reference()
@@ -607,7 +607,7 @@ defmodule ThousandIsland.HandlerTest do
                 },
                 %{
                   error: :nope,
-                  telemetry_parent_span_context: reference(),
+                  parent_telemetry_span_context: reference(),
                   remote_address: ip,
                   remote_port: port,
                   telemetry_span_context: reference()

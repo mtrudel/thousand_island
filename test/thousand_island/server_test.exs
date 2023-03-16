@@ -180,7 +180,7 @@ defmodule ThousandIsland.ServerTest do
                   transport_options: []
                 }},
                {[:thousand_island, :acceptor, :start], %{monotonic_time: integer()},
-                %{telemetry_span_context: reference(), telemetry_parent_span_context: reference()}},
+                %{telemetry_span_context: reference(), parent_telemetry_span_context: reference()}},
                {[:thousand_island, :listener, :stop],
                 %{duration: integer(), monotonic_time: integer()},
                 %{
@@ -192,7 +192,7 @@ defmodule ThousandIsland.ServerTest do
                 }},
                {[:thousand_island, :acceptor, :stop],
                 %{connections: 0, duration: integer(), monotonic_time: integer()},
-                %{telemetry_span_context: reference(), telemetry_parent_span_context: reference()}}
+                %{telemetry_span_context: reference(), parent_telemetry_span_context: reference()}}
              ]
     end
   end

@@ -61,7 +61,7 @@ defmodule ThousandIsland.Telemetry do
       This event contains the following metadata:
 
       * `telemetry_span_context`: A unique identifier for this span
-      * `telemetry_parent_span_context`: The span context of the `:listener` which created this acceptor
+      * `parent_telemetry_span_context`: The span context of the `:listener` which created this acceptor
 
   This span is ended by the following event:
 
@@ -78,7 +78,7 @@ defmodule ThousandIsland.Telemetry do
       This event contains the following metadata:
 
       * `telemetry_span_context`: A unique identifier for this span
-      * `telemetry_parent_span_context`: The span context of the `:listener` which created this acceptor
+      * `parent_telemetry_span_context`: The span context of the `:listener` which created this acceptor
       * `error`: The error that caused the span to end, if it ended in error
 
   ## `[:thousand_island, :connection, *]`
@@ -98,7 +98,7 @@ defmodule ThousandIsland.Telemetry do
       This event contains the following metadata:
 
       * `telemetry_span_context`: A unique identifier for this span
-      * `telemetry_parent_span_context`: The span context of the `:acceptor` span which accepted
+      * `parent_telemetry_span_context`: The span context of the `:acceptor` span which accepted
       this connection
       * `remote_address`: The IP address of the connected client
       * `remote_port`: The port of the connected client
@@ -121,7 +121,7 @@ defmodule ThousandIsland.Telemetry do
       This event contains the following metadata:
 
       * `telemetry_span_context`: A unique identifier for this span
-      * `telemetry_parent_span_context`: The span context of the `:acceptor` span which accepted
+      * `parent_telemetry_span_context`: The span context of the `:acceptor` span which accepted
       this connection
       * `remote_address`: The IP address of the connected client
       * `remote_port`: The port of the connected client
@@ -276,7 +276,7 @@ defmodule ThousandIsland.Telemetry do
   @spec start_child_span(t(), atom(), map(), map()) :: t()
   def start_child_span(parent_span, span_name, measurements \\ %{}, metadata \\ %{}) do
     metadata =
-      Map.put(metadata, :telemetry_parent_span_context, parent_span.telemetry_span_context)
+      Map.put(metadata, :parent_telemetry_span_context, parent_span.telemetry_span_context)
 
     start_span(span_name, measurements, metadata)
   end
