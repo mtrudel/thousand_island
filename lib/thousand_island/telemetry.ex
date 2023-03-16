@@ -19,7 +19,6 @@ defmodule ThousandIsland.Telemetry do
       This event contains the following metadata:
 
       * `span_id`: The ID of this span
-      * `parent_id`: The span ID passed to Thousand Island via the `parent_span_id` option
       * `local_address`: The IP address that the listener is bound to
       * `local_port`: The port that the listener is bound to
       * `transport_module`: The transport module in use

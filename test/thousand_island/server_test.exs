@@ -165,7 +165,7 @@ defmodule ThousandIsland.ServerTest do
            ]}
         )
 
-      {:ok, server_pid, _} = start_handler(Echo, num_acceptors: 1, parent_span_id: "PARENTSPAN")
+      {:ok, server_pid, _} = start_handler(Echo, num_acceptors: 1)
 
       ThousandIsland.stop(server_pid)
 
@@ -174,7 +174,6 @@ defmodule ThousandIsland.ServerTest do
                {[:thousand_island, :listener, :start], %{monotonic_time: integer()},
                 %{
                   span_id: string(),
-                  parent_id: "PARENTSPAN",
                   local_address: {0, 0, 0, 0},
                   local_port: integer(),
                   transport_module: ThousandIsland.Transports.TCP,

@@ -11,8 +11,7 @@ defmodule ThousandIsland.ServerConfig do
           genserver_options: GenServer.options(),
           num_acceptors: pos_integer(),
           read_timeout: timeout(),
-          shutdown_timeout: timeout(),
-          parent_span_id: String.t() | nil
+          shutdown_timeout: timeout()
         }
 
   defstruct port: 4000,
@@ -23,8 +22,7 @@ defmodule ThousandIsland.ServerConfig do
             genserver_options: [],
             num_acceptors: 100,
             read_timeout: 60_000,
-            shutdown_timeout: 15_000,
-            parent_span_id: nil
+            shutdown_timeout: 15_000
 
   @spec new(ThousandIsland.options()) :: t()
   def new(opts \\ []) do
