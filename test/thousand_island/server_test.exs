@@ -173,19 +173,20 @@ defmodule ThousandIsland.ServerTest do
              ~> [
                {[:thousand_island, :listener, :start], %{monotonic_time: integer()},
                 %{
-                  span_id: string(),
+                  telemetry_span_context: reference(),
                   local_address: {0, 0, 0, 0},
                   local_port: integer(),
                   transport_module: ThousandIsland.Transports.TCP,
                   transport_options: []
                 }},
                {[:thousand_island, :acceptor, :start], %{monotonic_time: integer()},
-                %{parent_id: string(), span_id: string()}},
+                %{telemetry_span_context: reference(), telemetry_parent_span_context: reference()}},
                {[:thousand_island, :listener, :stop],
-                %{duration: integer(), monotonic_time: integer()}, %{span_id: string()}},
+                %{duration: integer(), monotonic_time: integer()},
+                %{telemetry_span_context: reference()}},
                {[:thousand_island, :acceptor, :stop],
                 %{connections: 0, duration: integer(), monotonic_time: integer()},
-                %{span_id: string()}}
+                %{telemetry_span_context: reference()}}
              ]
     end
   end
