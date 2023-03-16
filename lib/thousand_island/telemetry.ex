@@ -14,7 +14,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
 
       This event contains the following metadata:
 
@@ -34,7 +34,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
       * `duration`: The span duration, in `:native` units
 
       This event contains the following metadata:
@@ -53,7 +53,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
 
       This event contains the following metadata:
 
@@ -68,7 +68,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
       * `duration`: The span duration, in `:native` units
       * `connections`: The number of client requests that the acceptor handled
 
@@ -89,7 +89,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
 
       This event contains the following metadata:
 
@@ -106,7 +106,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
       * `duration`: The span duration, in `:native` units
       * `send_oct`: The number of octets sent on the connection
       * `send_cnt`: The number of packets sent on the connection
@@ -126,7 +126,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
 
       This event contains the following metadata:
 
@@ -228,7 +228,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
       * `way`: The direction in which the socket was shut down
 
       This event contains the following metadata:
@@ -249,11 +249,11 @@ defmodule ThousandIsland.Telemetry do
   @doc false
   @spec start_span(atom(), map(), map()) :: t()
   def start_span(span_name, measurements \\ %{}, metadata \\ %{}) do
-    measurements = Map.put_new_lazy(measurements, :time, &time/0)
+    measurements = Map.put_new_lazy(measurements, :monotonic_time, &monotonic_time/0)
     span_id = random_identifier()
     metadata = Map.put(metadata, :span_id, span_id)
     event([span_name, :start], measurements, metadata)
-    %__MODULE__{span_name: span_name, span_id: span_id, start_time: measurements[:time]}
+    %__MODULE__{span_name: span_name, span_id: span_id, start_time: measurements[:monotonic_time]}
   end
 
   @doc false
@@ -266,15 +266,18 @@ defmodule ThousandIsland.Telemetry do
   @doc false
   @spec stop_span(t(), map(), map()) :: :ok
   def stop_span(span, measurements \\ %{}, metadata \\ %{}) do
-    measurements = Map.put_new_lazy(measurements, :time, &time/0)
-    measurements = Map.put(measurements, :duration, measurements[:time] - span.start_time)
+    measurements = Map.put_new_lazy(measurements, :monotonic_time, &monotonic_time/0)
+
+    measurements =
+      Map.put(measurements, :duration, measurements[:monotonic_time] - span.start_time)
+
     untimed_span_event(span, :stop, measurements, metadata)
   end
 
   @doc false
   @spec span_event(t(), atom(), map(), map()) :: :ok
   def span_event(span, name, measurements \\ %{}, metadata \\ %{}) do
-    measurements = Map.put_new_lazy(measurements, :time, &time/0)
+    measurements = Map.put_new_lazy(measurements, :monotonic_time, &monotonic_time/0)
     untimed_span_event(span, name, measurements, metadata)
   end
 
@@ -285,7 +288,7 @@ defmodule ThousandIsland.Telemetry do
     event([span.span_name, name], measurements, metadata)
   end
 
-  defdelegate time, to: System, as: :monotonic_time
+  defdelegate monotonic_time, to: System
 
   defp event(suffix, measurements, metadata) do
     :telemetry.execute([@app_name | suffix], measurements, metadata)

@@ -481,7 +481,7 @@ defmodule ThousandIsland.HandlerTest do
 
       assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
              ~> [
-               {[:thousand_island, :connection, :start], %{time: integer()},
+               {[:thousand_island, :connection, :start], %{monotonic_time: integer()},
                 %{
                   parent_id: string(),
                   remote_address: ip,
@@ -504,7 +504,8 @@ defmodule ThousandIsland.HandlerTest do
 
       assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
              ~> [
-               {[:thousand_island, :connection, :ready], %{time: integer()}, %{span_id: string()}}
+               {[:thousand_island, :connection, :ready], %{monotonic_time: integer()},
+                %{span_id: string()}}
              ]
     end
 
@@ -553,7 +554,7 @@ defmodule ThousandIsland.HandlerTest do
                {[:thousand_island, :connection, :stop],
                 %{
                   duration: integer(),
-                  time: integer(),
+                  monotonic_time: integer(),
                   recv_cnt: 0,
                   recv_oct: 0,
                   send_cnt: 1,
@@ -588,7 +589,7 @@ defmodule ThousandIsland.HandlerTest do
                {[:thousand_island, :connection, :stop],
                 %{
                   duration: integer(),
-                  time: integer(),
+                  monotonic_time: integer(),
                   recv_cnt: 0,
                   recv_oct: 0,
                   send_cnt: 0,

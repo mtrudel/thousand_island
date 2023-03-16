@@ -171,7 +171,7 @@ defmodule ThousandIsland.ServerTest do
 
       assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
              ~> [
-               {[:thousand_island, :listener, :start], %{time: integer()},
+               {[:thousand_island, :listener, :start], %{monotonic_time: integer()},
                 %{
                   span_id: string(),
                   parent_id: "PARENTSPAN",
@@ -180,12 +180,13 @@ defmodule ThousandIsland.ServerTest do
                   transport_module: ThousandIsland.Transports.TCP,
                   transport_options: []
                 }},
-               {[:thousand_island, :acceptor, :start], %{time: integer()},
+               {[:thousand_island, :acceptor, :start], %{monotonic_time: integer()},
                 %{parent_id: string(), span_id: string()}},
-               {[:thousand_island, :listener, :stop], %{duration: integer(), time: integer()},
-                %{span_id: string()}},
+               {[:thousand_island, :listener, :stop],
+                %{duration: integer(), monotonic_time: integer()}, %{span_id: string()}},
                {[:thousand_island, :acceptor, :stop],
-                %{connections: 0, duration: integer(), time: integer()}, %{span_id: string()}}
+                %{connections: 0, duration: integer(), monotonic_time: integer()},
+                %{span_id: string()}}
              ]
     end
   end
