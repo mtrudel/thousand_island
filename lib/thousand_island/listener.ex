@@ -20,8 +20,7 @@ defmodule ThousandIsland.Listener do
           local_address: local_info.address,
           local_port: local_info.port,
           transport_module: server_config.transport_module,
-          transport_options: server_config.transport_options,
-          parent_id: server_config.parent_span_id
+          transport_options: server_config.transport_options
         }
 
         span = ThousandIsland.Telemetry.start_span(:listener, %{}, span_meta)

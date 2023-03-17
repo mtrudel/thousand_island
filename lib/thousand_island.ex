@@ -121,8 +121,6 @@ defmodule ThousandIsland do
   forcibly shutting those connections down at server shutdown time, in milliseconds. Defaults to
   15_000. May also be `:infinity` or `:brutal_kill` as described in the `Supervisor`
   documentation.
-  * `parent_span_id`: The span ID to use as the parent of the top-level `:listener` span for
-  telemetry. Optional.
   """
   @type options :: [
           handler_module: module(),
@@ -133,8 +131,7 @@ defmodule ThousandIsland do
           transport_options: transport_options(),
           num_acceptors: pos_integer(),
           read_timeout: timeout(),
-          shutdown_timeout: timeout(),
-          parent_span_id: String.t()
+          shutdown_timeout: timeout()
         ]
 
   @type transport_options() ::

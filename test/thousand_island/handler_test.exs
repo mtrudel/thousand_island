@@ -481,12 +481,12 @@ defmodule ThousandIsland.HandlerTest do
 
       assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
              ~> [
-               {[:thousand_island, :connection, :start], %{time: integer()},
+               {[:thousand_island, :connection, :start], %{monotonic_time: integer()},
                 %{
-                  parent_id: string(),
+                  parent_telemetry_span_context: reference(),
                   remote_address: ip,
                   remote_port: port,
-                  span_id: string()
+                  telemetry_span_context: reference()
                 }}
              ]
     end
@@ -504,7 +504,8 @@ defmodule ThousandIsland.HandlerTest do
 
       assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
              ~> [
-               {[:thousand_island, :connection, :ready], %{time: integer()}, %{span_id: string()}}
+               {[:thousand_island, :connection, :ready], %{monotonic_time: integer()},
+                %{telemetry_span_context: reference()}}
              ]
     end
 
@@ -523,7 +524,7 @@ defmodule ThousandIsland.HandlerTest do
       assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
              ~> [
                {[:thousand_island, :connection, :async_recv], %{data: "ping"},
-                %{span_id: string()}}
+                %{telemetry_span_context: reference()}}
              ]
     end
 
@@ -545,6 +546,9 @@ defmodule ThousandIsland.HandlerTest do
 
       {:ok, port} = start_handler(Telemetry.Closer)
 
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      {:ok, {ip, port}} = :inet.sockname(client)
+
       :gen_tcp.connect(:localhost, port, active: false)
       Process.sleep(100)
 
@@ -553,12 +557,18 @@ defmodule ThousandIsland.HandlerTest do
                {[:thousand_island, :connection, :stop],
                 %{
                   duration: integer(),
-                  time: integer(),
+                  monotonic_time: integer(),
                   recv_cnt: 0,
                   recv_oct: 0,
                   send_cnt: 1,
                   send_oct: 5
-                }, %{span_id: string()}}
+                },
+                %{
+                  parent_telemetry_span_context: reference(),
+                  remote_address: ip,
+                  remote_port: port,
+                  telemetry_span_context: reference()
+                }}
              ]
     end
 
@@ -580,7 +590,8 @@ defmodule ThousandIsland.HandlerTest do
 
       {:ok, port} = start_handler(Telemetry.Error)
 
-      :gen_tcp.connect(:localhost, port, active: false)
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      {:ok, {ip, port}} = :inet.sockname(client)
       Process.sleep(100)
 
       assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
@@ -588,12 +599,19 @@ defmodule ThousandIsland.HandlerTest do
                {[:thousand_island, :connection, :stop],
                 %{
                   duration: integer(),
-                  time: integer(),
+                  monotonic_time: integer(),
                   recv_cnt: 0,
                   recv_oct: 0,
                   send_cnt: 0,
                   send_oct: 0
-                }, %{error: :nope, span_id: string()}}
+                },
+                %{
+                  error: :nope,
+                  parent_telemetry_span_context: reference(),
+                  remote_address: ip,
+                  remote_port: port,
+                  telemetry_span_context: reference()
+                }}
              ]
     end
   end

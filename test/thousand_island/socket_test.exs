@@ -126,8 +126,10 @@ defmodule ThousandIsland.SocketTest do
 
         assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
                ~> [
-                 {[:thousand_island, :connection, :recv], %{data: "HELLO"}, %{span_id: string()}},
-                 {[:thousand_island, :connection, :send], %{data: "HELLO"}, %{span_id: string()}}
+                 {[:thousand_island, :connection, :recv], %{data: "HELLO"},
+                  %{telemetry_span_context: reference()}},
+                 {[:thousand_island, :connection, :send], %{data: "HELLO"},
+                  %{telemetry_span_context: reference()}}
                ]
       end
     end

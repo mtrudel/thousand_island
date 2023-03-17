@@ -14,12 +14,11 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
 
       This event contains the following metadata:
 
-      * `span_id`: The ID of this span
-      * `parent_id`: The span ID passed to Thousand Island via the `parent_span_id` option
+      * `telemetry_span_context`: A unique identifier for this span
       * `local_address`: The IP address that the listener is bound to
       * `local_port`: The port that the listener is bound to
       * `transport_module`: The transport module in use
@@ -34,12 +33,16 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
       * `duration`: The span duration, in `:native` units
 
       This event contains the following metadata:
 
-      * `span_id`: The ID of this span
+      * `telemetry_span_context`: A unique identifier for this span
+      * `local_address`: The IP address that the listener is bound to
+      * `local_port`: The port that the listener is bound to
+      * `transport_module`: The transport module in use
+      * `transport_options`: Options passed to the transport module at startup
 
   ## `[:thousand_island, :acceptor, *]`
 
@@ -53,12 +56,12 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
 
       This event contains the following metadata:
 
-      * `span_id`: The ID of this span
-      * `parent_id`: The span ID of the `:listener` which created this acceptor
+      * `telemetry_span_context`: A unique identifier for this span
+      * `parent_telemetry_span_context`: The span context of the `:listener` which created this acceptor
 
   This span is ended by the following event:
 
@@ -68,13 +71,14 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
       * `duration`: The span duration, in `:native` units
       * `connections`: The number of client requests that the acceptor handled
 
       This event contains the following metadata:
 
-      * `span_id`: The ID of this span
+      * `telemetry_span_context`: A unique identifier for this span
+      * `parent_telemetry_span_context`: The span context of the `:listener` which created this acceptor
       * `error`: The error that caused the span to end, if it ended in error
 
   ## `[:thousand_island, :connection, *]`
@@ -89,12 +93,13 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
 
       This event contains the following metadata:
 
-      * `span_id`: The ID of this span
-      * `parent_id`: The span ID of the `:acceptor` span which accepted this connection
+      * `telemetry_span_context`: A unique identifier for this span
+      * `parent_telemetry_span_context`: The span context of the `:acceptor` span which accepted
+      this connection
       * `remote_address`: The IP address of the connected client
       * `remote_port`: The port of the connected client
 
@@ -106,7 +111,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
       * `duration`: The span duration, in `:native` units
       * `send_oct`: The number of octets sent on the connection
       * `send_cnt`: The number of packets sent on the connection
@@ -115,7 +120,11 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following metadata:
 
-      * `span_id`: The ID of this span
+      * `telemetry_span_context`: A unique identifier for this span
+      * `parent_telemetry_span_context`: The span context of the `:acceptor` span which accepted
+        this connection
+      * `remote_address`: The IP address of the connected client
+      * `remote_port`: The port of the connected client
       * `error`: The error that caused the span to end, if it ended in error
 
   The following events may be emitted within this span:
@@ -126,11 +135,11 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
 
       This event contains the following metadata:
 
-      * `span_id`: The ID of this span
+      * `telemetry_span_context`: A unique identifier for this span
 
   * `[:thousand_island, :connection, :async_recv]`
 
@@ -142,7 +151,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following metadata:
 
-      * `span_id`: The ID of this span
+      * `telemetry_span_context`: A unique identifier for this span
 
   * `[:thousand_island, :connection, :recv]`
 
@@ -154,7 +163,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following metadata:
 
-      * `span_id`: The ID of this span
+      * `telemetry_span_context`: A unique identifier for this span
 
   * `[:thousand_island, :connection, :recv_error]`
 
@@ -166,7 +175,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following metadata:
 
-      * `span_id`: The ID of this span
+      * `telemetry_span_context`: A unique identifier for this span
 
   * `[:thousand_island, :connection, :send]`
 
@@ -178,7 +187,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following metadata:
 
-      * `span_id`: The ID of this span
+      * `telemetry_span_context`: A unique identifier for this span
 
   * `[:thousand_island, :connection, :send_error]`
 
@@ -191,7 +200,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following metadata:
 
-      * `span_id`: The ID of this span
+      * `telemetry_span_context`: A unique identifier for this span
 
   * `[:thousand_island, :connection, :sendfile]`
 
@@ -205,7 +214,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following metadata:
 
-      * `span_id`: The ID of this span
+      * `telemetry_span_context`: A unique identifier for this span
 
   * `[:thousand_island, :connection, :sendfile_error]`
 
@@ -220,7 +229,7 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following metadata:
 
-      * `span_id`: The ID of this span
+      * `telemetry_span_context`: A unique identifier for this span
 
   * `[:thousand_island, :connection, :socket_shutdown]`
 
@@ -228,20 +237,21 @@ defmodule ThousandIsland.Telemetry do
 
       This event contains the following measurements:
 
-      * `time`: The time of this event, in `:native` units
+      * `monotonic_time`: The time of this event, in `:native` units
       * `way`: The direction in which the socket was shut down
 
       This event contains the following metadata:
 
-      * `span_id`: The ID of this span
+      * `telemetry_span_context`: A unique identifier for this span
   """
 
-  defstruct span_name: nil, span_id: nil, start_time: nil
+  defstruct span_name: nil, telemetry_span_context: nil, start_time: nil, start_metadata: nil
 
   @type t :: %__MODULE__{
           span_name: atom(),
-          span_id: String.t(),
-          start_time: integer()
+          telemetry_span_context: reference(),
+          start_time: integer(),
+          start_metadata: map()
         }
 
   @app_name :thousand_island
@@ -249,53 +259,58 @@ defmodule ThousandIsland.Telemetry do
   @doc false
   @spec start_span(atom(), map(), map()) :: t()
   def start_span(span_name, measurements \\ %{}, metadata \\ %{}) do
-    measurements = Map.put_new_lazy(measurements, :time, &time/0)
-    span_id = random_identifier()
-    metadata = Map.put(metadata, :span_id, span_id)
+    measurements = Map.put_new_lazy(measurements, :monotonic_time, &monotonic_time/0)
+    telemetry_span_context = make_ref()
+    metadata = Map.put(metadata, :telemetry_span_context, telemetry_span_context)
     event([span_name, :start], measurements, metadata)
-    %__MODULE__{span_name: span_name, span_id: span_id, start_time: measurements[:time]}
+
+    %__MODULE__{
+      span_name: span_name,
+      telemetry_span_context: telemetry_span_context,
+      start_time: measurements[:monotonic_time],
+      start_metadata: metadata
+    }
   end
 
   @doc false
   @spec start_child_span(t(), atom(), map(), map()) :: t()
   def start_child_span(parent_span, span_name, measurements \\ %{}, metadata \\ %{}) do
-    metadata = Map.put(metadata, :parent_id, parent_span.span_id)
+    metadata =
+      Map.put(metadata, :parent_telemetry_span_context, parent_span.telemetry_span_context)
+
     start_span(span_name, measurements, metadata)
   end
 
   @doc false
   @spec stop_span(t(), map(), map()) :: :ok
   def stop_span(span, measurements \\ %{}, metadata \\ %{}) do
-    measurements = Map.put_new_lazy(measurements, :time, &time/0)
-    measurements = Map.put(measurements, :duration, measurements[:time] - span.start_time)
+    measurements = Map.put_new_lazy(measurements, :monotonic_time, &monotonic_time/0)
+
+    measurements =
+      Map.put(measurements, :duration, measurements[:monotonic_time] - span.start_time)
+
+    metadata = Map.merge(span.start_metadata, metadata)
+
     untimed_span_event(span, :stop, measurements, metadata)
   end
 
   @doc false
   @spec span_event(t(), atom(), map(), map()) :: :ok
   def span_event(span, name, measurements \\ %{}, metadata \\ %{}) do
-    measurements = Map.put_new_lazy(measurements, :time, &time/0)
+    measurements = Map.put_new_lazy(measurements, :monotonic_time, &monotonic_time/0)
     untimed_span_event(span, name, measurements, metadata)
   end
 
   @doc false
   @spec untimed_span_event(t(), atom(), map(), map()) :: :ok
   def untimed_span_event(span, name, measurements \\ %{}, metadata \\ %{}) do
-    metadata = Map.put(metadata, :span_id, span.span_id)
+    metadata = Map.put(metadata, :telemetry_span_context, span.telemetry_span_context)
     event([span.span_name, name], measurements, metadata)
   end
 
-  defdelegate time, to: System, as: :monotonic_time
+  defdelegate monotonic_time, to: System
 
   defp event(suffix, measurements, metadata) do
     :telemetry.execute([@app_name | suffix], measurements, metadata)
-  end
-
-  # XXX Drop this once we drop support for OTP 23
-  @compile {:inline, random_identifier: 0}
-  if function_exported?(:rand, :bytes, 1) do
-    defp random_identifier, do: Base.encode32(:rand.bytes(10), padding: false)
-  else
-    defp random_identifier, do: Base.encode32(:crypto.strong_rand_bytes(10), padding: false)
   end
 end

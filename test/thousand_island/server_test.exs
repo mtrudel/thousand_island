@@ -165,27 +165,34 @@ defmodule ThousandIsland.ServerTest do
            ]}
         )
 
-      {:ok, server_pid, _} = start_handler(Echo, num_acceptors: 1, parent_span_id: "PARENTSPAN")
+      {:ok, server_pid, _} = start_handler(Echo, num_acceptors: 1)
 
       ThousandIsland.stop(server_pid)
 
       assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
              ~> [
-               {[:thousand_island, :listener, :start], %{time: integer()},
+               {[:thousand_island, :listener, :start], %{monotonic_time: integer()},
                 %{
-                  span_id: string(),
-                  parent_id: "PARENTSPAN",
+                  telemetry_span_context: reference(),
                   local_address: {0, 0, 0, 0},
                   local_port: integer(),
                   transport_module: ThousandIsland.Transports.TCP,
                   transport_options: []
                 }},
-               {[:thousand_island, :acceptor, :start], %{time: integer()},
-                %{parent_id: string(), span_id: string()}},
-               {[:thousand_island, :listener, :stop], %{duration: integer(), time: integer()},
-                %{span_id: string()}},
+               {[:thousand_island, :acceptor, :start], %{monotonic_time: integer()},
+                %{telemetry_span_context: reference(), parent_telemetry_span_context: reference()}},
+               {[:thousand_island, :listener, :stop],
+                %{duration: integer(), monotonic_time: integer()},
+                %{
+                  telemetry_span_context: reference(),
+                  local_address: {0, 0, 0, 0},
+                  local_port: integer(),
+                  transport_module: ThousandIsland.Transports.TCP,
+                  transport_options: []
+                }},
                {[:thousand_island, :acceptor, :stop],
-                %{connections: 0, duration: integer(), time: integer()}, %{span_id: string()}}
+                %{connections: 0, duration: integer(), monotonic_time: integer()},
+                %{telemetry_span_context: reference(), parent_telemetry_span_context: reference()}}
              ]
     end
   end
