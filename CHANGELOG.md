@@ -7,7 +7,6 @@
 * Modified telemetry event payloads to match the conventions espoused by
   `:telemetry.span/3`
 
-
 ## 0.6.3 (14 Mar 2023)
 
 ### Enhancements
