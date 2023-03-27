@@ -1,5 +1,12 @@
 # Changelog for 0.6.x
 
+## 0.6.5 (27 Mar 2023)
+
+### Changes
+
+* Handshake errors no longer loudly crash the handler process
+* `handle_error/3` documentation updated to explicitly mention handshake errors
+
 ## 0.6.4 (17 Mar 2023)
 
 ### Changes
