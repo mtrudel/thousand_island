@@ -226,7 +226,8 @@ defmodule ThousandIsland.Handler do
   has already been closed by the time this callback is called. The return value is ignored.
 
   In addition to socket level errors, this callback is also called in cases where `handle_connection/2` or `handle_data/3`
-  return a `{:error, reason, state}` tuple.
+  return a `{:error, reason, state}` tuple, or when connection handshaking (typically TLS
+  negotiation) fails.
   """
   @callback handle_error(
               reason :: any(),
@@ -302,7 +303,7 @@ defmodule ThousandIsland.Handler do
 
         case ThousandIsland.Socket.handshake(socket) do
           {:ok, socket} -> {:noreply, {socket, state}, {:continue, :handle_connection}}
-          {:error, reason} -> {:stop, reason, {socket, state}}
+          {:error, reason} -> {:stop, {:shutdown, {:handshake, reason}}, {socket, state}}
         end
       end
 
@@ -367,6 +368,12 @@ defmodule ThousandIsland.Handler do
       def terminate(:shutdown, {socket, state}) do
         __MODULE__.handle_shutdown(socket, state)
         do_socket_close(socket, :shutdown)
+      end
+
+      # Called if the socket encountered an error during handshaking
+      def terminate({:shutdown, {:handshake, reason}}, {socket, state}) do
+        __MODULE__.handle_error(reason, socket, state)
+        do_socket_close(socket, reason)
       end
 
       # Called if the remote end shut down the connection, or if the local end closed the
