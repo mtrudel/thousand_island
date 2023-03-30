@@ -1,4 +1,4 @@
-# 🏝🏝🏝 Thousand Island 🏝🏝🏝
+[![Thousand Island](https://github.com/mtrudel/thousand_island/raw/main/assets/readme_logo.png)](https://github.com/mtrudel/thousand_island)
 
 [![Build Status](https://github.com/mtrudel/thousand_island/workflows/Elixir%20CI/badge.svg)](https://github.com/mtrudel/thousand_island/actions)
 [![Docs](https://img.shields.io/badge/api-docs-green.svg?style=flat)](https://hexdocs.pm/thousand_island)

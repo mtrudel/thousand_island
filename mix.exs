@@ -43,6 +43,7 @@ defmodule ThousandIsland.MixProject do
   defp docs do
     [
       main: "ThousandIsland",
+      logo: "assets/ex_doc_logo.png",
       groups_for_modules: [
         Transport: [
           ThousandIsland.Transport,
