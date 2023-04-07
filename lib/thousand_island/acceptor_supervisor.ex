@@ -18,7 +18,8 @@ defmodule ThousandIsland.AcceptorSupervisor do
 
   def init({server_pid, %ThousandIsland.ServerConfig{} = config}) do
     children = [
-      Supervisor.child_spec({DynamicSupervisor, strategy: :one_for_one}, id: :connection_sup),
+      {DynamicSupervisor, strategy: :one_for_one, max_children: config.num_connections}
+      |> Supervisor.child_spec(id: :connection_sup),
       {ThousandIsland.Acceptor, {server_pid, self(), config}}
     ]
 
