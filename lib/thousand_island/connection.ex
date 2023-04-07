@@ -1,9 +1,6 @@
 defmodule ThousandIsland.Connection do
   @moduledoc false
 
-  @max_children_retries 5
-  @max_children_retry_wait 1000
-
   def start(sup_pid, raw_socket, %ThousandIsland.ServerConfig{} = server_config, parent_span) do
     # This is a multi-step process since we need to do a bit of work from within
     # the process which owns the socket (us, at this point).
@@ -25,7 +22,7 @@ defmodule ThousandIsland.Connection do
       server_config,
       parent_span,
       start_time,
-      @max_children_retries
+      server_config.max_connections_retry_count
     )
   end
 
@@ -53,7 +50,7 @@ defmodule ThousandIsland.Connection do
         # We're in a tricky spot here; we have a client connection in hand, but no room to put it
         # into the connection supervisor. We try to wait a maximum number of times to see if any
         # room opens up before we give up
-        Process.sleep(@max_children_retry_wait)
+        Process.sleep(server_config.max_connections_retry_wait)
 
         do_start(
           sup_pid,
