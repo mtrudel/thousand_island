@@ -10,6 +10,9 @@ defmodule ThousandIsland.ServerConfig do
           handler_options: term(),
           genserver_options: GenServer.options(),
           num_acceptors: pos_integer(),
+          num_connections: non_neg_integer() | :infinity,
+          max_connections_retry_count: non_neg_integer(),
+          max_connections_retry_wait: timeout(),
           read_timeout: timeout(),
           shutdown_timeout: timeout()
         }
@@ -21,6 +24,9 @@ defmodule ThousandIsland.ServerConfig do
             handler_options: [],
             genserver_options: [],
             num_acceptors: 100,
+            num_connections: :infinity,
+            max_connections_retry_count: 5,
+            max_connections_retry_wait: 1000,
             read_timeout: 60_000,
             shutdown_timeout: 15_000
 

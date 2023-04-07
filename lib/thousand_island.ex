@@ -115,6 +115,18 @@ defmodule ThousandIsland do
   in terms of interfaces to listen to / certificates and keys to use for SSL connections
   will be passed in via this option.
   * `num_acceptors`: The number of acceptor processes to run. Defaults to 100.
+  * `num_connections`: The maximum number of concurrent connections which each acceptor will
+  accept before throttling connections. Connections will be throttled by having the acceptor
+  process wait `max_connections_retry_wait` milliseconds, up to `max_connections_retry_count`
+  times for existing connections to terminate & make room for this new connection. If there is
+  still no room for this new connection after this interval, the acceptor will close the client
+  connection and emit a `[:thousand_island, :acceptor, :spawn_error]` telemetry event. This number
+  is expressed per-acceptor, so the total number of maximum connections for a Thousand Island
+  server is `num_acceptors * num_connections`. Defaults to `:infinity`.
+  * `max_connections_retry_wait`: How long to wait during each iteration as described in
+  `num_connectors` above, in milliseconds. Defaults to `1000`.
+  * `max_connections_retry_count`: How many iterations to wait as described in `num_connectors`
+  above. Defaults to `5`.
   * `read_timeout`: How long to wait for client data before closing the connection, in
   milliseconds. Defaults to 60_000.
   * `shutdown_timeout`: How long to wait for existing client connections to complete before
@@ -130,6 +142,9 @@ defmodule ThousandIsland do
           transport_module: module(),
           transport_options: transport_options(),
           num_acceptors: pos_integer(),
+          num_connections: non_neg_integer() | :infinity,
+          max_connections_retry_count: non_neg_integer(),
+          max_connections_retry_wait: timeout(),
           read_timeout: timeout(),
           shutdown_timeout: timeout()
         ]

@@ -15,6 +15,16 @@ defmodule ThousandIsland.ServerTest do
     end
   end
 
+  defmodule LongEcho do
+    use ThousandIsland.Handler
+
+    @impl ThousandIsland.Handler
+    def handle_data(data, socket, state) do
+      ThousandIsland.Socket.send(socket, data)
+      {:continue, state}
+    end
+  end
+
   defmodule Goodbye do
     use ThousandIsland.Handler
 
@@ -66,6 +76,94 @@ defmodule ThousandIsland.ServerTest do
 
     :gen_tcp.close(client)
     :gen_tcp.close(other_client)
+  end
+
+  describe "num_connections handling" do
+    test "should properly handle too many connections by queueing" do
+      {:ok, _, port} = start_handler(LongEcho, num_acceptors: 1, num_connections: 1)
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      {:ok, other_client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      :ok = :gen_tcp.send(client, "HELLO")
+      :ok = :gen_tcp.send(other_client, "BONJOUR")
+
+      # Give things enough time to send if they were going to
+      Process.sleep(100)
+
+      # Ensure that we haven't received anything on the second connection yet
+      assert :gen_tcp.recv(other_client, 0, 10) == {:error, :timeout}
+      assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+
+      # Close our first connection to make room for the second to be accepted
+      :gen_tcp.close(client)
+
+      # Give things enough time to send if they were going to
+      Process.sleep(100)
+
+      # Ensure that the second connection unblocked
+      assert :gen_tcp.recv(other_client, 0) == {:ok, 'BONJOUR'}
+      :gen_tcp.close(other_client)
+    end
+
+    test "should properly handle too many connections if none close in time" do
+      {:ok, _, port} =
+        start_handler(LongEcho,
+          num_acceptors: 1,
+          num_connections: 1,
+          max_connections_retry_wait: 100
+        )
+
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      {:ok, other_client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      :ok = :gen_tcp.send(client, "HELLO")
+      :ok = :gen_tcp.send(other_client, "BONJOUR")
+
+      # Give things enough time to send if they were going to
+      Process.sleep(100)
+
+      # Ensure that we haven't received anything on the second connection yet
+      assert :gen_tcp.recv(other_client, 0, 10) == {:error, :timeout}
+      assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+
+      # Give things enough time for the second connection to time out
+      Process.sleep(500)
+
+      # Ensure that the first connection is still open and the second connection closed
+      :ok = :gen_tcp.send(client, "HELLO")
+      assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+      assert :gen_tcp.recv(other_client, 0) == {:error, :closed}
+      :gen_tcp.close(other_client)
+    end
+
+    test "should emit telemetry events as expected" do
+      {:ok, collector_pid} =
+        start_supervised(
+          {ThousandIsland.TelemetryCollector, [[:thousand_island, :acceptor, :spawn_error]]}
+        )
+
+      {:ok, _, port} =
+        start_handler(LongEcho,
+          num_acceptors: 1,
+          num_connections: 1,
+          max_connections_retry_wait: 100
+        )
+
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      {:ok, other_client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      :ok = :gen_tcp.send(client, "HELLO")
+      :ok = :gen_tcp.send(other_client, "BONJOUR")
+
+      # Give things enough time for the second connection to time out
+      Process.sleep(700)
+
+      assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
+             ~> [
+               {[:thousand_island, :acceptor, :spawn_error], %{monotonic_time: integer()},
+                %{telemetry_span_context: reference()}}
+             ]
+    end
   end
 
   test "should enumerate active connection processes" do
