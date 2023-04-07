@@ -16,7 +16,14 @@ defmodule ThousandIsland.Acceptor do
   defp accept(listener_socket, connection_sup_pid, server_config, span, count) do
     case server_config.transport_module.accept(listener_socket) do
       {:ok, socket} ->
-        ThousandIsland.Connection.start(connection_sup_pid, socket, server_config, span)
+        case ThousandIsland.Connection.start(connection_sup_pid, socket, server_config, span) do
+          {:error, :too_many_connections} ->
+            ThousandIsland.Telemetry.span_event(span, :spawn_error)
+
+          _ ->
+            :ok
+        end
+
         accept(listener_socket, connection_sup_pid, server_config, span, count + 1)
 
       {:error, reason} when reason in [:closed, :einval] ->

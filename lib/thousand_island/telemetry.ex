@@ -81,6 +81,22 @@ defmodule ThousandIsland.Telemetry do
       * `parent_telemetry_span_context`: The span context of the `:listener` which created this acceptor
       * `error`: The error that caused the span to end, if it ended in error
 
+  The following events may be emitted within this span:
+
+  * `[:thousand_island, :acceptor, :spawn_error]`
+
+      Thousand Island was unable to spawn a process to handle a connection. This occurs when too
+      many connections are in progress; you may want to look at increasing the `num_connections`
+      configuration parameter
+      
+      This event contains the following measurements:
+
+      * `monotonic_time`: The time of this event, in `:native` units
+
+      This event contains the following metadata:
+
+      * `telemetry_span_context`: A unique identifier for this span
+
   ## `[:thousand_island, :connection, *]`
 
   Represents Thousand Island handling a specific client request
