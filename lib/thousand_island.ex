@@ -156,7 +156,7 @@ defmodule ThousandIsland do
   @spec child_spec(options()) :: Supervisor.child_spec()
   def child_spec(opts) do
     %{
-      id: __MODULE__,
+      id: {__MODULE__, make_ref()},
       start: {__MODULE__, :start_link, [opts]},
       type: :supervisor,
       restart: :permanent
