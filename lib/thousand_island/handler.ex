@@ -298,8 +298,24 @@ defmodule ThousandIsland.Handler do
       end
 
       @impl GenServer
-      def handle_info({:thousand_island_ready, socket}, {nil, state}) do
-        ThousandIsland.Telemetry.span_event(socket.span, :ready)
+      def handle_info(
+            {:thousand_island_ready, raw_socket, server_config, parent_span, start_time},
+            {nil, state}
+          ) do
+        peer_info = server_config.transport_module.peer_info(raw_socket)
+        span_meta = %{remote_address: peer_info.address, remote_port: peer_info.port}
+
+        span =
+          ThousandIsland.Telemetry.start_child_span(
+            parent_span,
+            :connection,
+            %{monotonic_time: start_time},
+            span_meta
+          )
+
+        socket = ThousandIsland.Socket.new(raw_socket, server_config, span)
+
+        ThousandIsland.Telemetry.span_event(span, :ready)
 
         case ThousandIsland.Socket.handshake(socket) do
           {:ok, socket} -> {:noreply, {socket, state}, {:continue, :handle_connection}}
