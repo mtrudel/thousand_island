@@ -168,7 +168,7 @@ can be installed by adding `thousand_island` to your list of dependencies in `mi
 ```elixir
 def deps do
   [
-    {:thousand_island, "~> 0.6.5"}
+    {:thousand_island, "~> 0.6.6"}
   ]
 end
 ```

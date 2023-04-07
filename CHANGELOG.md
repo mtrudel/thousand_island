@@ -1,5 +1,24 @@
 # Changelog for 0.6.x
 
+## 0.6.6 (7 Apr 2023)
+
+### Enhancements
+
+* Added `num_connections` parameter to specify the max number of concurrent
+  connections allowed per acceptor
+* Added `max_connections_retry_count` and `max_connections_retry_wait`
+  parameters to configure how Thousand Island behaves when max connections are
+  reached
+* Added `[:thousand_island, :acceptor, :spawn_error]` telemetry event to track
+  when max connections are reached
+* Added max connection logging as part of the
+  `ThousandIsland.Logger.attach_logger(:error)` level
+
+### Changes
+
+* Refactored connection startup logic to move some burden from acceptor to
+  connection process
+
 ## 0.6.5 (27 Mar 2023)
 
 ### Changes
