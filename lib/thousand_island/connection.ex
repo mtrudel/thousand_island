@@ -40,11 +40,9 @@ defmodule ThousandIsland.Connection do
         # Now that we have transferred ownership over to the new process, send a message to the
         # new process with all the info it needs to start working with the socket (note that the
         # new process will still need to handshake with the remote end)
-        Process.send(
-          pid,
-          {:thousand_island_ready, raw_socket, server_config, parent_span, start_time},
-          []
-        )
+        send(pid, {:thousand_island_ready, raw_socket, server_config, parent_span, start_time})
+
+        :ok
 
       {:error, :max_children} when retries > 0 ->
         # We're in a tricky spot here; we have a client connection in hand, but no room to put it
