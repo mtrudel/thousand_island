@@ -5,19 +5,18 @@ defmodule ThousandIsland.Transports.SSL do
   Island will only ever need to deal with this module via `transport_options`
   passed to `ThousandIsland` at startup time. A complete list of such options
   is defined via the `t::ssl.tls_server_option` type. This list can be somewhat
-  difficult to decipher; a list of the most common options follows:
+  difficult to decipher; by far the most common values to pass to this transport
+  are the following:
 
-  * `key`: A DER encoded binary representation of the SSL key to use
-  * `cert`: A DER encoded binary representation of the SSL key to use
-  * `keyfile`: A string path to a PEM encoded key to use for SSL
-  * `certfile`: A string path to a PEM encoded cert to use for SSL
-  * `ip`:  The IP to listen on (defaults to all interfaces). IPs should be
-  described in tuple form (ie: `ip: {1, 2, 3, 4}`). The value `:loopback` can
-  be used to only bind to localhost. On platforms which support it (macOS and
-  Linux at a minimum, likely others), you can also bind to a Unix domain socket
-  by specifying a value of `ip: {:local, "/path/to/socket"}`. Note that the port
-  *must* be set to `0`, and that the socket is not removed from the filesystem
-  after the server shuts down.
+  * `keyfile`: An absolute string path to a PEM encoded key to use for SSL
+  * `certfile`: An absolute string path to a PEM encoded cert to use for SSL
+  * `ip`:  The IP to listen on. Can be specified as:
+    * `{1, 2, 3, 4}` for IPv4 addresses
+    * `{1, 2, 3, 4, 5, 6, 7, 8}` for IPv6 addresses
+    * `:loopback` for local loopback
+    * `:any` for all interfaces (ie: `0.0.0.0`)
+    * `{:local, "/path/to/socket"}` for a Unix domain socket. If this option is used, the `port`
+    option *must* be set to `0`.
 
   Unless overridden, this module uses the following default options:
 
@@ -31,7 +30,7 @@ defmodule ThousandIsland.Transports.SSL do
   ```
 
   The following options are required for the proper operation of Thousand Island
-  and cannot be overridden at startup (though they can be set via calls to `setopts/2`)
+  and cannot be overridden:
 
   ```elixir
   mode: :binary,
