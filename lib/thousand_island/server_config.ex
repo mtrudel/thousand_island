@@ -24,7 +24,7 @@ defmodule ThousandIsland.ServerConfig do
             handler_options: [],
             genserver_options: [],
             num_acceptors: 100,
-            num_connections: :infinity,
+            num_connections: 16_384,
             max_connections_retry_count: 5,
             max_connections_retry_wait: 1000,
             read_timeout: 60_000,
