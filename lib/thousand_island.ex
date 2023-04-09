@@ -96,25 +96,25 @@ defmodule ThousandIsland do
   Possible options to configure a server. Valid option values are as follows:
 
   * `handler_module`: The name of the module used to handle connections to this server.
-  The module is expected to implement the `ThousandIsland.Handler` behaviour. Required.
+  The module is expected to implement the `ThousandIsland.Handler` behaviour. Required
   * `handler_options`: A term which is passed as the initial state value to
   `c:ThousandIsland.Handler.handle_connection/2` calls. Optional, defaulting to nil.
   * `genserver_options`: A term which is passed as the value to the handler module's
-  underlying `GenServer.start_link/3` call. Optional, defaulting to [].
+  underlying `GenServer.start_link/3` call. Optional, defaulting to []
   * `port`: The TCP port number to listen on. If not specified this defaults to 4000.
   If a port number of `0` is given, the server will dynamically assign a port number
-  which can then be obtained via `local_info/1`.
+  which can then be obtained via `local_info/1`
   * `transport_module`: The name of the module which provides basic socket functions.
   Thousand Island provides `ThousandIsland.Transports.TCP` and `ThousandIsland.Transports.SSL`,
   which provide clear and TLS encrypted TCP sockets respectively. If not specified this
-  defaults to `ThousandIsland.Transports.TCP`.
+  defaults to `ThousandIsland.Transports.TCP`
   * `transport_options`: A keyword list of options to be passed to the transport module's
   `c:ThousandIsland.Transport.listen/2` function. Valid values depend on the transport
   module specified in `transport_module` and can be found in the documentation for the
   `ThousandIsland.Transports.TCP` and `ThousandIsland.Transports.SSL` modules. Any options
   in terms of interfaces to listen to / certificates and keys to use for SSL connections
-  will be passed in via this option.
-  * `num_acceptors`: The number of acceptor processes to run. Defaults to 100.
+  will be passed in via this option
+  * `num_acceptors`: The number of acceptor processes to run. Defaults to 100
   * `num_connections`: The maximum number of concurrent connections which each acceptor will
   accept before throttling connections. Connections will be throttled by having the acceptor
   process wait `max_connections_retry_wait` milliseconds, up to `max_connections_retry_count`
@@ -124,15 +124,15 @@ defmodule ThousandIsland do
   is expressed per-acceptor, so the total number of maximum connections for a Thousand Island
   server is `num_acceptors * num_connections`. Defaults to `:infinity`.
   * `max_connections_retry_wait`: How long to wait during each iteration as described in
-  `num_connectors` above, in milliseconds. Defaults to `1000`.
+  `num_connectors` above, in milliseconds. Defaults to `1000`
   * `max_connections_retry_count`: How many iterations to wait as described in `num_connectors`
-  above. Defaults to `5`.
+  above. Defaults to `5`
   * `read_timeout`: How long to wait for client data before closing the connection, in
-  milliseconds. Defaults to 60_000.
+  milliseconds. Defaults to 60_000
   * `shutdown_timeout`: How long to wait for existing client connections to complete before
   forcibly shutting those connections down at server shutdown time, in milliseconds. Defaults to
   15_000. May also be `:infinity` or `:brutal_kill` as described in the `Supervisor`
-  documentation.
+  documentation
   """
   @type options :: [
           handler_module: module(),
