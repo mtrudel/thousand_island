@@ -55,8 +55,11 @@ For more information, please consult the [`ThousandIsland.Handler`](https://hexd
 ### Starting a Thousand Island Server
 
 Thousand Island servers exist as a supervision tree, and are started by a call
-to [`ThousandIsland.start_link/1`](https://hexdocs.pm/thousand_island/ThousandIsland.html#start_link/1). There are a number of options supported (for a
-complete description, consult the [Thousand Island docs](https://hexdocs.pm/thousand_island/ThousandIsland.html#t:options/0).
+to
+[`ThousandIsland.start_link/1`](https://hexdocs.pm/thousand_island/ThousandIsland.html#start_link/1).
+There are a number of options supported; for a complete description, consult the
+[Thousand Island
+docs](https://hexdocs.pm/thousand_island/ThousandIsland.html#t:options/0).
 
 ### Connection Draining & Shutdown
 
