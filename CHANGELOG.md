@@ -1,5 +1,16 @@
 # Changelog for 0.6.x
 
+## 0.6.7 (9 Apr 2023)
+
+### Changes
+
+* Thousand Island now sets its `id` field in its spec to be `{ThousandIsland, ref()}`
+* `num_connections` defaults to 16384 connections per acceptor 
+
+### Enhancements
+
+* Doc improvements
+
 ## 0.6.6 (7 Apr 2023)
 
 ### Enhancements
