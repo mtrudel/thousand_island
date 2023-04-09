@@ -122,7 +122,7 @@ defmodule ThousandIsland do
   still no room for this new connection after this interval, the acceptor will close the client
   connection and emit a `[:thousand_island, :acceptor, :spawn_error]` telemetry event. This number
   is expressed per-acceptor, so the total number of maximum connections for a Thousand Island
-  server is `num_acceptors * num_connections`. Defaults to `:infinity`.
+  server is `num_acceptors * num_connections`. Defaults to `16_384`
   * `max_connections_retry_wait`: How long to wait during each iteration as described in
   `num_connectors` above, in milliseconds. Defaults to `1000`
   * `max_connections_retry_count`: How many iterations to wait as described in `num_connectors`
