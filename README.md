@@ -56,25 +56,7 @@ For more information, please consult the [`ThousandIsland.Handler`](https://hexd
 
 Thousand Island servers exist as a supervision tree, and are started by a call
 to [`ThousandIsland.start_link/1`](https://hexdocs.pm/thousand_island/ThousandIsland.html#start_link/1). There are a number of options supported (for a
-complete description, consult the docs linked above):
-
-* `handler_module`: The name of the module used to handle connections to this server.
-The module is expected to implement the [`ThousandIsland.Handler`](https://hexdocs.pm/thousand_island/ThousandIsland.Handler.html) behaviour. Required.
-* `handler_options`: A term which is passed as the initial state value to
-[`c:ThousandIsland.Handler.handle_connection/2`](https://hexdocs.pm/thousand_island/ThousandIsland.Handler.html#c:handle_connection/2) calls. Optional, defaulting to nil.
-* `port`: The TCP port number to listen on. If not specified this defaults to 4000.
-* `transport_module`: The name of the module which provides basic socket functions.
-Thousand Island provides `ThousandIsland.Transports.TCP` and `ThousandIsland.Transports.SSL`,
-which provide clear and TLS encrypted TCP sockets respectively. If not specified this
-defaults to `ThousandIsland.Transports.TCP`.
-* `transport_options`: A keyword list of options to be passed to the transport at startup. Valid values depend on the transport
-module specified in `transport_module` and can be found in the documentation for the
-[`ThousandIsland.Transports.TCP`](https://hexdocs.pm/thousand_island/ThousandIsland.Transports.TCP.html) and [`ThousandIsland.Transports.SSL`](https://hexdocs.pm/thousand_island/ThousandIsland.Transports.SSL.html) modules.
-* `num_acceptors`: The number of acceptor processes to run. Defaults to 100.
-* `read_timeout`: How long to wait for client data before closing the connection. Defaults to 60000 ms.
-* `shutdown_timeout`: How long to wait for existing client connections to complete before
-forcibly shutting those connections down at server shutdown time. Defaults to 15000 ms. May also
-be `:infinity` or `:brutal_kill` as described in the `Supervisor` documentation.
+complete description, consult the [Thousand Island docs](https://hexdocs.pm/thousand_island/ThousandIsland.html#t:options/0).
 
 ### Connection Draining & Shutdown
 
