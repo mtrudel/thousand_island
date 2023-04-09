@@ -14,7 +14,7 @@ defmodule ThousandIsland.Transports.TCP do
     * `:loopback` for local loopback
     * `:any` for all interfaces (ie: `0.0.0.0`)
     * `{:local, "/path/to/socket"}` for a Unix domain socket. If this option is used, the `port`
-    option *must* be set to `0`.
+      option *must* be set to `0`.
 
   Unless overridden, this module uses the following default options:
 

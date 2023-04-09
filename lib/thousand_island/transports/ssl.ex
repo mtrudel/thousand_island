@@ -8,15 +8,15 @@ defmodule ThousandIsland.Transports.SSL do
   difficult to decipher; by far the most common values to pass to this transport
   are the following:
 
-  * `keyfile`: An absolute string path to a PEM encoded key to use for SSL
-  * `certfile`: An absolute string path to a PEM encoded cert to use for SSL
+  * `keyfile`: The path to a PEM encoded key to use for SSL
+  * `certfile`: The path to a PEM encoded cert to use for SSL
   * `ip`:  The IP to listen on. Can be specified as:
     * `{1, 2, 3, 4}` for IPv4 addresses
     * `{1, 2, 3, 4, 5, 6, 7, 8}` for IPv6 addresses
     * `:loopback` for local loopback
     * `:any` for all interfaces (ie: `0.0.0.0`)
     * `{:local, "/path/to/socket"}` for a Unix domain socket. If this option is used, the `port`
-    option *must* be set to `0`.
+      option *must* be set to `0`.
 
   Unless overridden, this module uses the following default options:
 
