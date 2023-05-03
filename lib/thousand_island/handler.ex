@@ -22,9 +22,32 @@ defmodule ThousandIsland.Handler do
   application as needed. The implementation included in the `use ThousandIsland.Handler` macro uses a `GenServer` structure,
   so you may implement such behaviour via standard `GenServer` patterns. Note that in these cases that state is provided (and
   must be returned) in a `{socket, state}` format, where the second tuple is the same state value that is passed to the various `handle_*` callbacks
-  defined on this behaviour. Note also that any `GenServer` `handle_*` calls which are processed directly by an implementing module
-  will cancel any async read timeout values which may have been set. Such calls are able to reset the timeout by returning a four element
-  tuple with `timeout` as the fourth argument as specified in the `GenServer` documentation.
+  defined on this behaviour. It also critical to maintain the socket's `read_timeout` value by
+  ensuring the relevant timeout value is returned as your callback's final argument. Both of these
+  concerns are illustrated in the following example:
+
+      ```elixir
+      defmodule ExampleHandler do
+        use ThousandIsland.Handler
+
+        # ...handle_data and other Handler callbacks
+
+        def handle_cast(msg, from, {socket, state}) do
+          # Do whatever you'd like with msg & from
+          {:reply, :ok, {socket, state}, socket.read_timeout}
+        end
+        
+        def handle_cast(msg, {socket, state}) do
+          # Do whatever you'd like with msg
+          {:noreply, {socket, state}, socket.read_timeout}
+        end
+
+        def handle_info(msg, {socket, state}) do
+          # Do whatever you'd like with msg
+          {:noreply, {socket, state}, socket.read_timeout}
+        end
+      end
+      ```
 
   It is fully supported to intermix synchronous `ThousandIsland.Socket.recv` calls with async return values from `c:handle_connection/2`
   and `c:handle_data/3` callbacks.
@@ -77,7 +100,7 @@ defmodule ThousandIsland.Handler do
 
     def handle_info({:send, msg}, {socket, state}) do
       ThousandIsland.Socket.send(socket, msg)
-      {:noreply, {socket, state}}
+      {:noreply, {socket, state}, socket.read_timeout}
     end
   end
   ```

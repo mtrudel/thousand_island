@@ -27,6 +27,6 @@ defmodule Messenger do
   @impl GenServer
   def handle_cast({:send, msg}, {socket, state}) do
     ThousandIsland.Socket.send(socket, msg)
-    {:noreply, {socket, state}}
+    {:noreply, {socket, state}, socket.read_timeout}
   end
 end
