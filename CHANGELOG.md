@@ -1,5 +1,11 @@
 # Changelog for 0.6.x
 
+## 1.0.0-pre.2 (3 May 2023)
+
+### Enhancements
+
+* Doc improvements
+
 ## 1.0.0-pre.1 (19 Apr 2023)
 
 ### Changes
