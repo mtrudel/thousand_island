@@ -179,9 +179,13 @@ defmodule ThousandIsland do
   @doc """
   Returns information about the address and port that the server is listening on
   """
-  @spec listener_info(pid()) :: {:ok, ThousandIsland.Transport.socket_info()}
-  def listener_info(pid) do
-    {:ok, pid |> ThousandIsland.Server.listener_pid() |> ThousandIsland.Listener.listener_info()}
+  @spec listener_info(Supervisor.supervisor()) ::
+          {:ok, ThousandIsland.Transport.socket_info()} | :error
+  def listener_info(supervisor) do
+    case ThousandIsland.Server.listener_pid(supervisor) do
+      nil -> :error
+      pid -> {:ok, ThousandIsland.Listener.listener_info(pid)}
+    end
   end
 
   @doc """
@@ -191,19 +195,36 @@ defmodule ThousandIsland do
   been made since / during this call, and that processes returned by this call may have since
   completed. The order that connection processes are returned in is not specified
   """
-  @spec connection_pids(pid()) :: {:ok, [pid()]}
-  def connection_pids(pid) do
-    {:ok,
-     pid
-     |> ThousandIsland.Server.acceptor_pool_supervisor_pid()
-     |> ThousandIsland.AcceptorPoolSupervisor.acceptor_supervisor_pids()
-     |> Enum.map(&ThousandIsland.AcceptorSupervisor.connection_sup_pid/1)
-     |> Enum.flat_map(fn pid ->
-       pid
-       |> DynamicSupervisor.which_children()
-       |> Enum.map(fn {_, connection_pid, _, _} -> connection_pid end)
-       |> Enum.filter(&Kernel.is_pid/1)
-     end)}
+  @spec connection_pids(Supervisor.supervisor()) :: {:ok, [pid()]} | :error
+  def connection_pids(supervisor) do
+    case ThousandIsland.Server.acceptor_pool_supervisor_pid(supervisor) do
+      nil ->
+        :error
+
+      acceptor_pool_pid ->
+        pids =
+          acceptor_pool_pid
+          |> ThousandIsland.AcceptorPoolSupervisor.acceptor_supervisor_pids()
+          |> Enum.reduce([], fn acceptor_sup_pid, acc ->
+            case ThousandIsland.AcceptorSupervisor.connection_sup_pid(acceptor_sup_pid) do
+              nil ->
+                acc
+
+              connection_sup_pid ->
+                connection_sup_pid
+                |> DynamicSupervisor.which_children()
+                |> Enum.reduce(acc, fn
+                  {_, connection_pid, _, _}, acc when is_pid(connection_pid) ->
+                    [connection_pid | acc]
+
+                  _, acc ->
+                    acc
+                end)
+            end
+          end)
+
+        {:ok, pids}
+    end
   end
 
   @doc """
@@ -213,8 +234,8 @@ defmodule ThousandIsland do
   either all existing connections have completed or the specified timeout has
   elapsed.
   """
-  @spec stop(pid(), timeout()) :: :ok
-  def stop(pid, connection_wait \\ 15_000) do
-    Supervisor.stop(pid, :normal, connection_wait)
+  @spec stop(Supervisor.supervisor(), timeout()) :: :ok
+  def stop(supervisor, connection_wait \\ 15_000) do
+    Supervisor.stop(supervisor, :normal, connection_wait)
   end
 end
