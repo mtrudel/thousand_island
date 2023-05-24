@@ -198,33 +198,32 @@ defmodule ThousandIsland do
   @spec connection_pids(Supervisor.supervisor()) :: {:ok, [pid()]} | :error
   def connection_pids(supervisor) do
     case ThousandIsland.Server.acceptor_pool_supervisor_pid(supervisor) do
-      nil ->
-        :error
-
-      acceptor_pool_pid ->
-        pids =
-          acceptor_pool_pid
-          |> ThousandIsland.AcceptorPoolSupervisor.acceptor_supervisor_pids()
-          |> Enum.reduce([], fn acceptor_sup_pid, acc ->
-            case ThousandIsland.AcceptorSupervisor.connection_sup_pid(acceptor_sup_pid) do
-              nil ->
-                acc
-
-              connection_sup_pid ->
-                connection_sup_pid
-                |> DynamicSupervisor.which_children()
-                |> Enum.reduce(acc, fn
-                  {_, connection_pid, _, _}, acc when is_pid(connection_pid) ->
-                    [connection_pid | acc]
-
-                  _, acc ->
-                    acc
-                end)
-            end
-          end)
-
-        {:ok, pids}
+      nil -> :error
+      acceptor_pool_pid -> {:ok, collect_connection_pids(acceptor_pool_pid)}
     end
+  end
+
+  defp collect_connection_pids(acceptor_pool_pid) do
+    acceptor_pool_pid
+    |> ThousandIsland.AcceptorPoolSupervisor.acceptor_supervisor_pids()
+    |> Enum.reduce([], fn acceptor_sup_pid, acc ->
+      case ThousandIsland.AcceptorSupervisor.connection_sup_pid(acceptor_sup_pid) do
+        nil -> acc
+        connection_sup_pid -> connection_pids(connection_sup_pid, acc)
+      end
+    end)
+  end
+
+  defp connection_pids(connection_sup_pid, acc) do
+    connection_sup_pid
+    |> DynamicSupervisor.which_children()
+    |> Enum.reduce(acc, fn
+      {_, connection_pid, _, _}, acc when is_pid(connection_pid) ->
+        [connection_pid | acc]
+
+      _, acc ->
+        acc
+    end)
   end
 
   @doc """
