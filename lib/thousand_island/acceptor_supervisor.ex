@@ -3,8 +3,7 @@ defmodule ThousandIsland.AcceptorSupervisor do
 
   use Supervisor
 
-  @spec start_link({server_pid :: pid, ThousandIsland.ServerConfig.t()}) ::
-          :ignore | {:ok, pid} | {:error, {:already_started, pid} | {:shutdown, term} | term}
+  @spec start_link({server_pid :: pid, ThousandIsland.ServerConfig.t()}) :: Supervisor.on_start()
   def start_link(arg) do
     Supervisor.start_link(__MODULE__, arg)
   end
