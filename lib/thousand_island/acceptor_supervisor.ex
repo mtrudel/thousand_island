@@ -13,13 +13,17 @@ defmodule ThousandIsland.AcceptorSupervisor do
   def connection_sup_pid(supervisor) do
     supervisor
     |> Supervisor.which_children()
-    |> Enum.reduce_while(nil, fn
-      {:connection_sup, connection_sup_pid, _, _}, _acc when is_pid(connection_sup_pid) ->
-        {:halt, connection_sup_pid}
+    |> Enum.find_value(
+      nil,
+      fn
+        {:connection_sup, connection_sup_pid, _, _}
+        when is_pid(connection_sup_pid) ->
+          connection_sup_pid
 
-      _, acc ->
-        {:cont, acc}
-    end)
+        _ ->
+          false
+      end
+    )
   end
 
   @impl Supervisor
