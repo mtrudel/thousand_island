@@ -12,7 +12,7 @@ defmodule ThousandIsland.Server do
   def listener_pid(supervisor) do
     supervisor
     |> Supervisor.which_children()
-    |> Enum.find_value(nil, fn
+    |> Enum.find_value(fn
       {:listener, listener_pid, _, _} when is_pid(listener_pid) ->
         listener_pid
 
@@ -25,7 +25,7 @@ defmodule ThousandIsland.Server do
   def acceptor_pool_supervisor_pid(supervisor) do
     supervisor
     |> Supervisor.which_children()
-    |> Enum.find_value(nil, fn
+    |> Enum.find_value(fn
       {:acceptor_pool_supervisor, acceptor_pool_sup_pid, _, _}
       when is_pid(acceptor_pool_sup_pid) ->
         acceptor_pool_sup_pid
