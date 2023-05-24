@@ -12,12 +12,12 @@ defmodule ThousandIsland.Server do
   def listener_pid(supervisor) do
     supervisor
     |> Supervisor.which_children()
-    |> Enum.reduce_while(nil, fn
-      {:listener, listener_pid, _, _}, _acc when is_pid(listener_pid) ->
-        {:halt, listener_pid}
+    |> Enum.find_value(nil, fn
+      {:listener, listener_pid, _, _} when is_pid(listener_pid) ->
+        listener_pid
 
-      _, acc ->
-        {:cont, acc}
+      _ ->
+        false
     end)
   end
 
@@ -25,13 +25,13 @@ defmodule ThousandIsland.Server do
   def acceptor_pool_supervisor_pid(supervisor) do
     supervisor
     |> Supervisor.which_children()
-    |> Enum.reduce_while(nil, fn
-      {:acceptor_pool_supervisor, acceptor_pool_sup_pid, _, _}, _acc
+    |> Enum.find_value(nil, fn
+      {:acceptor_pool_supervisor, acceptor_pool_sup_pid, _, _}
       when is_pid(acceptor_pool_sup_pid) ->
-        {:halt, acceptor_pool_sup_pid}
+        acceptor_pool_sup_pid
 
-      _, acc ->
-        {:cont, acc}
+      _ ->
+        false
     end)
   end
 
