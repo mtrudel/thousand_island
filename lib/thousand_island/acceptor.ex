@@ -3,8 +3,16 @@ defmodule ThousandIsland.Acceptor do
 
   use Task, restart: :transient
 
+  @spec start_link(
+          {server :: Supervisor.supervisor(), parent :: Supervisor.supervisor(),
+           ThousandIsland.ServerConfig.t()}
+        ) :: {:ok, pid()}
   def start_link(arg), do: Task.start_link(__MODULE__, :run, [arg])
 
+  @spec run(
+          {server :: Supervisor.supervisor(), parent :: Supervisor.supervisor(),
+           ThousandIsland.ServerConfig.t()}
+        ) :: no_return
   def run({server_pid, parent_pid, %ThousandIsland.ServerConfig{} = server_config}) do
     listener_pid = ThousandIsland.Server.listener_pid(server_pid)
     {listener_socket, listener_span} = ThousandIsland.Listener.acceptor_info(listener_pid)

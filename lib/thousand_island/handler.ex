@@ -36,7 +36,7 @@ defmodule ThousandIsland.Handler do
           # Do whatever you'd like with msg & from
           {:reply, :ok, {socket, state}, socket.read_timeout}
         end
-        
+
         def handle_cast(msg, {socket, state}) do
           # Do whatever you'd like with msg
           {:noreply, {socket, state}, socket.read_timeout}
@@ -150,8 +150,8 @@ defmodule ThousandIsland.Handler do
   delicate, however. The steps required are as follows:
 
   1. Thousand Island calls `start_link/1` on the configured `handler_module`, passing in a tuple
-  consisting of the configured handler and genserver opts. This function is expected to return a 
-  conventional `GenServer.on_start()` style tuple. Note that this newly created process is not 
+  consisting of the configured handler and genserver opts. This function is expected to return a
+  conventional `GenServer.on_start()` style tuple. Note that this newly created process is not
   passed the connection socket immediately.
   2. The socket will be passed to the new process via a message of the form `{:thousand_island_ready, socket}`.
   3. Once the process receives the socket, it must call `ThousandIsland.Socket.handshake/1` with the socket as the sole
@@ -168,7 +168,7 @@ defmodule ThousandIsland.Handler do
   * Handler processes should trap exit if possible so that existing connections can be given a chance to cleanly shut
   down when shutting down a Thousand Island server instance.
 
-  * Some of the `:connection` family of telemetry span events are emitted by the 
+  * Some of the `:connection` family of telemetry span events are emitted by the
   `ThousandIsland.Handler` implementation. If you use your own implementation in its place it is
   likely that such spans will not behave as expected.
   """
@@ -291,6 +291,7 @@ defmodule ThousandIsland.Handler do
                       handle_shutdown: 2,
                       handle_timeout: 2
 
+  @spec __using__(any) :: Macro.t()
   defmacro __using__(_opts) do
     # credo:disable-for-next-line Credo.Check.Refactor.LongQuoteBlocks
     quote location: :keep do

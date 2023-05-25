@@ -7,24 +7,37 @@ defmodule ThousandIsland.ShutdownListener do
 
   use GenServer
 
+  @type state :: %{
+          optional(:server_pid) => pid(),
+          optional(:listener_pid) => pid() | nil
+        }
+
   @doc false
-  def start_link(arg) do
-    GenServer.start_link(__MODULE__, arg)
+  @spec start_link(pid()) :: :ignore | {:error, any} | {:ok, pid}
+  def start_link(server_pid) do
+    GenServer.start_link(__MODULE__, server_pid)
   end
 
   @doc false
+  @impl GenServer
+  @spec init(pid()) :: {:ok, state, {:continue, :setup_listener_pid}}
   def init(server_pid) do
     Process.flag(:trap_exit, true)
     {:ok, %{server_pid: server_pid}, {:continue, :setup_listener_pid}}
   end
 
   @doc false
+  @impl GenServer
+  @spec handle_continue(:setup_listener_pid, state) :: {:noreply, state}
   def handle_continue(:setup_listener_pid, %{server_pid: server_pid}) do
     listener_pid = ThousandIsland.Server.listener_pid(server_pid)
     {:noreply, %{listener_pid: listener_pid}}
   end
 
   @doc false
+  @impl GenServer
+  @spec terminate(reason, state) :: :ok
+        when reason: :normal | :shutdown | {:shutdown, term} | term
   def terminate(_reason, %{listener_pid: listener_pid}) do
     ThousandIsland.Listener.stop(listener_pid)
   end

@@ -27,7 +27,7 @@ defmodule ThousandIsland.Logger do
   end
 
   def attach_logger(:info) do
-    attach_logger(:error)
+    _ = attach_logger(:error)
 
     events = [
       [:thousand_island, :listener, :start],
@@ -38,7 +38,7 @@ defmodule ThousandIsland.Logger do
   end
 
   def attach_logger(:debug) do
-    attach_logger(:info)
+    _ = attach_logger(:info)
 
     events = [
       [:thousand_island, :acceptor, :start],
@@ -51,7 +51,7 @@ defmodule ThousandIsland.Logger do
   end
 
   def attach_logger(:trace) do
-    attach_logger(:debug)
+    _ = attach_logger(:debug)
 
     events = [
       [:thousand_island, :connection, :ready],
@@ -74,17 +74,17 @@ defmodule ThousandIsland.Logger do
   """
   @spec detach_logger(log_level()) :: :ok | {:error, :not_found}
   def detach_logger(:error) do
-    detach_logger(:info)
+    _ = detach_logger(:info)
     :telemetry.detach("#{__MODULE__}.error")
   end
 
   def detach_logger(:info) do
-    detach_logger(:debug)
+    _ = detach_logger(:debug)
     :telemetry.detach("#{__MODULE__}.info")
   end
 
   def detach_logger(:debug) do
-    detach_logger(:trace)
+    _ = detach_logger(:trace)
     :telemetry.detach("#{__MODULE__}.debug")
   end
 
@@ -93,6 +93,12 @@ defmodule ThousandIsland.Logger do
   end
 
   @doc false
+  @spec log_error(
+          :telemetry.event_name(),
+          :telemetry.event_measurements(),
+          :telemetry.event_metadata(),
+          :telemetry.handler_config()
+        ) :: :ok
   def log_error(event, measurements, metadata, _config) do
     Logger.error(
       "#{inspect(event)} metadata: #{inspect(metadata)}, measurements: #{inspect(measurements)}"
@@ -100,6 +106,12 @@ defmodule ThousandIsland.Logger do
   end
 
   @doc false
+  @spec log_info(
+          :telemetry.event_name(),
+          :telemetry.event_measurements(),
+          :telemetry.event_metadata(),
+          :telemetry.handler_config()
+        ) :: :ok
   def log_info(event, measurements, metadata, _config) do
     Logger.info(
       "#{inspect(event)} metadata: #{inspect(metadata)}, measurements: #{inspect(measurements)}"
@@ -107,6 +119,12 @@ defmodule ThousandIsland.Logger do
   end
 
   @doc false
+  @spec log_debug(
+          :telemetry.event_name(),
+          :telemetry.event_measurements(),
+          :telemetry.event_metadata(),
+          :telemetry.handler_config()
+        ) :: :ok
   def log_debug(event, measurements, metadata, _config) do
     Logger.debug(
       "#{inspect(event)} metadata: #{inspect(metadata)}, measurements: #{inspect(measurements)}"
@@ -114,6 +132,12 @@ defmodule ThousandIsland.Logger do
   end
 
   @doc false
+  @spec log_trace(
+          :telemetry.event_name(),
+          :telemetry.event_measurements(),
+          :telemetry.event_metadata(),
+          :telemetry.handler_config()
+        ) :: :ok
   def log_trace(event, measurements, metadata, _config) do
     Logger.debug(
       "#{inspect(event)} metadata: #{inspect(metadata)}, measurements: #{inspect(measurements)}"
