@@ -16,7 +16,12 @@ defmodule ThousandIsland.Transport do
 
   @typedoc "Information about an endpoint (either remote ('peer') or local"
   @type socket_info() :: %{
-          address: :inet.ip_address() | :inet.local_address(),
+          address:
+            :inet.ip_address()
+            | :inet.local_address()
+            | {:local, binary()}
+            | :unspec
+            | {:undefined, any()},
           port: :inet.port_number(),
           ssl_cert: String.t() | nil
         }
@@ -34,7 +39,7 @@ defmodule ThousandIsland.Transport do
   @type way() :: :read | :write | :read_write
 
   @typedoc "The return value from a getopts/2 call"
-  @type on_getopts() :: {:ok, socket_set_options()} | {:error, any()}
+  @type on_getopts() :: {:ok, [:inet.socket_optval()]} | {:error, any()}
 
   @typedoc "The return value from a setopts/2 call"
   @type on_setopts() :: :ok | {:error, any()}
@@ -49,13 +54,13 @@ defmodule ThousandIsland.Transport do
   @type on_sendfile() :: {:ok, non_neg_integer()} | {:error, any()}
 
   @typedoc "The return value from a handshake/1 call"
-  @type on_handshake() :: {:ok, socket()} | {:error, any()}
+  @type on_handshake() :: {:ok, socket()} | {:ok, socket(), any()} | {:error, any()}
 
   @typedoc "The return value from a shutdown/2 call"
-  @type on_shutdown() :: :ok
+  @type on_shutdown() :: :ok | {:error, any()}
 
   @typedoc "The return value from a close/1 call"
-  @type on_close() :: :ok
+  @type on_close() :: :ok | {:error, any()}
 
   @typedoc "The return value from a negotiated_protocol/1 call"
   @type negotiated_protocol_info() :: {:ok, binary()} | {:error, :protocol_not_negotiated}
@@ -64,7 +69,7 @@ defmodule ThousandIsland.Transport do
   Create and return a listener socket bound to the given port and configured per
   the provided options.
   """
-  @callback listen(:inet.port_number(), keyword()) :: {:ok, listener_socket()}
+  @callback listen(:inet.port_number(), keyword()) :: {:ok, listener_socket()} | {:error, any()}
 
   @doc """
   Wait for a client connection on the given listener socket. This call blocks until
@@ -97,7 +102,7 @@ defmodule ThousandIsland.Transport do
   @doc """
   Sends the given data (specified as a binary or an IO list) on the given socket.
   """
-  @callback send(socket(), data :: IO.chardata()) :: on_send()
+  @callback send(socket(), data :: iodata()) :: on_send()
 
   @doc """
   Sends the contents of the given file based on the provided offset & length
@@ -133,12 +138,12 @@ defmodule ThousandIsland.Transport do
   @doc """
   Returns information in the form of `t:socket_info()` about the local end of the socket.
   """
-  @callback local_info(socket() | listener_socket()) :: socket_info()
+  @callback local_info(socket() | listener_socket()) :: socket_info() | {:error, any()}
 
   @doc """
   Returns information in the form of `t:socket_info()` about the remote end of the socket.
   """
-  @callback peer_info(socket()) :: socket_info()
+  @callback peer_info(socket()) :: socket_info() | {:error, :inet.posix()}
 
   @doc """
   Returns whether or not this protocol is secure.

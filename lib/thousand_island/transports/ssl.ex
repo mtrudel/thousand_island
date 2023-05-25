@@ -39,12 +39,17 @@ defmodule ThousandIsland.Transports.SSL do
   """
 
   @type options() :: [:ssl.tls_server_option()]
+  @typep listener_socket :: :ssl.sslsocket()
+  @typep socket() :: :ssl.sslsocket()
 
   @behaviour ThousandIsland.Transport
 
   @hardcoded_options [mode: :binary, active: false]
 
   @impl ThousandIsland.Transport
+  @spec listen(:inet.port_number(), keyword()) ::
+          {:ok, listener_socket()} | {:error, reason}
+        when reason: :system_limit | :inet.posix()
   def listen(port, user_options) do
     default_options = [
       backlog: 1024,
@@ -69,21 +74,34 @@ defmodule ThousandIsland.Transports.SSL do
   end
 
   @impl ThousandIsland.Transport
+  @spec accept(listener_socket()) :: {:ok, socket()} | {:error, reason :: any()}
   defdelegate accept(listener_socket), to: :ssl, as: :transport_accept
 
   @impl ThousandIsland.Transport
+  @spec handshake(socket()) ::
+          {:ok, socket()} | {:ok, socket(), :ssl.protocol_extensions()} | {:error, reason}
+        when reason: :closed | :timeout | :ssl.error_alert()
   defdelegate handshake(socket), to: :ssl
 
   @impl ThousandIsland.Transport
+  @spec controlling_process(socket(), pid()) :: :ok | {:error, reason :: any()}
   defdelegate controlling_process(socket, pid), to: :ssl
 
   @impl ThousandIsland.Transport
+  @spec recv(socket(), non_neg_integer(), timeout()) :: ThousandIsland.Transport.on_recv()
   defdelegate recv(socket, length, timeout), to: :ssl
 
   @impl ThousandIsland.Transport
+  @spec send(socket(), iodata()) :: ThousandIsland.Transport.on_send()
   defdelegate send(socket, data), to: :ssl
 
   @impl ThousandIsland.Transport
+  @spec sendfile(
+          socket(),
+          filename :: String.t(),
+          offset :: non_neg_integer(),
+          length :: non_neg_integer()
+        ) :: ThousandIsland.Transport.on_sendfile()
   def sendfile(socket, filename, offset, length) do
     # We can't use :file.sendfile here since it works on clear sockets, not ssl
     # sockets. Build our own (much slower and not optimized for large files) version.
@@ -93,51 +111,87 @@ defmodule ThousandIsland.Transports.SSL do
         :ok -> {:ok, length}
         {:error, error} -> {:error, error}
       end
+    else
+      :eof -> {:error, :eof}
+      err -> err
     end
   end
 
   @impl ThousandIsland.Transport
+  @spec getopts(socket(), ThousandIsland.Transport.socket_get_options()) ::
+          ThousandIsland.Transport.on_getopts()
   defdelegate getopts(socket, options), to: :ssl
 
   @impl ThousandIsland.Transport
+  @spec setopts(socket(), ThousandIsland.Transport.socket_set_options()) ::
+          ThousandIsland.Transport.on_setopts()
   defdelegate setopts(socket, options), to: :ssl
 
   @impl ThousandIsland.Transport
+  @spec shutdown(socket(), ThousandIsland.Transport.way()) ::
+          ThousandIsland.Transport.on_shutdown()
   defdelegate shutdown(socket, way), to: :ssl
 
   @impl ThousandIsland.Transport
+  @spec close(socket() | listener_socket()) :: ThousandIsland.Transport.on_close()
   defdelegate close(socket), to: :ssl
 
-  @impl ThousandIsland.Transport
-  # :ssl's typespec is incorrect
+  # :ssl.sockname/1's typespec is incorrect
   @dialyzer {:no_match, local_info: 1}
+
+  @impl ThousandIsland.Transport
+  @spec local_info(socket() | listener_socket()) ::
+          ThousandIsland.Transport.socket_info() | {:error, reason :: any()}
   def local_info(socket) do
     case :ssl.sockname(socket) do
-      {:ok, {:local, path}} -> %{address: {:local, path}, port: 0, ssl_cert: nil}
-      {:ok, {ip, port}} -> %{address: ip, port: port, ssl_cert: nil}
-      other -> other
+      {:ok, spec} ->
+        case spec do
+          {:local, path} -> %{address: {:local, path}, port: 0, ssl_cert: nil}
+          {:unspec, <<>>} -> %{address: :unspec, port: 0, ssl_cert: nil}
+          {:undefined, term} -> %{address: {:undefined, term}, port: 0, ssl_cert: nil}
+          {ip, port} -> %{address: ip, port: port, ssl_cert: nil}
+        end
+
+      err ->
+        err
     end
   end
 
-  @impl ThousandIsland.Transport
-  def peer_info(socket) do
-    {:ok, {ip, port}} = :ssl.peername(socket)
+  # :ssl.peername/1's typespec is incorrect
+  @dialyzer {:no_match, peer_info: 1}
 
+  @impl ThousandIsland.Transport
+  @spec peer_info(socket()) :: ThousandIsland.Transport.socket_info() | {:error, :inet.posix()}
+  def peer_info(socket) do
     cert =
       case :ssl.peercert(socket) do
         {:ok, cert} -> cert
         {:error, _} -> nil
       end
 
-    %{address: ip, port: port, ssl_cert: cert}
+    case :ssl.peername(socket) do
+      {:ok, spec} ->
+        case spec do
+          {:local, path} -> %{address: {:local, path}, port: 0, ssl_cert: cert}
+          {:unspec, <<>>} -> %{address: :unspec, port: 0, ssl_cert: cert}
+          {:undefined, term} -> %{address: {:undefined, term}, port: 0, ssl_cert: cert}
+          {ip, port} -> %{address: ip, port: port, ssl_cert: cert}
+        end
+
+      err ->
+        err
+    end
   end
 
   @impl ThousandIsland.Transport
+  @spec secure?() :: true
   def secure?, do: true
 
   @impl ThousandIsland.Transport
+  @spec getstat(socket()) :: ThousandIsland.Transport.socket_stats()
   defdelegate getstat(socket), to: :ssl
 
   @impl ThousandIsland.Transport
+  @spec negotiated_protocol(socket()) :: ThousandIsland.Transport.negotiated_protocol_info()
   defdelegate negotiated_protocol(socket), to: :ssl
 end
