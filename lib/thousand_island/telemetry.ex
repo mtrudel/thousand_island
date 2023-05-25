@@ -324,6 +324,7 @@ defmodule ThousandIsland.Telemetry do
     event([span.span_name, name], measurements, metadata)
   end
 
+  @spec monotonic_time() :: integer
   defdelegate monotonic_time, to: System
 
   defp event(suffix, measurements, metadata) do

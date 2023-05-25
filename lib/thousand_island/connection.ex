@@ -1,6 +1,16 @@
 defmodule ThousandIsland.Connection do
   @moduledoc false
 
+  @spec start(
+          Supervisor.supervisor(),
+          ThousandIsland.Transport.socket(),
+          ThousandIsland.ServerConfig.t(),
+          ThousandIsland.Telemetry.t()
+        ) ::
+          :ignore
+          | :ok
+          | {:ok, pid, info :: term}
+          | {:error, :too_many_connections | {:already_started, pid} | term}
   def start(sup_pid, raw_socket, %ThousandIsland.ServerConfig{} = server_config, parent_span) do
     # This is a multi-step process since we need to do a bit of work from within
     # the process which owns the socket (us, at this point).

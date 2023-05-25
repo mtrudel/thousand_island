@@ -73,7 +73,7 @@ defmodule ThousandIsland.Socket do
   @doc """
   Sends the given data (specified as a binary or an IO list) on the given socket.
   """
-  @spec send(t(), IO.chardata()) :: ThousandIsland.Transport.on_send()
+  @spec send(t(), iodata()) :: ThousandIsland.Transport.on_send()
   def send(%__MODULE__{} = socket, data) do
     case socket.transport_module.send(socket.socket, data) do
       :ok ->
