@@ -47,7 +47,7 @@ defmodule ThousandIsland.Transports.SSL do
   @hardcoded_options [mode: :binary, active: false]
 
   @impl ThousandIsland.Transport
-  @spec listen(:inet.port_number(), keyword()) ::
+  @spec listen(:inet.port_number(), [:ssl.tls_server_option()]) ::
           {:ok, listener_socket()} | {:error, reason}
         when reason: :system_limit | :inet.posix()
   def listen(port, user_options) do
@@ -74,7 +74,8 @@ defmodule ThousandIsland.Transports.SSL do
   end
 
   @impl ThousandIsland.Transport
-  @spec accept(listener_socket()) :: {:ok, socket()} | {:error, reason :: any()}
+  @spec accept(listener_socket()) :: {:ok, socket()} | {:error, reason}
+        when reason: :closed | :system_limit | :inet.posix()
   defdelegate accept(listener_socket), to: :ssl, as: :transport_accept
 
   @impl ThousandIsland.Transport
@@ -84,7 +85,8 @@ defmodule ThousandIsland.Transports.SSL do
   defdelegate handshake(socket), to: :ssl
 
   @impl ThousandIsland.Transport
-  @spec controlling_process(socket(), pid()) :: :ok | {:error, reason :: any()}
+  @spec controlling_process(socket(), pid()) :: :ok | {:error, reason}
+        when reason: :closed | :not_owner | :badarg | :inet.posix()
   defdelegate controlling_process(socket, pid), to: :ssl
 
   @impl ThousandIsland.Transport
@@ -140,8 +142,7 @@ defmodule ThousandIsland.Transports.SSL do
   @dialyzer {:no_match, local_info: 1}
 
   @impl ThousandIsland.Transport
-  @spec local_info(socket() | listener_socket()) ::
-          ThousandIsland.Transport.socket_info() | {:error, reason :: any()}
+  @spec local_info(socket() | listener_socket()) :: ThousandIsland.Transport.on_local_info()
   def local_info(socket) do
     case :ssl.sockname(socket) do
       {:ok, spec} ->
@@ -161,7 +162,7 @@ defmodule ThousandIsland.Transports.SSL do
   @dialyzer {:no_match, peer_info: 1}
 
   @impl ThousandIsland.Transport
-  @spec peer_info(socket()) :: ThousandIsland.Transport.socket_info() | {:error, :inet.posix()}
+  @spec peer_info(socket()) :: ThousandIsland.Transport.on_peer_info()
   def peer_info(socket) do
     cert =
       case :ssl.peercert(socket) do

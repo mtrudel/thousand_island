@@ -9,10 +9,14 @@ defmodule ThousandIsland.Transport do
   """
 
   @typedoc "A listener socket used to wait for connections"
-  @type listener_socket() :: any()
+  @type listener_socket() :: :inet.socket() | :ssl.sslsocket()
+
+  @typedoc "A listener socket options"
+  @type listen_options() ::
+          [:inet.inet_backend() | :gen_tcp.listen_option()] | [:ssl.tls_server_option()]
 
   @typedoc "A socket representing a client connection"
-  @type socket() :: any()
+  @type socket() :: :inet.socket() | :ssl.sslsocket()
 
   @typedoc "Information about an endpoint (either remote ('peer') or local"
   @type socket_info() :: %{
@@ -39,28 +43,45 @@ defmodule ThousandIsland.Transport do
   @type way() :: :read | :write | :read_write
 
   @typedoc "The return value from a getopts/2 call"
-  @type on_getopts() :: {:ok, [:inet.socket_optval()]} | {:error, any()}
+  @type on_getopts() :: {:ok, [:inet.socket_optval()]} | {:error, :inet.posix()}
 
   @typedoc "The return value from a setopts/2 call"
-  @type on_setopts() :: :ok | {:error, any()}
+  @type on_setopts() :: :ok | {:error, :inet.posix()}
 
   @typedoc "The return value from a recv/3 call"
-  @type on_recv() :: {:ok, binary()} | {:error, any()}
+  @type on_recv() :: {:ok, binary()} | {:error, :closed | :timeout | :inet.posix()}
 
   @typedoc "The return value from a send/2 call"
-  @type on_send() :: :ok | {:error, any()}
+  @type on_send() :: :ok | {:error, :closed | {:timeout, rest_data :: binary()} | :inet.posix()}
 
   @typedoc "The return value from a sendfile/4 call"
-  @type on_sendfile() :: {:ok, non_neg_integer()} | {:error, any()}
+  @type on_sendfile() ::
+          {:ok, non_neg_integer()}
+          | {:error, :inet.posix() | :closed | :badarg | :not_owner | :eof}
+
+  @typedoc "The return value from an accept/1 call"
+  @type on_accept() :: {:ok, socket()} | {:error, on_accept_tcp_error() | on_accept_ssl_error()}
+
+  @typep on_accept_tcp_error() :: :closed | :system_limit | :inet.posix()
+  @typep on_accept_ssl_error() :: :closed | :timeout | :ssl.error_alert()
 
   @typedoc "The return value from a handshake/1 call"
-  @type on_handshake() :: {:ok, socket()} | {:ok, socket(), any()} | {:error, any()}
+  @type on_handshake() ::
+          {:ok, socket()} | {:ok, socket(), any()} | {:error, on_handshake_ssl_error()}
+
+  @typep on_handshake_ssl_error() :: :closed | :timeout | :ssl.error_alert()
 
   @typedoc "The return value from a shutdown/2 call"
-  @type on_shutdown() :: :ok | {:error, any()}
+  @type on_shutdown() :: :ok | {:error, :inet.posix()}
 
   @typedoc "The return value from a close/1 call"
   @type on_close() :: :ok | {:error, any()}
+
+  @typedoc "The return value from a local_info/1 call"
+  @type on_local_info() :: socket_info() | {:error, :inet.posix()}
+
+  @typedoc "The return value from a peer_info/1 call"
+  @type on_peer_info() :: socket_info() | {:error, :inet.posix()}
 
   @typedoc "The return value from a negotiated_protocol/1 call"
   @type negotiated_protocol_info() :: {:ok, binary()} | {:error, :protocol_not_negotiated}
@@ -69,14 +90,15 @@ defmodule ThousandIsland.Transport do
   Create and return a listener socket bound to the given port and configured per
   the provided options.
   """
-  @callback listen(:inet.port_number(), keyword()) :: {:ok, listener_socket()} | {:error, any()}
+  @callback listen(:inet.port_number(), listen_options()) ::
+              {:ok, listener_socket()} | {:error, any()}
 
   @doc """
   Wait for a client connection on the given listener socket. This call blocks until
   such a connection arrives, or an error occurs (such as the listener socket being
   closed).
   """
-  @callback accept(listener_socket()) :: {:ok, socket()} | {:error, any()}
+  @callback accept(listener_socket()) :: on_accept()
 
   @doc """
   Performs an initial handshake on a new client connection (such as that done
@@ -89,7 +111,8 @@ defmodule ThousandIsland.Transport do
   Transfers ownership of the given socket to the given process. This will always
   be called by the process which currently owns the socket.
   """
-  @callback controlling_process(socket(), pid()) :: :ok | {:error, any()}
+  @callback controlling_process(socket(), pid()) ::
+              :ok | {:error, :closed | :not_owner | :badarg | :inet.posix()}
 
   @doc """
   Returns available bytes on the given socket. Up to `num_bytes` bytes will be
@@ -138,12 +161,12 @@ defmodule ThousandIsland.Transport do
   @doc """
   Returns information in the form of `t:socket_info()` about the local end of the socket.
   """
-  @callback local_info(socket() | listener_socket()) :: socket_info() | {:error, any()}
+  @callback local_info(socket() | listener_socket()) :: on_local_info()
 
   @doc """
   Returns information in the form of `t:socket_info()` about the remote end of the socket.
   """
-  @callback peer_info(socket()) :: socket_info() | {:error, :inet.posix()}
+  @callback peer_info(socket()) :: on_peer_info()
 
   @doc """
   Returns whether or not this protocol is secure.

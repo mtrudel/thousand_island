@@ -49,7 +49,7 @@ defmodule ThousandIsland.Transports.TCP do
   @hardcoded_options [mode: :binary, active: false]
 
   @impl ThousandIsland.Transport
-  @spec listen(:inet.port_number(), keyword()) ::
+  @spec listen(:inet.port_number(), [:inet.inet_backend() | :gen_tcp.listen_option()]) ::
           {:ok, listener_socket()} | {:error, reason}
         when reason: :system_limit | :inet.posix()
   def listen(port, user_options) do
@@ -82,13 +82,11 @@ defmodule ThousandIsland.Transports.TCP do
   defdelegate controlling_process(socket, pid), to: :gen_tcp
 
   @impl ThousandIsland.Transport
-  @spec recv(socket(), non_neg_integer(), timeout()) :: {:ok, binary()} | {:error, reason}
-        when reason: :closed | :timeout | :inet.posix()
+  @spec recv(socket(), non_neg_integer(), timeout()) :: ThousandIsland.Transport.on_recv()
   defdelegate recv(socket, length, timeout), to: :gen_tcp
 
   @impl ThousandIsland.Transport
-  @spec send(socket(), iodata()) :: :ok | {:error, reason}
-        when reason: :closed | {:timeout, rest_data :: binary()} | :inet.posix()
+  @spec send(socket(), iodata()) :: ThousandIsland.Transport.on_send()
   defdelegate send(socket, data), to: :gen_tcp
 
   @impl ThousandIsland.Transport
@@ -97,8 +95,7 @@ defmodule ThousandIsland.Transports.TCP do
           filename :: String.t(),
           offset :: non_neg_integer(),
           length :: non_neg_integer()
-        ) :: {:ok, non_neg_integer()} | {:error, reason}
-        when reason: :inet.posix() | :closed | :badarg | :not_owner
+        ) :: ThousandIsland.Transport.on_sendfile()
   def sendfile(socket, filename, offset, length) do
     with {:ok, fd} <- :file.open(filename, [:raw]) do
       :file.sendfile(fd, socket, offset, length, [])
@@ -107,24 +104,25 @@ defmodule ThousandIsland.Transports.TCP do
 
   @impl ThousandIsland.Transport
   @spec getopts(socket(), ThousandIsland.Transport.socket_get_options()) ::
-          {:ok, [:inet.socket_optval()]} | {:error, :inet.posix()}
+          ThousandIsland.Transport.on_getopts()
   defdelegate getopts(socket, options), to: :inet
 
   @impl ThousandIsland.Transport
   @spec setopts(socket(), ThousandIsland.Transport.socket_set_options()) ::
-          :ok | {:error, :inet.posix()}
+          ThousandIsland.Transport.on_setopts()
   defdelegate setopts(socket, options), to: :inet
 
   @impl ThousandIsland.Transport
-  @spec shutdown(socket(), ThousandIsland.Transport.way()) :: :ok | {:error, :inet.posix()}
+  @spec shutdown(socket(), ThousandIsland.Transport.way()) ::
+          ThousandIsland.Transport.on_shutdown()
   defdelegate shutdown(socket, way), to: :gen_tcp
 
   @impl ThousandIsland.Transport
-  @spec close(socket()) :: :ok
+  @spec close(socket() | listener_socket()) :: :ok
   defdelegate close(socket), to: :gen_tcp
 
   @impl ThousandIsland.Transport
-  @spec local_info(socket()) :: ThousandIsland.Transport.socket_info() | {:error, :inet.posix()}
+  @spec local_info(socket() | listener_socket()) :: ThousandIsland.Transport.on_local_info()
   def local_info(socket) do
     case :inet.sockname(socket) do
       {:ok, spec} ->
@@ -141,7 +139,7 @@ defmodule ThousandIsland.Transports.TCP do
   end
 
   @impl ThousandIsland.Transport
-  @spec peer_info(socket()) :: ThousandIsland.Transport.socket_info() | {:error, :inet.posix()}
+  @spec peer_info(socket()) :: ThousandIsland.Transport.on_peer_info()
   def peer_info(socket) do
     case :inet.peername(socket) do
       {:ok, spec} ->
