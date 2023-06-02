@@ -84,7 +84,8 @@ defmodule ThousandIsland.Transport do
   @type on_peer_info() :: socket_info() | {:error, :inet.posix()}
 
   @typedoc "The return value from a negotiated_protocol/1 call"
-  @type negotiated_protocol_info() :: {:ok, binary()} | {:error, :protocol_not_negotiated}
+  @type negotiated_protocol_info() ::
+          {:ok, binary()} | {:error, :protocol_not_negotiated | :closed}
 
   @doc """
   Create and return a listener socket bound to the given port and configured per
