@@ -323,23 +323,22 @@ defmodule ThousandIsland.Handler do
 
       @impl GenServer
       def handle_info(
-            {:thousand_island_ready, raw_socket, server_config, parent_span, start_time},
+            {:thousand_island_ready, raw_socket, server_config, acceptor_span, start_time},
             {nil, state}
           ) do
         peer_info = server_config.transport_module.peer_info(raw_socket)
-        span_meta = %{remote_address: peer_info.address, remote_port: peer_info.port}
 
-        span =
-          ThousandIsland.Telemetry.start_child_span(
-            parent_span,
-            :connection,
-            %{monotonic_time: start_time},
-            span_meta
+        connection_span =
+          ThousandIsland.Telemetry.start_connection_span(
+            acceptor_span,
+            start_time,
+            peer_info.address,
+            peer_info.port
           )
 
-        socket = ThousandIsland.Socket.new(raw_socket, server_config, span)
+        socket = ThousandIsland.Socket.new(raw_socket, server_config, connection_span)
 
-        ThousandIsland.Telemetry.span_event(span, :ready)
+        ThousandIsland.Telemetry.event_ready(connection_span)
 
         case ThousandIsland.Socket.handshake(socket) do
           {:ok, socket} -> {:noreply, {socket, state}, {:continue, :handle_connection}}
@@ -352,7 +351,7 @@ defmodule ThousandIsland.Handler do
             {%ThousandIsland.Socket{socket: raw_socket} = socket, state}
           )
           when msg in [:tcp, :ssl] do
-        ThousandIsland.Telemetry.untimed_span_event(socket.span, :async_recv, %{data: data})
+        ThousandIsland.Telemetry.event_async_recv(socket.span, data)
 
         __MODULE__.handle_data(data, socket, state)
         |> handle_continuation(socket)
@@ -435,7 +434,7 @@ defmodule ThousandIsland.Handler do
               reason :: :shutdown | :local_closed | term()
             ) :: :ok
       defp do_socket_close(socket, reason) do
-        measurements =
+        stats =
           case ThousandIsland.Socket.getstat(socket) do
             {:ok, stats} ->
               stats
@@ -449,7 +448,7 @@ defmodule ThousandIsland.Handler do
         metadata = if reason in [:shutdown, :local_closed], do: %{}, else: %{error: reason}
 
         _ = ThousandIsland.Socket.close(socket)
-        ThousandIsland.Telemetry.stop_span(socket.span, measurements, metadata)
+        ThousandIsland.Telemetry.stop_span(socket.span, _measurements = stats, metadata)
       end
 
       # Dialyzer gets confused by handle_continuation being a defp and not a def

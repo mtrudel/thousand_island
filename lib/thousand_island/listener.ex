@@ -32,14 +32,13 @@ defmodule ThousandIsland.Listener do
       {:ok, listener_socket} ->
         local_info = server_config.transport_module.local_info(listener_socket)
 
-        span_meta = %{
-          local_address: local_info.address,
-          local_port: local_info.port,
-          transport_module: server_config.transport_module,
-          transport_options: server_config.transport_options
-        }
-
-        span = ThousandIsland.Telemetry.start_span(:listener, %{}, span_meta)
+        span =
+          ThousandIsland.Telemetry.start_listener_span(
+            local_info.address,
+            local_info.port,
+            server_config.transport_module,
+            server_config.transport_options
+          )
 
         {:ok, %{listener_socket: listener_socket, local_info: local_info, span: span}}
 
@@ -61,5 +60,5 @@ defmodule ThousandIsland.Listener do
   @impl GenServer
   @spec terminate(reason, state) :: :ok
         when reason: :normal | :shutdown | {:shutdown, term} | term
-  def terminate(_reason, state), do: ThousandIsland.Telemetry.stop_span(state.span)
+  def terminate(_reason, state), do: ThousandIsland.Telemetry.stop_listener_span(state.span)
 end

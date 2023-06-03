@@ -11,7 +11,7 @@ defmodule ThousandIsland.Connection do
           | :ok
           | {:ok, pid, info :: term}
           | {:error, :too_many_connections | {:already_started, pid} | term}
-  def start(sup_pid, raw_socket, %ThousandIsland.ServerConfig{} = server_config, parent_span) do
+  def start(sup_pid, raw_socket, %ThousandIsland.ServerConfig{} = server_config, acceptor_span) do
     # This is a multi-step process since we need to do a bit of work from within
     # the process which owns the socket (us, at this point).
 
@@ -30,13 +30,21 @@ defmodule ThousandIsland.Connection do
       child_spec,
       raw_socket,
       server_config,
-      parent_span,
+      acceptor_span,
       start_time,
       server_config.max_connections_retry_count
     )
   end
 
-  defp do_start(sup_pid, child_spec, raw_socket, server_config, parent_span, start_time, retries) do
+  defp do_start(
+         sup_pid,
+         child_spec,
+         raw_socket,
+         server_config,
+         acceptor_span,
+         start_time,
+         retries
+       ) do
     case DynamicSupervisor.start_child(sup_pid, child_spec) do
       {:ok, pid} ->
         # Since this process owns the socket at this point, it needs to be the
@@ -45,12 +53,12 @@ defmodule ThousandIsland.Connection do
         # the following call. Note that we purposefully do not match on the
         # return from this function; if there's an error the connection process
         # will see it, but it's no longer our problem if that's the case
-        server_config.transport_module.controlling_process(raw_socket, pid)
+        _ = server_config.transport_module.controlling_process(raw_socket, pid)
 
         # Now that we have transferred ownership over to the new process, send a message to the
         # new process with all the info it needs to start working with the socket (note that the
         # new process will still need to handshake with the remote end)
-        send(pid, {:thousand_island_ready, raw_socket, server_config, parent_span, start_time})
+        send(pid, {:thousand_island_ready, raw_socket, server_config, acceptor_span, start_time})
 
         :ok
 
@@ -65,7 +73,7 @@ defmodule ThousandIsland.Connection do
           child_spec,
           raw_socket,
           server_config,
-          parent_span,
+          acceptor_span,
           start_time,
           retries - 1
         )
