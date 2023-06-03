@@ -121,7 +121,7 @@ defmodule ThousandIsland.Handler do
 
   ```elixir
 
-    defmodule Messenger do
+  defmodule Messenger do
     use ThousandIsland.Handler
 
     @impl ThousandIsland.Handler
@@ -153,7 +153,8 @@ defmodule ThousandIsland.Handler do
   consisting of the configured handler and genserver opts. This function is expected to return a
   conventional `GenServer.on_start()` style tuple. Note that this newly created process is not
   passed the connection socket immediately.
-  2. The socket will be passed to the new process via a message of the form `{:thousand_island_ready, socket}`.
+  2. The socket will be passed to the new process via a message of the form
+  `{:thousand_island_ready, socket, server_config, acceptor_span, start_time}`.
   3. Once the process receives the socket, it must call `ThousandIsland.Socket.handshake/1` with the socket as the sole
   argument in order to finalize the setup of the socket.
   4. The socket is now ready to use.

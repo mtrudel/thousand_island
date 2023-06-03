@@ -88,7 +88,7 @@ defmodule ThousandIsland.Telemetry do
       Thousand Island was unable to spawn a process to handle a connection. This occurs when too
       many connections are in progress; you may want to look at increasing the `num_connections`
       configuration parameter
-      
+
       This event contains the following measurements:
 
       * `monotonic_time`: The time of this event, in `:native` units
