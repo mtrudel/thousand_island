@@ -62,14 +62,14 @@ defmodule ThousandIsland.Transport do
   @typedoc "The return value from an accept/1 call"
   @type on_accept() :: {:ok, socket()} | {:error, on_accept_tcp_error() | on_accept_ssl_error()}
 
-  @typep on_accept_tcp_error() :: :closed | :system_limit | :inet.posix()
-  @typep on_accept_ssl_error() :: :closed | :timeout | :ssl.error_alert()
+  @type on_accept_tcp_error() :: :closed | :system_limit | :inet.posix()
+  @type on_accept_ssl_error() :: :closed | :timeout | :ssl.error_alert()
 
   @typedoc "The return value from a handshake/1 call"
   @type on_handshake() ::
           {:ok, socket()} | {:ok, socket(), any()} | {:error, on_handshake_ssl_error()}
 
-  @typep on_handshake_ssl_error() :: :closed | :timeout | :ssl.error_alert()
+  @type on_handshake_ssl_error() :: :closed | :timeout | :ssl.error_alert()
 
   @typedoc "The return value from a shutdown/2 call"
   @type on_shutdown() :: :ok | {:error, :inet.posix()}

@@ -41,8 +41,8 @@ defmodule ThousandIsland.Transports.TCP do
   """
 
   @type options() :: [:gen_tcp.listen_option()]
-  @typep listener_socket :: :inet.socket()
-  @typep socket() :: :inet.socket()
+  @type listener_socket() :: :inet.socket()
+  @type socket() :: :inet.socket()
 
   @behaviour ThousandIsland.Transport
 
