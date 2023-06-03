@@ -150,6 +150,10 @@ defmodule ThousandIsland do
           shutdown_timeout: timeout()
         ]
 
+  @typedoc "A module implementing `ThousandIsland.Transport` behaviour"
+  @type transport_module :: ThousandIsland.Transports.TCP | ThousandIsland.Transports.SSL
+
+  @typedoc "A keyword list of options to be passed to the transport module's `listen/2` function"
   @type transport_options() ::
           ThousandIsland.Transports.TCP.options() | ThousandIsland.Transports.SSL.options()
 

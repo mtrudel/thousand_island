@@ -4,7 +4,7 @@ defmodule ThousandIsland.ServerConfig do
   @typedoc "A set of configuration parameters for a ThousandIsland server instance"
   @type t :: %__MODULE__{
           port: :inet.port_number(),
-          transport_module: module(),
+          transport_module: ThousandIsland.transport_module(),
           transport_options: ThousandIsland.transport_options(),
           handler_module: module(),
           handler_options: term(),
