@@ -68,16 +68,17 @@ defmodule ThousandIsland do
   ## Connection Draining & Shutdown
 
   `ThousandIsland` instances are just a process tree consisting of standard
-  Supervisor, GenServer and Task modules, and so the usual rules regarding
+  `Supervisor`, `GenServer` and `Task` modules, and so the usual rules regarding
   shutdown and shutdown timeouts apply. Immediately upon beginning the shutdown
-  sequence the ThousandIsland.ShutdownListener process will cause the listening socket
-  to shut down, which in turn will cause all of the `Acceptor` processes to shut
-  down as well. At this point all that is left in the supervision tree are several
-  layers of Supervisors and whatever `Handler` processes were in progress when
-  shutdown was initiated. At this point, standard Supervisor shutdown timeout
-  semantics give existing connections a chance to finish things up. `Handler`
-  processes trap exit, so they continue running beyond shutdown until they either
-  complete or are `:brutal_kill`ed after their shutdown timeout expires.
+  sequence the ThousandIsland.ShutdownListener process will cause the listening
+  socket to shut down, which in turn will cause all of the
+  ThousandIsland.Acceptor processes to shut down as well. At this point all that
+  is left in the supervision tree are several layers of Supervisors and whatever
+  `Handler` processes were in progress when shutdown was initiated. At this
+  point, standard `Supervisor` shutdown timeout semantics give existing
+  connections a chance to finish things up. `Handler` processes trap exit, so
+  they continue running beyond shutdown until they either complete or are
+  `:brutal_kill`ed after their shutdown timeout expires.
 
   ## Logging & Telemetry
 
@@ -149,6 +150,10 @@ defmodule ThousandIsland do
           shutdown_timeout: timeout()
         ]
 
+  @typedoc "A module implementing `ThousandIsland.Transport` behaviour"
+  @type transport_module :: ThousandIsland.Transports.TCP | ThousandIsland.Transports.SSL
+
+  @typedoc "A keyword list of options to be passed to the transport module's `listen/2` function"
   @type transport_options() ::
           ThousandIsland.Transports.TCP.options() | ThousandIsland.Transports.SSL.options()
 

@@ -6,6 +6,7 @@ defmodule ThousandIsland.MixProject do
       app: :thousand_island,
       version: "1.0.0-pre.3",
       elixir: "~> 1.12",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       dialyzer: dialyzer(),
@@ -25,6 +26,9 @@ defmodule ThousandIsland.MixProject do
   def application do
     [extra_applications: [:logger, :ssl]]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp deps() do
     [

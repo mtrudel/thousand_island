@@ -39,8 +39,8 @@ defmodule ThousandIsland.Transports.SSL do
   """
 
   @type options() :: [:ssl.tls_server_option()]
-  @typep listener_socket :: :ssl.sslsocket()
-  @typep socket() :: :ssl.sslsocket()
+  @type listener_socket() :: :ssl.sslsocket()
+  @type socket() :: :ssl.sslsocket()
 
   @behaviour ThousandIsland.Transport
 
