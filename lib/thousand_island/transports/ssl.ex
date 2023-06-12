@@ -193,6 +193,6 @@ defmodule ThousandIsland.Transports.SSL do
   defdelegate getstat(socket), to: :ssl
 
   @impl ThousandIsland.Transport
-  @spec negotiated_protocol(socket()) :: ThousandIsland.Transport.negotiated_protocol_info()
+  @spec negotiated_protocol(socket()) :: ThousandIsland.Transport.on_negotiated_protocol()
   defdelegate negotiated_protocol(socket), to: :ssl
 end
