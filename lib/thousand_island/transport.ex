@@ -84,7 +84,7 @@ defmodule ThousandIsland.Transport do
   @type on_peer_info() :: socket_info() | {:error, :inet.posix()}
 
   @typedoc "The return value from a negotiated_protocol/1 call"
-  @type negotiated_protocol_info() ::
+  @type on_negotiated_protocol() ::
           {:ok, binary()} | {:error, :protocol_not_negotiated | :closed}
 
   @doc """
@@ -184,5 +184,5 @@ defmodule ThousandIsland.Transport do
   ALPN or NPN extensions. If the underlying transport does not support protocol negotiation
   (or if one was not negotiated), `{:error, :protocol_not_negotiated}` is returned
   """
-  @callback negotiated_protocol(socket()) :: negotiated_protocol_info()
+  @callback negotiated_protocol(socket()) :: on_negotiated_protocol()
 end
