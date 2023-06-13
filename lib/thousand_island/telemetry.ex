@@ -272,6 +272,10 @@ defmodule ThousandIsland.Telemetry do
         }
 
   @type span_name :: :listener | :acceptor | :connection
+  @type metadata :: :telemetry.event_metadata()
+
+  @typedoc false
+  @type measurements :: :telemetry.event_measurements()
 
   @typedoc false
   @type event_name ::
@@ -289,19 +293,6 @@ defmodule ThousandIsland.Telemetry do
           | :recv
           | :send
           | :sendfile
-
-  @typedoc false
-  @type stats :: %{
-          required(:send_oct) => non_neg_integer(),
-          required(:send_cnt) => non_neg_integer(),
-          required(:recv_oct) => non_neg_integer(),
-          required(:recv_cnt) => non_neg_integer()
-        }
-
-  @typedoc false
-  @type measurements :: :telemetry.event_measurements()
-
-  @type metadata :: :telemetry.event_metadata()
 
   @app_name :thousand_island
 
@@ -351,7 +342,8 @@ defmodule ThousandIsland.Telemetry do
   end
 
   @doc false
-  @spec untimed_span_event(t(), atom(), map(), map()) :: :ok
+  @spec untimed_span_event(t(), event_name() | untimed_event_name(), measurements(), metadata()) ::
+          :ok
   def untimed_span_event(span, name, measurements \\ %{}, metadata \\ %{}) do
     metadata = Map.put(metadata, :telemetry_span_context, span.telemetry_span_context)
     event([span.span_name, name], measurements, metadata)
