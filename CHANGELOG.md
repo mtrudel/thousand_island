@@ -1,5 +1,12 @@
 # Changelog for 0.6.x
 
+## 1.0.0-pre.4 (13 Jun 2023)
+
+### Enhancements
+
+* Improve typespecs (thanks @asakura!)
+* Clean up docs & various internal cleanups (thanks @asakura!)
+
 ## 1.0.0-pre.3 (2 Jun 2023)
 
 ### Enhancements
