@@ -19,11 +19,8 @@ defmodule ThousandIsland.Transport do
   @type socket() :: :inet.socket() | :ssl.sslsocket()
 
   @typedoc "Information about an endpoint (either remote ('peer') or local"
-  @type socket_info() :: %{
-          address: address(),
-          port: :inet.port_number(),
-          ssl_cert: String.t() | nil
-        }
+  @type socket_info() ::
+          {:inet.ip_address(), :inet.port_number()} | :inet.returned_non_ip_address()
 
   @typedoc "A socket address"
   @type address ::
@@ -80,10 +77,10 @@ defmodule ThousandIsland.Transport do
   @type on_close() :: :ok | {:error, any()}
 
   @typedoc "The return value from a local_info/1 call"
-  @type on_local_info() :: socket_info() | {:error, :inet.posix()}
+  @type on_local_info() :: {:ok, socket_info()} | {:error, :inet.posix()}
 
   @typedoc "The return value from a peer_info/1 call"
-  @type on_peer_info() :: socket_info() | {:error, :inet.posix()}
+  @type on_peer_info() :: {:ok, socket_info()} | {:error, :inet.posix()}
 
   @typedoc "The return value from a negotiated_protocol/1 call"
   @type on_negotiated_protocol() ::

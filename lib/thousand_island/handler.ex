@@ -126,7 +126,7 @@ defmodule ThousandIsland.Handler do
 
     @impl ThousandIsland.Handler
     def handle_connection(socket, state) do
-      %{address: address} = ThousandIsland.Socket.peer_info(socket)
+      {:ok, {ip, port}} = ThousandIsland.Socket.peer_info(socket)
       {:ok, _pid} = Registry.register(MessengerRegistry, {state[:my_key], address}, nil)
       {:continue, state}
     end
@@ -326,8 +326,8 @@ defmodule ThousandIsland.Handler do
             {:thousand_island_ready, raw_socket, server_config, acceptor_span, start_time},
             {nil, state}
           ) do
-        peer_info = server_config.transport_module.peer_info(raw_socket)
-        span_meta = %{remote_address: peer_info.address, remote_port: peer_info.port}
+        {:ok, {ip, port}} = server_config.transport_module.peer_info(raw_socket)
+        span_meta = %{remote_address: ip, remote_port: port}
 
         connection_span =
           ThousandIsland.Telemetry.start_child_span(
