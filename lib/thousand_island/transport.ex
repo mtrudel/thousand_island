@@ -32,7 +32,6 @@ defmodule ThousandIsland.Transport do
           | {:local, binary()}
           | :unspec
           | {:undefined, any()}
-
   @typedoc "Connection statistics for a given socket"
   @type socket_stats() :: {:ok, [{:inet.stat_option(), integer()}]} | {:error, :inet.posix()}
 

@@ -46,7 +46,7 @@ defmodule ThousandIsland.Socket do
         {:ok, socket}
 
       {:error, reason} = err ->
-        ThousandIsland.Telemetry.stop_span_with_error(socket.span, reason)
+        ThousandIsland.Telemetry.stop_span(socket.span, %{}, %{error: reason})
         err
     end
   end
@@ -61,11 +61,11 @@ defmodule ThousandIsland.Socket do
   def recv(%__MODULE__{} = socket, length \\ 0, timeout \\ nil) do
     case socket.transport_module.recv(socket.socket, length, timeout || socket.read_timeout) do
       {:ok, data} = ok ->
-        ThousandIsland.Telemetry.event_recv(socket.span, data)
+        ThousandIsland.Telemetry.untimed_span_event(socket.span, :recv, %{data: data})
         ok
 
       {:error, reason} = err ->
-        ThousandIsland.Telemetry.event_recv_error(socket.span, reason)
+        ThousandIsland.Telemetry.span_event(socket.span, :recv_error, %{error: reason})
         err
     end
   end
@@ -77,11 +77,12 @@ defmodule ThousandIsland.Socket do
   def send(%__MODULE__{} = socket, data) do
     case socket.transport_module.send(socket.socket, data) do
       :ok ->
-        ThousandIsland.Telemetry.event_send(socket.span, data)
+        ThousandIsland.Telemetry.untimed_span_event(socket.span, :send, %{data: data})
         :ok
 
       {:error, reason} = err ->
-        ThousandIsland.Telemetry.event_send_error(socket.span, data, reason)
+        ThousandIsland.Telemetry.span_event(socket.span, :send_error, %{data: data, error: reason})
+
         err
     end
   end
@@ -94,18 +95,13 @@ defmodule ThousandIsland.Socket do
   def sendfile(%__MODULE__{} = socket, filename, offset, length) do
     case socket.transport_module.sendfile(socket.socket, filename, offset, length) do
       {:ok, bytes_written} = ok ->
-        ThousandIsland.Telemetry.event_sendfile(socket.span, filename, offset, bytes_written)
+        measurements = %{filename: filename, offset: offset, bytes_written: bytes_written}
+        ThousandIsland.Telemetry.untimed_span_event(socket.span, :sendfile, measurements)
         ok
 
       {:error, reason} = err ->
-        ThousandIsland.Telemetry.event_sendfile_error(
-          socket.span,
-          filename,
-          offset,
-          length,
-          reason
-        )
-
+        measurements = %{filename: filename, offset: offset, length: length, error: reason}
+        ThousandIsland.Telemetry.span_event(socket.span, :sendfile_error, measurements)
         err
     end
   end
@@ -115,7 +111,7 @@ defmodule ThousandIsland.Socket do
   """
   @spec shutdown(t(), ThousandIsland.Transport.way()) :: ThousandIsland.Transport.on_shutdown()
   def shutdown(%__MODULE__{} = socket, way) do
-    ThousandIsland.Telemetry.event_socket_shutdown(socket.span, way)
+    ThousandIsland.Telemetry.span_event(socket.span, :socket_shutdown, %{way: way})
     socket.transport_module.shutdown(socket.socket, way)
   end
 
