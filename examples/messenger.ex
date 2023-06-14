@@ -13,7 +13,7 @@ defmodule Messenger do
 
   @impl ThousandIsland.Handler
   def handle_connection(socket, state) do
-    {:ok, {remote_address, _port}} = ThousandIsland.Socket.peer_info(socket)
+    {:ok, {remote_address, _port}} = ThousandIsland.Socket.peername(socket)
     IO.puts("#{inspect(self())} received connection from #{remote_address}")
     {:continue, state}
   end

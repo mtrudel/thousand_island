@@ -79,8 +79,8 @@ defmodule ThousandIsland.Transport do
   @typedoc "The return value from a local_info/1 call"
   @type on_local_info() :: {:ok, socket_info()} | {:error, :inet.posix()}
 
-  @typedoc "The return value from a peer_info/1 call"
-  @type on_peer_info() :: {:ok, socket_info()} | {:error, :inet.posix()}
+  @typedoc "The return value from a peername/1 call"
+  @type on_peername() :: {:ok, socket_info()} | {:error, :inet.posix()}
 
   @typedoc "The return value from a negotiated_protocol/1 call"
   @type on_negotiated_protocol() ::
@@ -166,7 +166,7 @@ defmodule ThousandIsland.Transport do
   @doc """
   Returns information in the form of `t:socket_info()` about the remote end of the socket.
   """
-  @callback peer_info(socket()) :: on_peer_info()
+  @callback peername(socket()) :: on_peername()
 
   @doc """
   Returns whether or not this protocol is secure.

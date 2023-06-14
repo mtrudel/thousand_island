@@ -64,7 +64,7 @@ defmodule ThousandIsland.SocketTest do
 
     @impl ThousandIsland.Handler
     def handle_connection(socket, state) do
-      {:ok, peer_info} = ThousandIsland.Socket.peer_info(socket)
+      {:ok, peer_info} = ThousandIsland.Socket.peername(socket)
       {:ok, local_info} = ThousandIsland.Socket.local_info(socket)
       negotiated_protocol = ThousandIsland.Socket.negotiated_protocol(socket)
 

@@ -122,8 +122,8 @@ defmodule ThousandIsland.Transports.TCP do
   defdelegate local_info(socket), to: :inet, as: :sockname
 
   @impl ThousandIsland.Transport
-  @spec peer_info(socket()) :: ThousandIsland.Transport.on_peer_info()
-  defdelegate peer_info(socket), to: :inet, as: :peername
+  @spec peername(socket()) :: ThousandIsland.Transport.on_peername()
+  defdelegate peername(socket), to: :inet, as: :peername
 
   @impl ThousandIsland.Transport
   @spec secure?() :: false

@@ -157,9 +157,9 @@ defmodule ThousandIsland.Socket do
   @doc """
   Returns information in the form of `t:ThousandIsland.Transport.socket_info()` about the remote end of the socket.
   """
-  @spec peer_info(t()) :: ThousandIsland.Transport.on_peer_info()
-  def peer_info(%__MODULE__{} = socket) do
-    socket.transport_module.peer_info(socket.socket)
+  @spec peername(t()) :: ThousandIsland.Transport.on_peername()
+  def peername(%__MODULE__{} = socket) do
+    socket.transport_module.peername(socket.socket)
   end
 
   @doc """

@@ -115,7 +115,7 @@ defmodule ThousandIsland.Handler do
   Please note that you should not pass the `name` `t:GenServer.option/0`. If you need to register handler processes for
   later lookup and use, you should perform process registration in `handle_connection/2`, ensuring the handler process is
   registered only after the underlying connection is established and you have access to the connection socket and metadata
-  via `ThousandIsland.Socket.peer_info/1`.
+  via `ThousandIsland.Socket.peername/1`.
 
   For example, using a custom process registry via `Registry`:
 
@@ -126,7 +126,7 @@ defmodule ThousandIsland.Handler do
 
     @impl ThousandIsland.Handler
     def handle_connection(socket, state) do
-      {:ok, {ip, port}} = ThousandIsland.Socket.peer_info(socket)
+      {:ok, {ip, port}} = ThousandIsland.Socket.peername(socket)
       {:ok, _pid} = Registry.register(MessengerRegistry, {state[:my_key], address}, nil)
       {:continue, state}
     end
@@ -326,7 +326,7 @@ defmodule ThousandIsland.Handler do
             {:thousand_island_ready, raw_socket, server_config, acceptor_span, start_time},
             {nil, state}
           ) do
-        {:ok, {ip, port}} = server_config.transport_module.peer_info(raw_socket)
+        {:ok, {ip, port}} = server_config.transport_module.peername(raw_socket)
         span_meta = %{remote_address: ip, remote_port: port}
 
         connection_span =
