@@ -5,8 +5,8 @@ defmodule ThousandIsland.Listener do
 
   @type state :: %{
           listener_socket: ThousandIsland.Transport.listener_socket(),
-          local_info: ThousandIsland.Transport.socket_info(),
-          span: ThousandIsland.Telemetry.t()
+          listener_span: ThousandIsland.Telemetry.t(),
+          local_info: ThousandIsland.Transport.socket_info()
         }
 
   @spec start_link(ThousandIsland.ServerConfig.t()) :: GenServer.on_start()
@@ -39,9 +39,10 @@ defmodule ThousandIsland.Listener do
           transport_options: server_config.transport_options
         }
 
-        span = ThousandIsland.Telemetry.start_span(:listener, %{}, span_meta)
+        listener_span = ThousandIsland.Telemetry.start_span(:listener, %{}, span_meta)
 
-        {:ok, %{listener_socket: listener_socket, local_info: local_info, span: span}}
+        {:ok,
+         %{listener_socket: listener_socket, local_info: local_info, listener_span: listener_span}}
 
       {:error, reason} ->
         {:stop, reason}
@@ -56,10 +57,10 @@ defmodule ThousandIsland.Listener do
   def handle_call(:listener_info, _from, state), do: {:reply, state.local_info, state}
 
   def handle_call(:acceptor_info, _from, state),
-    do: {:reply, {state.listener_socket, state.span}, state}
+    do: {:reply, {state.listener_socket, state.listener_span}, state}
 
   @impl GenServer
   @spec terminate(reason, state) :: :ok
         when reason: :normal | :shutdown | {:shutdown, term} | term
-  def terminate(_reason, state), do: ThousandIsland.Telemetry.stop_span(state.span)
+  def terminate(_reason, state), do: ThousandIsland.Telemetry.stop_span(state.listener_span)
 end

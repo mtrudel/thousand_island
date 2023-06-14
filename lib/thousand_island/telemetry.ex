@@ -261,24 +261,48 @@ defmodule ThousandIsland.Telemetry do
       * `telemetry_span_context`: A unique identifier for this span
   """
 
-  defstruct span_name: nil, telemetry_span_context: nil, start_time: nil, start_metadata: nil
+  @enforce_keys [:span_name, :telemetry_span_context, :start_time, :start_metadata]
+  defstruct @enforce_keys
 
   @type t :: %__MODULE__{
-          span_name: atom(),
+          span_name: span_name(),
           telemetry_span_context: reference(),
           start_time: integer(),
-          start_metadata: map()
+          start_metadata: metadata()
         }
+
+  @type span_name :: :listener | :acceptor | :connection
+  @type metadata :: :telemetry.event_metadata()
+
+  @typedoc false
+  @type measurements :: :telemetry.event_measurements()
+
+  @typedoc false
+  @type event_name ::
+          :ready
+          | :spawn_error
+          | :recv_error
+          | :send_error
+          | :sendfile_error
+          | :socket_shutdown
+
+  @typedoc false
+  @type untimed_event_name ::
+          :async_recv
+          | :stop
+          | :recv
+          | :send
+          | :sendfile
 
   @app_name :thousand_island
 
   @doc false
-  @spec start_span(atom(), map(), map()) :: t()
-  def start_span(span_name, measurements \\ %{}, metadata \\ %{}) do
+  @spec start_span(span_name(), measurements(), metadata()) :: t()
+  def start_span(span_name, measurements, metadata) do
     measurements = Map.put_new_lazy(measurements, :monotonic_time, &monotonic_time/0)
     telemetry_span_context = make_ref()
     metadata = Map.put(metadata, :telemetry_span_context, telemetry_span_context)
-    event([span_name, :start], measurements, metadata)
+    _ = event([span_name, :start], measurements, metadata)
 
     %__MODULE__{
       span_name: span_name,
@@ -289,7 +313,7 @@ defmodule ThousandIsland.Telemetry do
   end
 
   @doc false
-  @spec start_child_span(t(), atom(), map(), map()) :: t()
+  @spec start_child_span(t(), span_name(), measurements(), metadata()) :: t()
   def start_child_span(parent_span, span_name, measurements \\ %{}, metadata \\ %{}) do
     metadata =
       Map.put(metadata, :parent_telemetry_span_context, parent_span.telemetry_span_context)
@@ -298,7 +322,7 @@ defmodule ThousandIsland.Telemetry do
   end
 
   @doc false
-  @spec stop_span(t(), map(), map()) :: :ok
+  @spec stop_span(t(), measurements(), metadata()) :: :ok
   def stop_span(span, measurements \\ %{}, metadata \\ %{}) do
     measurements = Map.put_new_lazy(measurements, :monotonic_time, &monotonic_time/0)
 
@@ -311,14 +335,15 @@ defmodule ThousandIsland.Telemetry do
   end
 
   @doc false
-  @spec span_event(t(), atom(), map(), map()) :: :ok
+  @spec span_event(t(), event_name(), measurements(), metadata()) :: :ok
   def span_event(span, name, measurements \\ %{}, metadata \\ %{}) do
     measurements = Map.put_new_lazy(measurements, :monotonic_time, &monotonic_time/0)
     untimed_span_event(span, name, measurements, metadata)
   end
 
   @doc false
-  @spec untimed_span_event(t(), atom(), map(), map()) :: :ok
+  @spec untimed_span_event(t(), event_name() | untimed_event_name(), measurements(), metadata()) ::
+          :ok
   def untimed_span_event(span, name, measurements \\ %{}, metadata \\ %{}) do
     metadata = Map.put(metadata, :telemetry_span_context, span.telemetry_span_context)
     event([span.span_name, name], measurements, metadata)

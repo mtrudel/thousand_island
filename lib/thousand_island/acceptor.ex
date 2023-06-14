@@ -17,8 +17,8 @@ defmodule ThousandIsland.Acceptor do
     listener_pid = ThousandIsland.Server.listener_pid(server_pid)
     {listener_socket, listener_span} = ThousandIsland.Listener.acceptor_info(listener_pid)
     connection_sup_pid = ThousandIsland.AcceptorSupervisor.connection_sup_pid(parent_pid)
-    span = ThousandIsland.Telemetry.start_child_span(listener_span, :acceptor)
-    accept(listener_socket, connection_sup_pid, server_config, span, 0)
+    acceptor_span = ThousandIsland.Telemetry.start_child_span(listener_span, :acceptor)
+    accept(listener_socket, connection_sup_pid, server_config, acceptor_span, 0)
   end
 
   defp accept(listener_socket, connection_sup_pid, server_config, span, count) do

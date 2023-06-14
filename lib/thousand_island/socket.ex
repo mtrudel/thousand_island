@@ -45,9 +45,9 @@ defmodule ThousandIsland.Socket do
       {:ok, _} ->
         {:ok, socket}
 
-      {:error, error} ->
-        ThousandIsland.Telemetry.stop_span(socket.span, %{}, %{error: error})
-        {:error, error}
+      {:error, reason} = err ->
+        ThousandIsland.Telemetry.stop_span(socket.span, %{}, %{error: reason})
+        err
     end
   end
 
@@ -60,13 +60,13 @@ defmodule ThousandIsland.Socket do
   @spec recv(t(), non_neg_integer(), timeout() | nil) :: ThousandIsland.Transport.on_recv()
   def recv(%__MODULE__{} = socket, length \\ 0, timeout \\ nil) do
     case socket.transport_module.recv(socket.socket, length, timeout || socket.read_timeout) do
-      {:ok, data} ->
+      {:ok, data} = ok ->
         ThousandIsland.Telemetry.untimed_span_event(socket.span, :recv, %{data: data})
-        {:ok, data}
+        ok
 
-      {:error, error} ->
-        ThousandIsland.Telemetry.span_event(socket.span, :recv_error, %{error: error})
-        {:error, error}
+      {:error, reason} = err ->
+        ThousandIsland.Telemetry.span_event(socket.span, :recv_error, %{error: reason})
+        err
     end
   end
 
@@ -80,9 +80,10 @@ defmodule ThousandIsland.Socket do
         ThousandIsland.Telemetry.untimed_span_event(socket.span, :send, %{data: data})
         :ok
 
-      {:error, error} ->
-        ThousandIsland.Telemetry.span_event(socket.span, :send_error, %{data: data, error: error})
-        {:error, error}
+      {:error, reason} = err ->
+        ThousandIsland.Telemetry.span_event(socket.span, :send_error, %{data: data, error: reason})
+
+        err
     end
   end
 
@@ -93,15 +94,15 @@ defmodule ThousandIsland.Socket do
           ThousandIsland.Transport.on_sendfile()
   def sendfile(%__MODULE__{} = socket, filename, offset, length) do
     case socket.transport_module.sendfile(socket.socket, filename, offset, length) do
-      {:ok, bytes_written} ->
+      {:ok, bytes_written} = ok ->
         measurements = %{filename: filename, offset: offset, bytes_written: bytes_written}
         ThousandIsland.Telemetry.untimed_span_event(socket.span, :sendfile, measurements)
-        {:ok, bytes_written}
+        ok
 
-      {:error, error} ->
-        measurements = %{filename: filename, offset: offset, length: length, error: error}
+      {:error, reason} = err ->
+        measurements = %{filename: filename, offset: offset, length: length, error: reason}
         ThousandIsland.Telemetry.span_event(socket.span, :sendfile_error, measurements)
-        {:error, error}
+        err
     end
   end
 

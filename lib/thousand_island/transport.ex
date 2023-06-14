@@ -20,16 +20,18 @@ defmodule ThousandIsland.Transport do
 
   @typedoc "Information about an endpoint (either remote ('peer') or local"
   @type socket_info() :: %{
-          address:
-            :inet.ip_address()
-            | :inet.local_address()
-            | {:local, binary()}
-            | :unspec
-            | {:undefined, any()},
+          address: address(),
           port: :inet.port_number(),
           ssl_cert: String.t() | nil
         }
 
+  @typedoc "A socket address"
+  @type address ::
+          :inet.ip_address()
+          | :inet.local_address()
+          | {:local, binary()}
+          | :unspec
+          | {:undefined, any()}
   @typedoc "Connection statistics for a given socket"
   @type socket_stats() :: {:ok, [{:inet.stat_option(), integer()}]} | {:error, :inet.posix()}
 
