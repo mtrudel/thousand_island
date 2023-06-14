@@ -139,11 +139,11 @@ defmodule ThousandIsland.Transports.SSL do
   defdelegate close(socket), to: :ssl
 
   # :ssl.sockname/1's typespec is incorrect
-  @dialyzer {:no_match, local_info: 1}
+  @dialyzer {:no_match, sockname: 1}
 
   @impl ThousandIsland.Transport
-  @spec local_info(socket() | listener_socket()) :: ThousandIsland.Transport.on_local_info()
-  defdelegate local_info(socket), to: :ssl, as: :sockname
+  @spec sockname(socket() | listener_socket()) :: ThousandIsland.Transport.on_sockname()
+  defdelegate sockname(socket), to: :ssl, as: :sockname
 
   # :ssl.peername/1's typespec is incorrect
   @dialyzer {:no_match, peername: 1}

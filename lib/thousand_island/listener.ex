@@ -30,8 +30,7 @@ defmodule ThousandIsland.Listener do
            server_config.transport_options
          ) do
       {:ok, listener_socket} ->
-        {:ok, {ip, port} = local_info} =
-          server_config.transport_module.local_info(listener_socket)
+        {:ok, {ip, port} = local_info} = server_config.transport_module.sockname(listener_socket)
 
         span_meta = %{
           local_address: ip,

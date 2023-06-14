@@ -104,7 +104,7 @@ defmodule ThousandIsland do
   underlying `GenServer.start_link/3` call. Optional, defaulting to []
   * `port`: The TCP port number to listen on. If not specified this defaults to 4000.
   If a port number of `0` is given, the server will dynamically assign a port number
-  which can then be obtained via `local_info/1`
+  which can then be obtained via `sockname/1`
   * `transport_module`: The name of the module which provides basic socket functions.
   Thousand Island provides `ThousandIsland.Transports.TCP` and `ThousandIsland.Transports.SSL`,
   which provide clear and TLS encrypted TCP sockets respectively. If not specified this

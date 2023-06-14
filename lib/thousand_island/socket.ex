@@ -149,9 +149,9 @@ defmodule ThousandIsland.Socket do
   @doc """
   Returns information in the form of `t:ThousandIsland.Transport.socket_info()` about the local end of the socket.
   """
-  @spec local_info(t()) :: ThousandIsland.Transport.on_local_info()
-  def local_info(%__MODULE__{} = socket) do
-    socket.transport_module.local_info(socket.socket)
+  @spec sockname(t()) :: ThousandIsland.Transport.on_sockname()
+  def sockname(%__MODULE__{} = socket) do
+    socket.transport_module.sockname(socket.socket)
   end
 
   @doc """

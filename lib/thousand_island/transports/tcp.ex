@@ -118,8 +118,8 @@ defmodule ThousandIsland.Transports.TCP do
   defdelegate close(socket), to: :gen_tcp
 
   @impl ThousandIsland.Transport
-  @spec local_info(socket() | listener_socket()) :: ThousandIsland.Transport.on_local_info()
-  defdelegate local_info(socket), to: :inet, as: :sockname
+  @spec sockname(socket() | listener_socket()) :: ThousandIsland.Transport.on_sockname()
+  defdelegate sockname(socket), to: :inet, as: :sockname
 
   @impl ThousandIsland.Transport
   @spec peername(socket()) :: ThousandIsland.Transport.on_peername()

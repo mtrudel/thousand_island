@@ -76,8 +76,8 @@ defmodule ThousandIsland.Transport do
   @typedoc "The return value from a close/1 call"
   @type on_close() :: :ok | {:error, any()}
 
-  @typedoc "The return value from a local_info/1 call"
-  @type on_local_info() :: {:ok, socket_info()} | {:error, :inet.posix()}
+  @typedoc "The return value from a sockname/1 call"
+  @type on_sockname() :: {:ok, socket_info()} | {:error, :inet.posix()}
 
   @typedoc "The return value from a peername/1 call"
   @type on_peername() :: {:ok, socket_info()} | {:error, :inet.posix()}
@@ -161,7 +161,7 @@ defmodule ThousandIsland.Transport do
   @doc """
   Returns information in the form of `t:socket_info()` about the local end of the socket.
   """
-  @callback local_info(socket() | listener_socket()) :: on_local_info()
+  @callback sockname(socket() | listener_socket()) :: on_sockname()
 
   @doc """
   Returns information in the form of `t:socket_info()` about the remote end of the socket.
