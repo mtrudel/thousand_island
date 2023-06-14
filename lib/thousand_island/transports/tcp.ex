@@ -119,11 +119,11 @@ defmodule ThousandIsland.Transports.TCP do
 
   @impl ThousandIsland.Transport
   @spec sockname(socket() | listener_socket()) :: ThousandIsland.Transport.on_sockname()
-  defdelegate sockname(socket), to: :inet, as: :sockname
+  defdelegate sockname(socket), to: :inet
 
   @impl ThousandIsland.Transport
   @spec peername(socket()) :: ThousandIsland.Transport.on_peername()
-  defdelegate peername(socket), to: :inet, as: :peername
+  defdelegate peername(socket), to: :inet
 
   @impl ThousandIsland.Transport
   @spec peercert(socket()) :: {:error, :not_secure}

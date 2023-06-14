@@ -143,14 +143,14 @@ defmodule ThousandIsland.Transports.SSL do
 
   @impl ThousandIsland.Transport
   @spec sockname(socket() | listener_socket()) :: ThousandIsland.Transport.on_sockname()
-  defdelegate sockname(socket), to: :ssl, as: :sockname
+  defdelegate sockname(socket), to: :ssl
 
   # :ssl.peername/1's typespec is incorrect
   @dialyzer {:no_match, peername: 1}
 
   @impl ThousandIsland.Transport
   @spec peername(socket()) :: ThousandIsland.Transport.on_peername()
-  defdelegate peername(socket), to: :ssl, as: :peername
+  defdelegate peername(socket), to: :ssl
 
   @impl ThousandIsland.Transport
   @spec peercert(socket()) :: ThousandIsland.Transport.on_peercert()

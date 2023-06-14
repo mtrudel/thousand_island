@@ -326,7 +326,17 @@ defmodule ThousandIsland.Handler do
             {:thousand_island_ready, raw_socket, server_config, acceptor_span, start_time},
             {nil, state}
           ) do
-        {:ok, {ip, port}} = server_config.transport_module.peername(raw_socket)
+        socket = ThousandIsland.Socket.new(raw_socket, server_config)
+
+        {ip, port} =
+          case ThousandIsland.Socket.peername(socket) do
+            {:ok, remote_info} ->
+              remote_info
+
+            {:error, reason} ->
+              throw({:stop, {:shutdown, {:peername, reason}}, {socket, state}})
+          end
+
         span_meta = %{remote_address: ip, remote_port: port}
 
         connection_span =
@@ -337,22 +347,23 @@ defmodule ThousandIsland.Handler do
             span_meta
           )
 
-        socket = ThousandIsland.Socket.new(raw_socket, server_config, connection_span)
-
+        socket = ThousandIsland.Socket.attach_span(socket, connection_span)
         ThousandIsland.Telemetry.span_event(connection_span, :ready)
 
         case ThousandIsland.Socket.handshake(socket) do
           {:ok, socket} -> {:noreply, {socket, state}, {:continue, :handle_connection}}
           {:error, reason} -> {:stop, {:shutdown, {:handshake, reason}}, {socket, state}}
         end
+      catch
+        {:stop, _, _} = stop -> stop
       end
 
       def handle_info(
             {msg, raw_socket, data},
-            {%ThousandIsland.Socket{socket: raw_socket} = socket, state}
+            {%ThousandIsland.Socket{socket: raw_socket, span: span} = socket, state}
           )
           when msg in [:tcp, :ssl] do
-        ThousandIsland.Telemetry.untimed_span_event(socket.span, :async_recv, %{data: data})
+        ThousandIsland.Telemetry.untimed_span_event(span, :async_recv, %{data: data})
 
         __MODULE__.handle_data(data, socket, state)
         |> handle_continuation(socket)
@@ -411,6 +422,12 @@ defmodule ThousandIsland.Handler do
         do_socket_close(socket, :shutdown)
       end
 
+      # Called if the remote end closed the connection before we could initialize it
+      def terminate({:shutdown, {:peername, reason}}, {socket, state}) do
+        __MODULE__.handle_error(reason, socket, state)
+        do_socket_close(socket, reason)
+      end
+
       # Called if the socket encountered an error during handshaking
       def terminate({:shutdown, {:handshake, reason}}, {socket, state}) do
         __MODULE__.handle_error(reason, socket, state)
@@ -434,7 +451,7 @@ defmodule ThousandIsland.Handler do
               ThousandIsland.Socket.t(),
               reason :: :shutdown | :local_closed | term()
             ) :: :ok
-      defp do_socket_close(socket, reason) do
+      defp do_socket_close(%ThousandIsland.Socket{span: span} = socket, reason) do
         measurements =
           case ThousandIsland.Socket.getstat(socket) do
             {:ok, stats} ->
@@ -449,7 +466,10 @@ defmodule ThousandIsland.Handler do
         metadata = if reason in [:shutdown, :local_closed], do: %{}, else: %{error: reason}
 
         ThousandIsland.Socket.close(socket)
-        ThousandIsland.Telemetry.stop_span(socket.span, measurements, metadata)
+
+        if not is_nil(span) do
+          ThousandIsland.Telemetry.stop_span(span, measurements, metadata)
+        end
       end
 
       # Dialyzer gets confused by handle_continuation being a defp and not a def
