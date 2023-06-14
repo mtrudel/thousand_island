@@ -126,6 +126,10 @@ defmodule ThousandIsland.Transports.TCP do
   defdelegate peername(socket), to: :inet, as: :peername
 
   @impl ThousandIsland.Transport
+  @spec peercert(socket()) :: {:error, :not_secure}
+  def peercert(_socket), do: {:error, :not_secure}
+
+  @impl ThousandIsland.Transport
   @spec secure?() :: false
   def secure?, do: false
 

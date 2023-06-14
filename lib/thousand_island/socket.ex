@@ -163,6 +163,14 @@ defmodule ThousandIsland.Socket do
   end
 
   @doc """
+  Returns information in the form of `t:public_key.der_encoded()` about the peer certificate of the socket.
+  """
+  @spec peercert(t()) :: ThousandIsland.Transport.on_peercert()
+  def peercert(%__MODULE__{} = socket) do
+    socket.transport_module.peercert(socket.socket)
+  end
+
+  @doc """
   Returns whether or not this protocol is secure.
   """
   @spec secure?(t()) :: boolean()

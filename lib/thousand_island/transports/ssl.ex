@@ -153,6 +153,10 @@ defmodule ThousandIsland.Transports.SSL do
   defdelegate peername(socket), to: :ssl, as: :peername
 
   @impl ThousandIsland.Transport
+  @spec peercert(socket()) :: ThousandIsland.Transport.on_peercert()
+  defdelegate peercert(socket), to: :ssl
+
+  @impl ThousandIsland.Transport
   @spec secure?() :: true
   def secure?, do: true
 

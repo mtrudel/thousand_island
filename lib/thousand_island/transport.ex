@@ -82,6 +82,9 @@ defmodule ThousandIsland.Transport do
   @typedoc "The return value from a peername/1 call"
   @type on_peername() :: {:ok, socket_info()} | {:error, :inet.posix()}
 
+  @typedoc "The return value from a peercert/1 call"
+  @type on_peercert() :: {:ok, :public_key.der_encoded()} | {:error, reason :: any()}
+
   @typedoc "The return value from a negotiated_protocol/1 call"
   @type on_negotiated_protocol() ::
           {:ok, binary()} | {:error, :protocol_not_negotiated | :closed}
@@ -167,6 +170,12 @@ defmodule ThousandIsland.Transport do
   Returns information in the form of `t:socket_info()` about the remote end of the socket.
   """
   @callback peername(socket()) :: on_peername()
+
+  @doc """
+  Returns the peer certificate for the given socket in the form of `t:public_key.der_encoded()`.
+  If the socket is not secure, `{:error, :not_secure}` is returned.
+  """
+  @callback peercert(socket()) :: on_peercert()
 
   @doc """
   Returns whether or not this protocol is secure.
