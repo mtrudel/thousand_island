@@ -465,11 +465,13 @@ defmodule ThousandIsland.Handler do
 
         metadata = if reason in [:shutdown, :local_closed], do: %{}, else: %{error: reason}
 
-        ThousandIsland.Socket.close(socket)
+        _ = ThousandIsland.Socket.close(socket)
 
         if not is_nil(span) do
-          ThousandIsland.Telemetry.stop_span(span, measurements, metadata)
+          _ = ThousandIsland.Telemetry.stop_span(span, measurements, metadata)
         end
+
+        :ok
       end
 
       # Dialyzer gets confused by handle_continuation being a defp and not a def
