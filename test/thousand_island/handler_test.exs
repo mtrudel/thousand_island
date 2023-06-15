@@ -58,7 +58,7 @@ defmodule ThousandIsland.HandlerTest do
     test "it should keep the connection open if {:continue, state} is returned" do
       {:ok, port} = start_handler(HandleConnection.HelloWorld)
       {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
-      assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+      assert :gen_tcp.recv(client, 0) == {:ok, ~c"HELLO"}
       assert :gen_tcp.recv(client, 0, 100) == {:error, :timeout}
     end
 
@@ -153,7 +153,7 @@ defmodule ThousandIsland.HandlerTest do
       {:ok, port} = start_handler(HandleData.HelloWorld)
       {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
       :gen_tcp.send(client, "ping")
-      assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+      assert :gen_tcp.recv(client, 0) == {:ok, ~c"HELLO"}
       assert :gen_tcp.recv(client, 0, 100) == {:error, :timeout}
     end
 

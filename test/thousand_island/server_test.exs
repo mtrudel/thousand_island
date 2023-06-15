@@ -71,8 +71,8 @@ defmodule ThousandIsland.ServerTest do
     :ok = :gen_tcp.send(other_client, "BONJOUR")
 
     # Invert the order to ensure we handle concurrently
-    assert :gen_tcp.recv(other_client, 0) == {:ok, 'BONJOUR'}
-    assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+    assert :gen_tcp.recv(other_client, 0) == {:ok, ~c"BONJOUR"}
+    assert :gen_tcp.recv(client, 0) == {:ok, ~c"HELLO"}
 
     :gen_tcp.close(client)
     :gen_tcp.close(other_client)
@@ -92,7 +92,7 @@ defmodule ThousandIsland.ServerTest do
 
       # Ensure that we haven't received anything on the second connection yet
       assert :gen_tcp.recv(other_client, 0, 10) == {:error, :timeout}
-      assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+      assert :gen_tcp.recv(client, 0) == {:ok, ~c"HELLO"}
 
       # Close our first connection to make room for the second to be accepted
       :gen_tcp.close(client)
@@ -101,7 +101,7 @@ defmodule ThousandIsland.ServerTest do
       Process.sleep(100)
 
       # Ensure that the second connection unblocked
-      assert :gen_tcp.recv(other_client, 0) == {:ok, 'BONJOUR'}
+      assert :gen_tcp.recv(other_client, 0) == {:ok, ~c"BONJOUR"}
       :gen_tcp.close(other_client)
     end
 
@@ -124,14 +124,14 @@ defmodule ThousandIsland.ServerTest do
 
       # Ensure that we haven't received anything on the second connection yet
       assert :gen_tcp.recv(other_client, 0, 10) == {:error, :timeout}
-      assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+      assert :gen_tcp.recv(client, 0) == {:ok, ~c"HELLO"}
 
       # Give things enough time for the second connection to time out
       Process.sleep(500)
 
       # Ensure that the first connection is still open and the second connection closed
       :ok = :gen_tcp.send(client, "HELLO")
-      assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+      assert :gen_tcp.recv(client, 0) == {:ok, ~c"HELLO"}
       assert :gen_tcp.recv(other_client, 0) == {:error, :closed}
       :gen_tcp.close(other_client)
     end
@@ -204,7 +204,7 @@ defmodule ThousandIsland.ServerTest do
       assert :gen_tcp.connect(:localhost, port, [active: false], 100) == {:error, :econnrefused}
 
       :ok = :gen_tcp.send(client, "HELLO")
-      assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+      assert :gen_tcp.recv(client, 0) == {:ok, ~c"HELLO"}
       :gen_tcp.close(client)
 
       Task.await(task)
@@ -222,7 +222,7 @@ defmodule ThousandIsland.ServerTest do
       # Make sure that the stop has had a chance to shutdown the acceptors
       Process.sleep(100)
 
-      assert :gen_tcp.recv(client, 0) == {:ok, 'GOODBYE'}
+      assert :gen_tcp.recv(client, 0) == {:ok, ~c"GOODBYE"}
       :gen_tcp.close(client)
 
       Task.await(task)
@@ -241,7 +241,7 @@ defmodule ThousandIsland.ServerTest do
       Process.sleep(100)
       assert Process.alive?(server_pid)
       :gen_tcp.send(client, "HELLO")
-      assert :gen_tcp.recv(client, 0) == {:ok, 'HELLO'}
+      assert :gen_tcp.recv(client, 0) == {:ok, ~c"HELLO"}
 
       # Make sure that the stop finished by shutdown_timeout
       Process.sleep(500)
@@ -314,7 +314,7 @@ defmodule ThousandIsland.ServerTest do
       {:ok, %{port: port}} = ThousandIsland.listener_info(server_pid)
 
       {:error, _} =
-        :ssl.connect('localhost', port,
+        :ssl.connect(~c"localhost", port,
           active: false,
           verify: :verify_peer,
           cacertfile: Path.join(__DIR__, "../support/ca.pem")
@@ -343,7 +343,7 @@ defmodule ThousandIsland.ServerTest do
       {:ok, %{port: port}} = ThousandIsland.listener_info(server_pid)
 
       {:error, _} =
-        :ssl.connect('localhost', port,
+        :ssl.connect(~c"localhost", port,
           active: false,
           verify: :verify_peer,
           cacertfile: Path.join(__DIR__, "../support/ca.pem"),
