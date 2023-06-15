@@ -84,22 +84,22 @@ defmodule ThousandIsland.SocketTest do
 
       test "should send and receive", context do
         {:ok, port} = start_handler(Echo, context.server_opts)
-        {:ok, client} = context.client_mod.connect('localhost', port, context.client_opts)
+        {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
 
         assert context.client_mod.send(client, "HELLO") == :ok
-        assert context.client_mod.recv(client, 0) == {:ok, 'HELLO'}
+        assert context.client_mod.recv(client, 0) == {:ok, ~c"HELLO"}
       end
 
       test "it should send files", context do
         {:ok, port} = start_handler(Sendfile, context.server_opts)
-        {:ok, client} = context.client_mod.connect('localhost', port, context.client_opts)
+        {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
 
-        assert context.client_mod.recv(client, 9) == {:ok, 'ABCDEFBCD'}
+        assert context.client_mod.recv(client, 9) == {:ok, ~c"ABCDEFBCD"}
       end
 
       test "it should close connections", context do
         {:ok, port} = start_handler(Closer, context.server_opts)
-        {:ok, client} = context.client_mod.connect('localhost', port, context.client_opts)
+        {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
 
         assert context.client_mod.recv(client, 0) == {:error, :closed}
       end
@@ -115,10 +115,10 @@ defmodule ThousandIsland.SocketTest do
           )
 
         {:ok, port} = start_handler(Echo, context.server_opts)
-        {:ok, client} = context.client_mod.connect('localhost', port, context.client_opts)
+        {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
 
         :ok = context.client_mod.send(client, "HELLO")
-        {:ok, 'HELLO'} = context.client_mod.recv(client, 0)
+        {:ok, ~c"HELLO"} = context.client_mod.recv(client, 0)
         context.client_mod.close(client)
 
         # Give the server process a chance to shut down
@@ -140,7 +140,7 @@ defmodule ThousandIsland.SocketTest do
 
     test "it should provide correct connection info", context do
       {:ok, port} = start_handler(Info, context.server_opts)
-      {:ok, client} = context.client_mod.connect('localhost', port, context.client_opts)
+      {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
       {:ok, resp} = context.client_mod.recv(client, 0)
       {:ok, local_port} = :inet.port(client)
 
@@ -163,7 +163,7 @@ defmodule ThousandIsland.SocketTest do
       {:ok, port} = start_handler(Info, context.server_opts)
 
       {:ok, client} =
-        context.client_mod.connect('localhost', port,
+        context.client_mod.connect(~c"localhost", port,
           active: false,
           verify: :verify_peer,
           cacertfile: Path.join(__DIR__, "../support/ca.pem"),
