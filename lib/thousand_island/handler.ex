@@ -361,10 +361,10 @@ defmodule ThousandIsland.Handler do
 
       def handle_info(
             {msg, raw_socket, data},
-            {%ThousandIsland.Socket{socket: raw_socket, span: span} = socket, state}
+            {%ThousandIsland.Socket{socket: raw_socket} = socket, state}
           )
           when msg in [:tcp, :ssl] do
-        ThousandIsland.Telemetry.untimed_span_event(span, :async_recv, %{data: data})
+        ThousandIsland.Telemetry.untimed_span_event(socket.span, :async_recv, %{data: data})
 
         __MODULE__.handle_data(data, socket, state)
         |> handle_continuation(socket)
@@ -451,7 +451,7 @@ defmodule ThousandIsland.Handler do
               ThousandIsland.Socket.t(),
               reason :: :shutdown | :local_closed | term()
             ) :: :ok
-      defp do_socket_close(%ThousandIsland.Socket{span: span} = socket, reason) do
+      defp do_socket_close(socket, reason) do
         measurements =
           case ThousandIsland.Socket.getstat(socket) do
             {:ok, stats} ->
@@ -466,7 +466,7 @@ defmodule ThousandIsland.Handler do
         metadata = if reason in [:shutdown, :local_closed], do: %{}, else: %{error: reason}
 
         _ = ThousandIsland.Socket.close(socket)
-        ThousandIsland.Telemetry.stop_span(span, measurements, metadata)
+        ThousandIsland.Telemetry.stop_span(socket.span, measurements, metadata)
       end
 
       # Dialyzer gets confused by handle_continuation being a defp and not a def
