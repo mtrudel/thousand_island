@@ -1,5 +1,18 @@
 # Changelog for 0.6.x
 
+## 1.0.0-pre.5 (16 Jun 2023)
+
+### Changes
+
+* **BREAKING CHANGE** Refactor socket informational functions to mirror the
+  underlying `:gen_tcp` and `:ssl` APIs (#76, thanks @asakura!). Details:
+    * Add `ThousandIsland.Socket.sockname/1`
+    * Add `ThousandIsland.Socket.peername/1`
+    * Add `ThousandIsland.Socket.peercert/1`
+    * Remove `ThousandIsland.Socket.local_info/1`
+    * Remove `ThousandIsland.Socket.peer_info/1`
+* Refactor telemetry (#65 thanks @asakura!)
+
 ## 1.0.0-pre.4 (13 Jun 2023)
 
 ### Enhancements
