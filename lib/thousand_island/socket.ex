@@ -21,18 +21,11 @@ defmodule ThousandIsland.Socket do
           ThousandIsland.ServerConfig.t(),
           ThousandIsland.Telemetry.t()
         ) :: t()
-  def new(
-        raw_socket,
-        %ThousandIsland.ServerConfig{
-          transport_module: transport_module,
-          read_timeout: read_timeout
-        },
-        span
-      ) do
+  def new(raw_socket, server_config, span) do
     %__MODULE__{
       socket: raw_socket,
-      transport_module: transport_module,
-      read_timeout: read_timeout,
+      transport_module: server_config.transport_module,
+      read_timeout: server_config.read_timeout,
       span: span
     }
   end

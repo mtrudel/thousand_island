@@ -323,20 +323,18 @@ defmodule ThousandIsland.Handler do
 
       @impl GenServer
       def handle_info(
-            {:thousand_island_ready, raw_socket,
-             %ThousandIsland.ServerConfig{transport_module: transport_module} = server_config,
-             acceptor_span, start_time},
+            {:thousand_island_ready, raw_socket, server_config, acceptor_span, start_time},
             {nil, state}
           ) do
         {ip, port} =
-          case transport_module.peername(raw_socket) do
+          case server_config.transport_module.peername(raw_socket) do
             {:ok, remote_info} ->
               remote_info
 
             {:error, reason} ->
               # the socket has been prematurely closed by the client, we can't do anything with it
               # so we just close the socket, stop the GenServer with the error reason and move on.
-              _ = transport_module.close(raw_socket)
+              _ = server_config.transport_module.close(raw_socket)
               throw({:stop, {:shutdown, {:premature_conn_closing, reason}}, {raw_socket, state}})
           end
 
