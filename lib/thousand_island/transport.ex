@@ -19,11 +19,8 @@ defmodule ThousandIsland.Transport do
   @type socket() :: :inet.socket() | :ssl.sslsocket()
 
   @typedoc "Information about an endpoint (either remote ('peer') or local"
-  @type socket_info() :: %{
-          address: address(),
-          port: :inet.port_number(),
-          ssl_cert: String.t() | nil
-        }
+  @type socket_info() ::
+          {:inet.ip_address(), :inet.port_number()} | :inet.returned_non_ip_address()
 
   @typedoc "A socket address"
   @type address ::
@@ -79,11 +76,14 @@ defmodule ThousandIsland.Transport do
   @typedoc "The return value from a close/1 call"
   @type on_close() :: :ok | {:error, any()}
 
-  @typedoc "The return value from a local_info/1 call"
-  @type on_local_info() :: socket_info() | {:error, :inet.posix()}
+  @typedoc "The return value from a sockname/1 call"
+  @type on_sockname() :: {:ok, socket_info()} | {:error, :inet.posix()}
 
-  @typedoc "The return value from a peer_info/1 call"
-  @type on_peer_info() :: socket_info() | {:error, :inet.posix()}
+  @typedoc "The return value from a peername/1 call"
+  @type on_peername() :: {:ok, socket_info()} | {:error, :inet.posix()}
+
+  @typedoc "The return value from a peercert/1 call"
+  @type on_peercert() :: {:ok, :public_key.der_encoded()} | {:error, reason :: any()}
 
   @typedoc "The return value from a negotiated_protocol/1 call"
   @type on_negotiated_protocol() ::
@@ -164,12 +164,18 @@ defmodule ThousandIsland.Transport do
   @doc """
   Returns information in the form of `t:socket_info()` about the local end of the socket.
   """
-  @callback local_info(socket() | listener_socket()) :: on_local_info()
+  @callback sockname(socket() | listener_socket()) :: on_sockname()
 
   @doc """
   Returns information in the form of `t:socket_info()` about the remote end of the socket.
   """
-  @callback peer_info(socket()) :: on_peer_info()
+  @callback peername(socket()) :: on_peername()
+
+  @doc """
+  Returns the peer certificate for the given socket in the form of `t:public_key.der_encoded()`.
+  If the socket is not secure, `{:error, :not_secure}` is returned.
+  """
+  @callback peercert(socket()) :: on_peercert()
 
   @doc """
   Returns whether or not this protocol is secure.

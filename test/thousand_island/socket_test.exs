@@ -64,8 +64,8 @@ defmodule ThousandIsland.SocketTest do
 
     @impl ThousandIsland.Handler
     def handle_connection(socket, state) do
-      peer_info = ThousandIsland.Socket.peer_info(socket)
-      local_info = ThousandIsland.Socket.local_info(socket)
+      {:ok, peer_info} = ThousandIsland.Socket.peername(socket)
+      {:ok, local_info} = ThousandIsland.Socket.sockname(socket)
       negotiated_protocol = ThousandIsland.Socket.negotiated_protocol(socket)
 
       ThousandIsland.Socket.send(
@@ -145,8 +145,8 @@ defmodule ThousandIsland.SocketTest do
       {:ok, local_port} = :inet.port(client)
 
       expected = [
-        %{address: {127, 0, 0, 1}, port: port, ssl_cert: nil},
-        %{address: {127, 0, 0, 1}, port: local_port, ssl_cert: nil},
+        {{127, 0, 0, 1}, port},
+        {{127, 0, 0, 1}, local_port},
         {:error, :protocol_not_negotiated}
       ]
 
@@ -174,8 +174,8 @@ defmodule ThousandIsland.SocketTest do
       {:ok, resp} = context.client_mod.recv(client, 0)
 
       expected = [
-        %{address: {127, 0, 0, 1}, port: port, ssl_cert: nil},
-        %{address: {127, 0, 0, 1}, port: local_port, ssl_cert: nil},
+        {{127, 0, 0, 1}, port},
+        {{127, 0, 0, 1}, local_port},
         {:ok, "foo"}
       ]
 
@@ -188,7 +188,7 @@ defmodule ThousandIsland.SocketTest do
   defp start_handler(handler, server_args) do
     resolved_args = [port: 0, handler_module: handler] ++ server_args
     {:ok, server_pid} = start_supervised({ThousandIsland, resolved_args})
-    {:ok, %{port: port}} = ThousandIsland.listener_info(server_pid)
+    {:ok, {_ip, port}} = ThousandIsland.listener_info(server_pid)
     {:ok, port}
   end
 end

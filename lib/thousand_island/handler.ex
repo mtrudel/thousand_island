@@ -115,7 +115,7 @@ defmodule ThousandIsland.Handler do
   Please note that you should not pass the `name` `t:GenServer.option/0`. If you need to register handler processes for
   later lookup and use, you should perform process registration in `handle_connection/2`, ensuring the handler process is
   registered only after the underlying connection is established and you have access to the connection socket and metadata
-  via `ThousandIsland.Socket.peer_info/1`.
+  via `ThousandIsland.Socket.peername/1`.
 
   For example, using a custom process registry via `Registry`:
 
@@ -126,7 +126,7 @@ defmodule ThousandIsland.Handler do
 
     @impl ThousandIsland.Handler
     def handle_connection(socket, state) do
-      %{address: address} = ThousandIsland.Socket.peer_info(socket)
+      {:ok, {ip, port}} = ThousandIsland.Socket.peername(socket)
       {:ok, _pid} = Registry.register(MessengerRegistry, {state[:my_key], address}, nil)
       {:continue, state}
     end
@@ -326,8 +326,19 @@ defmodule ThousandIsland.Handler do
             {:thousand_island_ready, raw_socket, server_config, acceptor_span, start_time},
             {nil, state}
           ) do
-        peer_info = server_config.transport_module.peer_info(raw_socket)
-        span_meta = %{remote_address: peer_info.address, remote_port: peer_info.port}
+        {ip, port} =
+          case server_config.transport_module.peername(raw_socket) do
+            {:ok, remote_info} ->
+              remote_info
+
+            {:error, reason} ->
+              # the socket has been prematurely closed by the client, we can't do anything with it
+              # so we just close the socket, stop the GenServer with the error reason and move on.
+              _ = server_config.transport_module.close(raw_socket)
+              throw({:stop, {:shutdown, {:premature_conn_closing, reason}}, {raw_socket, state}})
+          end
+
+        span_meta = %{remote_address: ip, remote_port: port}
 
         connection_span =
           ThousandIsland.Telemetry.start_child_span(
@@ -338,13 +349,14 @@ defmodule ThousandIsland.Handler do
           )
 
         socket = ThousandIsland.Socket.new(raw_socket, server_config, connection_span)
-
         ThousandIsland.Telemetry.span_event(connection_span, :ready)
 
         case ThousandIsland.Socket.handshake(socket) do
           {:ok, socket} -> {:noreply, {socket, state}, {:continue, :handle_connection}}
           {:error, reason} -> {:stop, {:shutdown, {:handshake, reason}}, {socket, state}}
         end
+      catch
+        {:stop, _, _} = stop -> stop
       end
 
       def handle_info(
@@ -424,6 +436,11 @@ defmodule ThousandIsland.Handler do
         do_socket_close(socket, reason)
       end
 
+      # Called if the remote end closed the connection before we could initialize it
+      def terminate({:shutdown, {:premature_conn_closing, _reason}}, {raw_socket, state}) do
+        state
+      end
+
       # Called if the socket encountered an error. Socket is closed
       def terminate(reason, {socket, state}) do
         __MODULE__.handle_error(reason, socket, state)
@@ -448,7 +465,7 @@ defmodule ThousandIsland.Handler do
 
         metadata = if reason in [:shutdown, :local_closed], do: %{}, else: %{error: reason}
 
-        ThousandIsland.Socket.close(socket)
+        _ = ThousandIsland.Socket.close(socket)
         ThousandIsland.Telemetry.stop_span(socket.span, measurements, metadata)
       end
 

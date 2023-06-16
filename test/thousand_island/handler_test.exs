@@ -619,7 +619,7 @@ defmodule ThousandIsland.HandlerTest do
   defp start_handler(handler, server_args \\ []) do
     resolved_args = [port: 0, handler_module: handler] ++ server_args
     {:ok, server_pid} = start_supervised({ThousandIsland, resolved_args})
-    {:ok, %{port: port}} = ThousandIsland.listener_info(server_pid)
+    {:ok, {_ip, port}} = ThousandIsland.listener_info(server_pid)
     {:ok, port}
   end
 end

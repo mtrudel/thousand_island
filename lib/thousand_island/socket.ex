@@ -4,10 +4,8 @@ defmodule ThousandIsland.Socket do
   read, write, and otherwise manipulate a connection from a client.
   """
 
-  defstruct socket: nil,
-            transport_module: nil,
-            read_timeout: nil,
-            span: nil
+  @enforce_keys [:socket, :transport_module, :read_timeout, :span]
+  defstruct @enforce_keys
 
   @typedoc "A reference to a socket along with metadata describing how to use it"
   @type t :: %__MODULE__{
@@ -22,11 +20,10 @@ defmodule ThousandIsland.Socket do
           ThousandIsland.Transport.socket(),
           ThousandIsland.ServerConfig.t(),
           ThousandIsland.Telemetry.t()
-        ) ::
-          t()
-  def new(socket, server_config, span) do
+        ) :: t()
+  def new(raw_socket, server_config, span) do
     %__MODULE__{
-      socket: socket,
+      socket: raw_socket,
       transport_module: server_config.transport_module,
       read_timeout: server_config.read_timeout,
       span: span
@@ -149,17 +146,25 @@ defmodule ThousandIsland.Socket do
   @doc """
   Returns information in the form of `t:ThousandIsland.Transport.socket_info()` about the local end of the socket.
   """
-  @spec local_info(t()) :: ThousandIsland.Transport.on_local_info()
-  def local_info(%__MODULE__{} = socket) do
-    socket.transport_module.local_info(socket.socket)
+  @spec sockname(t()) :: ThousandIsland.Transport.on_sockname()
+  def sockname(%__MODULE__{} = socket) do
+    socket.transport_module.sockname(socket.socket)
   end
 
   @doc """
   Returns information in the form of `t:ThousandIsland.Transport.socket_info()` about the remote end of the socket.
   """
-  @spec peer_info(t()) :: ThousandIsland.Transport.on_peer_info()
-  def peer_info(%__MODULE__{} = socket) do
-    socket.transport_module.peer_info(socket.socket)
+  @spec peername(t()) :: ThousandIsland.Transport.on_peername()
+  def peername(%__MODULE__{} = socket) do
+    socket.transport_module.peername(socket.socket)
+  end
+
+  @doc """
+  Returns information in the form of `t:public_key.der_encoded()` about the peer certificate of the socket.
+  """
+  @spec peercert(t()) :: ThousandIsland.Transport.on_peercert()
+  def peercert(%__MODULE__{} = socket) do
+    socket.transport_module.peercert(socket.socket)
   end
 
   @doc """

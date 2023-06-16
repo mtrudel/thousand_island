@@ -311,7 +311,7 @@ defmodule ThousandIsland.ServerTest do
       ]
 
       {:ok, server_pid} = start_supervised({ThousandIsland, server_args})
-      {:ok, %{port: port}} = ThousandIsland.listener_info(server_pid)
+      {:ok, {_ip, port}} = ThousandIsland.listener_info(server_pid)
 
       {:error, _} =
         :ssl.connect(~c"localhost", port,
@@ -340,7 +340,7 @@ defmodule ThousandIsland.ServerTest do
       ]
 
       {:ok, server_pid} = start_supervised({ThousandIsland, server_args})
-      {:ok, %{port: port}} = ThousandIsland.listener_info(server_pid)
+      {:ok, {_ip, port}} = ThousandIsland.listener_info(server_pid)
 
       {:error, _} =
         :ssl.connect(~c"localhost", port,
@@ -361,7 +361,7 @@ defmodule ThousandIsland.ServerTest do
   defp start_handler(handler, opts \\ []) do
     resolved_args = opts ++ [port: 0, handler_module: handler]
     {:ok, server_pid} = start_supervised({ThousandIsland, resolved_args})
-    {:ok, %{port: port}} = ThousandIsland.listener_info(server_pid)
+    {:ok, {_ip, port}} = ThousandIsland.listener_info(server_pid)
     {:ok, server_pid, port}
   end
 end

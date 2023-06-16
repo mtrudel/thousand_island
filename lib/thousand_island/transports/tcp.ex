@@ -15,10 +15,6 @@ defmodule ThousandIsland.Transports.TCP do
     * `:any` for all interfaces (i.e.: `0.0.0.0`)
     * `{:local, "/path/to/socket"}` for a Unix domain socket. If this option is used,
       the `port` option *must* be set to `0`
-    * `:unspec` family corresponds to AF_UNSPEC and can occur if the other side has
-      no socket address
-    * `{:undefined, any_term}` family can only occur in the unlikely event of an address
-      family that the VM does not recognise.
 
   Unless overridden, this module uses the following default options:
 
@@ -122,38 +118,16 @@ defmodule ThousandIsland.Transports.TCP do
   defdelegate close(socket), to: :gen_tcp
 
   @impl ThousandIsland.Transport
-  @spec local_info(socket() | listener_socket()) :: ThousandIsland.Transport.on_local_info()
-  def local_info(socket) do
-    case :inet.sockname(socket) do
-      {:ok, spec} ->
-        case spec do
-          {:local, path} -> %{address: {:local, path}, port: 0, ssl_cert: nil}
-          {:unspec, <<>>} -> %{address: :unspec, port: 0, ssl_cert: nil}
-          {:undefined, term} -> %{address: {:undefined, term}, port: 0, ssl_cert: nil}
-          {ip, port} -> %{address: ip, port: port, ssl_cert: nil}
-        end
-
-      err ->
-        err
-    end
-  end
+  @spec sockname(socket() | listener_socket()) :: ThousandIsland.Transport.on_sockname()
+  defdelegate sockname(socket), to: :inet
 
   @impl ThousandIsland.Transport
-  @spec peer_info(socket()) :: ThousandIsland.Transport.on_peer_info()
-  def peer_info(socket) do
-    case :inet.peername(socket) do
-      {:ok, spec} ->
-        case spec do
-          {:local, path} -> %{address: {:local, path}, port: 0, ssl_cert: nil}
-          {:unspec, <<>>} -> %{address: :unspec, port: 0, ssl_cert: nil}
-          {:undefined, term} -> %{address: {:undefined, term}, port: 0, ssl_cert: nil}
-          {ip, port} -> %{address: ip, port: port, ssl_cert: nil}
-        end
+  @spec peername(socket()) :: ThousandIsland.Transport.on_peername()
+  defdelegate peername(socket), to: :inet
 
-      err ->
-        err
-    end
-  end
+  @impl ThousandIsland.Transport
+  @spec peercert(socket()) :: {:error, :not_secure}
+  def peercert(_socket), do: {:error, :not_secure}
 
   @impl ThousandIsland.Transport
   @spec secure?() :: false

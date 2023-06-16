@@ -139,50 +139,22 @@ defmodule ThousandIsland.Transports.SSL do
   defdelegate close(socket), to: :ssl
 
   # :ssl.sockname/1's typespec is incorrect
-  @dialyzer {:no_match, local_info: 1}
+  @dialyzer {:no_match, sockname: 1}
 
   @impl ThousandIsland.Transport
-  @spec local_info(socket() | listener_socket()) :: ThousandIsland.Transport.on_local_info()
-  def local_info(socket) do
-    case :ssl.sockname(socket) do
-      {:ok, spec} ->
-        case spec do
-          {:local, path} -> %{address: {:local, path}, port: 0, ssl_cert: nil}
-          {:unspec, <<>>} -> %{address: :unspec, port: 0, ssl_cert: nil}
-          {:undefined, term} -> %{address: {:undefined, term}, port: 0, ssl_cert: nil}
-          {ip, port} -> %{address: ip, port: port, ssl_cert: nil}
-        end
-
-      err ->
-        err
-    end
-  end
+  @spec sockname(socket() | listener_socket()) :: ThousandIsland.Transport.on_sockname()
+  defdelegate sockname(socket), to: :ssl
 
   # :ssl.peername/1's typespec is incorrect
-  @dialyzer {:no_match, peer_info: 1}
+  @dialyzer {:no_match, peername: 1}
 
   @impl ThousandIsland.Transport
-  @spec peer_info(socket()) :: ThousandIsland.Transport.on_peer_info()
-  def peer_info(socket) do
-    cert =
-      case :ssl.peercert(socket) do
-        {:ok, cert} -> cert
-        {:error, _} -> nil
-      end
+  @spec peername(socket()) :: ThousandIsland.Transport.on_peername()
+  defdelegate peername(socket), to: :ssl
 
-    case :ssl.peername(socket) do
-      {:ok, spec} ->
-        case spec do
-          {:local, path} -> %{address: {:local, path}, port: 0, ssl_cert: cert}
-          {:unspec, <<>>} -> %{address: :unspec, port: 0, ssl_cert: cert}
-          {:undefined, term} -> %{address: {:undefined, term}, port: 0, ssl_cert: cert}
-          {ip, port} -> %{address: ip, port: port, ssl_cert: cert}
-        end
-
-      err ->
-        err
-    end
-  end
+  @impl ThousandIsland.Transport
+  @spec peercert(socket()) :: ThousandIsland.Transport.on_peercert()
+  defdelegate peercert(socket), to: :ssl
 
   @impl ThousandIsland.Transport
   @spec secure?() :: true

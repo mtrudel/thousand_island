@@ -25,25 +25,25 @@ defmodule ThousandIsland.Listener do
   @impl GenServer
   @spec init(ThousandIsland.ServerConfig.t()) :: {:ok, state} | {:stop, reason :: term}
   def init(%ThousandIsland.ServerConfig{} = server_config) do
-    case server_config.transport_module.listen(
-           server_config.port,
-           server_config.transport_options
-         ) do
-      {:ok, listener_socket} ->
-        local_info = server_config.transport_module.local_info(listener_socket)
+    with {:ok, listener_socket} <-
+           server_config.transport_module.listen(
+             server_config.port,
+             server_config.transport_options
+           ),
+         {:ok, {ip, port}} <-
+           server_config.transport_module.sockname(listener_socket) do
+      span_meta = %{
+        local_address: ip,
+        local_port: port,
+        transport_module: server_config.transport_module,
+        transport_options: server_config.transport_options
+      }
 
-        span_meta = %{
-          local_address: local_info.address,
-          local_port: local_info.port,
-          transport_module: server_config.transport_module,
-          transport_options: server_config.transport_options
-        }
+      listener_span = ThousandIsland.Telemetry.start_span(:listener, %{}, span_meta)
 
-        listener_span = ThousandIsland.Telemetry.start_span(:listener, %{}, span_meta)
-
-        {:ok,
-         %{listener_socket: listener_socket, local_info: local_info, listener_span: listener_span}}
-
+      {:ok,
+       %{listener_socket: listener_socket, local_info: {ip, port}, listener_span: listener_span}}
+    else
       {:error, reason} ->
         {:stop, reason}
     end
@@ -53,7 +53,7 @@ defmodule ThousandIsland.Listener do
   @spec handle_call(:listener_info | :acceptor_info, any, state) ::
           {:reply,
            ThousandIsland.Transport.socket_info()
-           | {ThousandIsland.Transport.socket_info(), ThousandIsland.Telemetry.t()}, state}
+           | {ThousandIsland.Transport.listener_socket(), ThousandIsland.Telemetry.t()}, state}
   def handle_call(:listener_info, _from, state), do: {:reply, state.local_info, state}
 
   def handle_call(:acceptor_info, _from, state),
