@@ -4,33 +4,37 @@ defmodule ThousandIsland.Socket do
   read, write, and otherwise manipulate a connection from a client.
   """
 
-  @enforce_keys [:socket, :transport_module, :read_timeout]
-  defstruct @enforce_keys ++ [:span]
+  @enforce_keys [:socket, :transport_module, :read_timeout, :span]
+  defstruct @enforce_keys
 
   @typedoc "A reference to a socket along with metadata describing how to use it"
   @type t :: %__MODULE__{
           socket: ThousandIsland.Transport.socket(),
           transport_module: module(),
           read_timeout: timeout(),
-          span: nil | ThousandIsland.Telemetry.t()
+          span: ThousandIsland.Telemetry.t()
         }
 
   @doc false
-  @spec new(ThousandIsland.Transport.socket(), ThousandIsland.ServerConfig.t()) :: t()
-  def new(socket, server_config) do
+  @spec new(
+          ThousandIsland.Transport.socket(),
+          ThousandIsland.ServerConfig.t(),
+          ThousandIsland.Telemetry.t()
+        ) :: t()
+  def new(
+        raw_socket,
+        %ThousandIsland.ServerConfig{
+          transport_module: transport_module,
+          read_timeout: read_timeout
+        },
+        span
+      ) do
     %__MODULE__{
-      socket: socket,
-      transport_module: server_config.transport_module,
-      read_timeout: server_config.read_timeout
+      socket: raw_socket,
+      transport_module: transport_module,
+      read_timeout: read_timeout,
+      span: span
     }
-  end
-
-  @doc """
-  Attaches Telemetry's span to the socket.
-  """
-  @spec attach_span(t(), ThousandIsland.Telemetry.t()) :: t()
-  def attach_span(%__MODULE__{span: nil} = socket, span) do
-    %__MODULE__{socket | span: span}
   end
 
   @doc """
