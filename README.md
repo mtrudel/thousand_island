@@ -1,4 +1,5 @@
-[![Thousand Island](https://github.com/mtrudel/thousand_island/raw/main/assets/readme_logo.png)](https://github.com/mtrudel/thousand_island)
+![Thousand Island](https://github.com/mtrudel/thousand_island/raw/main/assets/readme_logo.png#gh-light-mode-only)
+![Thousand Island](https://github.com/mtrudel/thousand_island/raw/main/assets/readme_logo-white.png#gh-dark-mode-only)
 
 [![Build Status](https://github.com/mtrudel/thousand_island/workflows/Elixir%20CI/badge.svg)](https://github.com/mtrudel/thousand_island/actions)
 [![Docs](https://img.shields.io/badge/api-docs-green.svg?style=flat)](https://hexdocs.pm/thousand_island)
