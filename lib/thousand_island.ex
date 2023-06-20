@@ -219,7 +219,7 @@ defmodule ThousandIsland do
 
   Note that if you do not explicitly set a port (or if you set port to `0`), then the server will
   bind to a different port when you resume it. This new port can be obtained as usual via the
-  `listener_info/1` function. This is not a concern if you explcitly set a port value when first
+  `listener_info/1` function. This is not a concern if you explicitly set a port value when first
   instantiating the server
   """
   defdelegate suspend(supervisor), to: ThousandIsland.Server
