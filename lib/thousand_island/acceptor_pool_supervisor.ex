@@ -18,6 +18,24 @@ defmodule ThousandIsland.AcceptorPoolSupervisor do
     end)
   end
 
+  @spec suspend(Supervisor.supervisor()) :: :ok | :error
+  def suspend(pid) do
+    pid
+    |> acceptor_supervisor_pids()
+    |> Enum.map(&ThousandIsland.AcceptorSupervisor.suspend/1)
+    |> Enum.all?(&(&1 == :ok))
+    |> if(do: :ok, else: :error)
+  end
+
+  @spec resume(Supervisor.supervisor()) :: :ok | :error
+  def resume(pid) do
+    pid
+    |> acceptor_supervisor_pids()
+    |> Enum.map(&ThousandIsland.AcceptorSupervisor.resume/1)
+    |> Enum.all?(&(&1 == :ok))
+    |> if(do: :ok, else: :error)
+  end
+
   @impl Supervisor
   @spec init({server_pid :: pid, ThousandIsland.ServerConfig.t()}) ::
           {:ok,

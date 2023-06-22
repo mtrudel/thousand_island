@@ -21,6 +21,23 @@ defmodule ThousandIsland.AcceptorSupervisor do
     end)
   end
 
+  @spec suspend(Supervisor.supervisor()) :: :ok | :error
+  def suspend(pid) do
+    case Supervisor.terminate_child(pid, :acceptor) do
+      :ok -> :ok
+      {:error, :not_found} -> :error
+    end
+  end
+
+  @spec resume(Supervisor.supervisor()) :: :ok | :error
+  def resume(pid) do
+    case Supervisor.restart_child(pid, :acceptor) do
+      {:ok, _child} -> :ok
+      {:error, reason} when reason in [:running, :restarting] -> :ok
+      {:error, _reason} -> :error
+    end
+  end
+
   @impl Supervisor
   @spec init({server_pid :: pid, ThousandIsland.ServerConfig.t()}) ::
           {:ok,
@@ -31,6 +48,7 @@ defmodule ThousandIsland.AcceptorSupervisor do
       {DynamicSupervisor, strategy: :one_for_one, max_children: config.num_connections}
       |> Supervisor.child_spec(id: :connection_sup),
       {ThousandIsland.Acceptor, {server_pid, self(), config}}
+      |> Supervisor.child_spec(id: :acceptor)
     ]
 
     Supervisor.init(children, strategy: :rest_for_one)

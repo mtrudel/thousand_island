@@ -190,6 +190,39 @@ defmodule ThousandIsland.ServerTest do
     assert {:ok, []} == ThousandIsland.connection_pids(server_pid)
   end
 
+  describe "suspend / reume" do
+    test "suspend should stop accepting connections but keep existing ones open" do
+      {:ok, server_pid, port} = start_handler(LongEcho, port: 9999)
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      # Make sure the socket has transitioned ownership to the connection process
+      Process.sleep(100)
+
+      :ok = ThousandIsland.suspend(server_pid)
+
+      # New connections should fail
+      assert :gen_tcp.connect(:localhost, port, [active: false], 100) == {:error, :econnrefused}
+
+      # But existing ones should still be open
+      :ok = :gen_tcp.send(client, "HELLO")
+      assert :gen_tcp.recv(client, 0) == {:ok, ~c"HELLO"}
+
+      # Now we resume the server
+      :ok = ThousandIsland.resume(server_pid)
+
+      # New connections should succeed
+      {:ok, new_client} = :gen_tcp.connect(:localhost, port, active: false)
+      :ok = :gen_tcp.send(new_client, "HELLO")
+      assert :gen_tcp.recv(new_client, 0) == {:ok, ~c"HELLO"}
+      :gen_tcp.close(new_client)
+
+      # And existing ones should still be open
+      :ok = :gen_tcp.send(client, "HELLO")
+      assert :gen_tcp.recv(client, 0) == {:ok, ~c"HELLO"}
+      :gen_tcp.close(client)
+    end
+  end
+
   describe "shutdown" do
     test "it should stop accepting connections but allow existing ones to complete" do
       {:ok, server_pid, port} = start_handler(Echo)
@@ -218,6 +251,28 @@ defmodule ThousandIsland.ServerTest do
 
       # Make sure the socket has transitioned ownership to the connection process
       Process.sleep(100)
+      task = Task.async(fn -> ThousandIsland.stop(server_pid) end)
+      # Make sure that the stop has had a chance to shutdown the acceptors
+      Process.sleep(100)
+
+      assert :gen_tcp.recv(client, 0) == {:ok, ~c"GOODBYE"}
+      :gen_tcp.close(client)
+
+      Task.await(task)
+
+      refute Process.alive?(server_pid)
+    end
+
+    test "it should still work after a suspend / resume cycle" do
+      {:ok, server_pid, port} = start_handler(Goodbye)
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      # Make sure the socket has transitioned ownership to the connection process
+      Process.sleep(100)
+
+      :ok = ThousandIsland.suspend(server_pid)
+      :ok = ThousandIsland.resume(server_pid)
+
       task = Task.async(fn -> ThousandIsland.stop(server_pid) end)
       # Make sure that the stop has had a chance to shutdown the acceptors
       Process.sleep(100)
@@ -359,7 +414,7 @@ defmodule ThousandIsland.ServerTest do
   end
 
   defp start_handler(handler, opts \\ []) do
-    resolved_args = opts ++ [port: 0, handler_module: handler]
+    resolved_args = opts |> Keyword.put_new(:port, 0) |> Keyword.put(:handler_module, handler)
     {:ok, server_pid} = start_supervised({ThousandIsland, resolved_args})
     {:ok, {_ip, port}} = ThousandIsland.listener_info(server_pid)
     {:ok, server_pid, port}

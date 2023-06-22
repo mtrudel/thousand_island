@@ -208,6 +208,28 @@ defmodule ThousandIsland do
     end
   end
 
+  @doc """
+  Suspend the server. This will close the listening port, and will stop the acceptance of new
+  connections. Existing connections will stay connected and will continue to be processed.
+
+  The server can later be resumed by calling `resume/1`, or shut down via standard supervision
+  patterns.
+
+  If this function returns `:error`, it is unlikely that the server is in a useable state
+
+  Note that if you do not explicitly set a port (or if you set port to `0`), then the server will
+  bind to a different port when you resume it. This new port can be obtained as usual via the
+  `listener_info/1` function. This is not a concern if you explicitly set a port value when first
+  instantiating the server
+  """
+  defdelegate suspend(supervisor), to: ThousandIsland.Server
+
+  @doc """
+  Resume a suspended server. This will reopen the listening port, and resume the acceptance of new
+  connections
+  """
+  defdelegate resume(supervisor), to: ThousandIsland.Server
+
   defp collect_connection_pids(acceptor_pool_pid) do
     acceptor_pool_pid
     |> ThousandIsland.AcceptorPoolSupervisor.acceptor_supervisor_pids()
