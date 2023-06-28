@@ -1,5 +1,17 @@
 # Changelog for 0.6.x
 
+## 1.0.0-pre.6 (28 Jun 2023)
+
+### Enhancements
+
+* Add support for suspending the acceptance of new requests while continuing to
+  process existing ones (#70)
+
+### Changes
+
+* Drop Elixir 1.12 as a supported target (it should continue to work, but is no
+  longer covered by CI)
+
 ## 1.0.0-pre.5 (16 Jun 2023)
 
 ### Changes
