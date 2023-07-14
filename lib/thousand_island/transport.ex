@@ -18,7 +18,7 @@ defmodule ThousandIsland.Transport do
   @typedoc "A socket representing a client connection"
   @type socket() :: :inet.socket() | :ssl.sslsocket()
 
-  @typedoc "Information about an endpoint (either remote ('peer') or local"
+  @typedoc "Information about an endpoint, either remote ('peer') or local"
   @type socket_info() ::
           {:inet.ip_address(), :inet.port_number()} | :inet.returned_non_ip_address()
 
