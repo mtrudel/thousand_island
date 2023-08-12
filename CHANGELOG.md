@@ -1,5 +1,11 @@
 # Changelog for 0.6.x
 
+## 1.0.0-pre.7 (12 Aug 2023)
+
+### Fixes
+
+* Fix file handle leak when calling `c:Socket.sendfile` (#78)
+
 ## 1.0.0-pre.6 (28 Jun 2023)
 
 ### Enhancements
