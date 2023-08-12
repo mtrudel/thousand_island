@@ -107,15 +107,22 @@ defmodule ThousandIsland.Transports.SSL do
   def sendfile(socket, filename, offset, length) do
     # We can't use :file.sendfile here since it works on clear sockets, not ssl
     # sockets. Build our own (much slower and not optimized for large files) version.
-    with {:ok, fd} <- :file.open(filename, [:raw]),
-         {:ok, data} <- :file.pread(fd, offset, length) do
-      case :ssl.send(socket, data) do
-        :ok -> {:ok, length}
-        {:error, error} -> {:error, error}
-      end
-    else
-      :eof -> {:error, :eof}
-      err -> err
+    case :file.open(filename, [:raw]) do
+      {:ok, fd} ->
+        try do
+          with {:ok, data} <- :file.pread(fd, offset, length),
+               :ok <- :ssl.send(socket, data) do
+            {:ok, length}
+          else
+            :eof -> {:error, :eof}
+            {:error, reason} -> {:error, reason}
+          end
+        after
+          :file.close(fd)
+        end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

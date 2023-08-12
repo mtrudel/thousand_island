@@ -93,8 +93,16 @@ defmodule ThousandIsland.Transports.TCP do
           length :: non_neg_integer()
         ) :: ThousandIsland.Transport.on_sendfile()
   def sendfile(socket, filename, offset, length) do
-    with {:ok, fd} <- :file.open(filename, [:raw]) do
-      :file.sendfile(fd, socket, offset, length, [])
+    case :file.open(filename, [:raw]) do
+      {:ok, fd} ->
+        try do
+          :file.sendfile(fd, socket, offset, length, [])
+        after
+          :file.close(fd)
+        end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
