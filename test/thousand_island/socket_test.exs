@@ -46,6 +46,7 @@ defmodule ThousandIsland.SocketTest do
     def handle_connection(socket, state) do
       ThousandIsland.Socket.sendfile(socket, Path.join(__DIR__, "../support/sendfile"), 0, 6)
       ThousandIsland.Socket.sendfile(socket, Path.join(__DIR__, "../support/sendfile"), 1, 3)
+      send(state[:test_pid], Process.info(self(), :monitored_by))
       {:close, state}
     end
   end
@@ -88,13 +89,6 @@ defmodule ThousandIsland.SocketTest do
 
         assert context.client_mod.send(client, "HELLO") == :ok
         assert context.client_mod.recv(client, 0) == {:ok, ~c"HELLO"}
-      end
-
-      test "it should send files", context do
-        {:ok, port} = start_handler(Sendfile, context.server_opts)
-        {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
-
-        assert context.client_mod.recv(client, 9) == {:ok, ~c"ABCDEFBCD"}
       end
 
       test "it should close connections", context do
@@ -154,6 +148,14 @@ defmodule ThousandIsland.SocketTest do
 
       context.client_mod.close(client)
     end
+
+    test "it should send files", context do
+      server_opts = Keyword.put(context.server_opts, :handler_options, test_pid: self())
+      {:ok, port} = start_handler(Sendfile, server_opts)
+      {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
+      assert context.client_mod.recv(client, 9) == {:ok, ~c"ABCDEFBCD"}
+      assert_receive {:monitored_by, []}
+    end
   end
 
   describe "behaviour specific to ssl" do
@@ -182,6 +184,14 @@ defmodule ThousandIsland.SocketTest do
       assert to_string(resp) == inspect(expected)
 
       context.client_mod.close(client)
+    end
+
+    test "it should send files", context do
+      server_opts = Keyword.put(context.server_opts, :handler_options, test_pid: self())
+      {:ok, port} = start_handler(Sendfile, server_opts)
+      {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
+      assert context.client_mod.recv(client, 9) == {:ok, ~c"ABCDEFBCD"}
+      assert_receive {:monitored_by, [_pid]}
     end
   end
 
