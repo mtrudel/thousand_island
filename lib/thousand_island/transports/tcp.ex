@@ -73,6 +73,10 @@ defmodule ThousandIsland.Transports.TCP do
   def handshake(socket), do: {:ok, socket}
 
   @impl ThousandIsland.Transport
+  @spec handshake(socket(), options()) :: {:ok, socket()}
+  def handshake(socket, _), do: {:ok, socket}
+
+  @impl ThousandIsland.Transport
   @spec controlling_process(socket(), pid()) :: :ok | {:error, reason}
         when reason: :closed | :not_owner | :badarg | :inet.posix()
   defdelegate controlling_process(socket, pid), to: :gen_tcp

@@ -66,7 +66,7 @@ defmodule ThousandIsland.Transport do
 
   @typedoc "The return value from a handshake/1 call"
   @type on_handshake() ::
-          {:ok, socket()} | {:ok, socket(), any()} | {:error, on_handshake_ssl_error()}
+          {:ok, socket()} | {:error, on_handshake_ssl_error()}
 
   @type on_handshake_ssl_error() :: :closed | :timeout | :ssl.error_alert()
 
@@ -109,6 +109,13 @@ defmodule ThousandIsland.Transport do
   handshake can simply pass the socket through unchanged.
   """
   @callback handshake(socket()) :: on_handshake()
+
+  @doc """
+  Performs a handshake on an existing client connection (for example upgrading
+  an already-established connection to SSL). Transports which do not have such a
+  handshake can simply pass the socket through unchanged.
+  """
+  @callback handshake(socket(), listen_options()) :: on_handshake()
 
   @doc """
   Transfers ownership of the given socket to the given process. This will always

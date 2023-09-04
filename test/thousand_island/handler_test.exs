@@ -136,6 +136,42 @@ defmodule ThousandIsland.HandlerTest do
       # Ensure that we saw the message displayed by the handle_error callback
       assert messages =~ "handle_error: nope"
     end
+
+    defmodule HandleConnection.UpgradingEcho do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_connection(socket, state) do
+        ThousandIsland.Socket.send(socket, "HELLO")
+
+        {:switch_transport,
+         {ThousandIsland.Transport.SSL,
+          certfile: Path.join(__DIR__, "../support/cert.pem"),
+          keyfile: Path.join(__DIR__, "../support/key.pem")}, state}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_data(data, socket, state) do
+        ThousandIsland.Socket.send(socket, data)
+        {:continue, state}
+      end
+    end
+
+    test "it should allow upgrading the transport mid-connection" do
+      {:ok, port} = start_handler(HandleConnection.UpgradingEcho)
+
+      assert {:ok, client} = :gen_tcp.connect(:localhost, port, [active: false], 100)
+      assert :gen_tcp.recv(client, 0) == {:ok, ~c"HELLO"}
+
+      assert {:ok, client} =
+               :ssl.connect(client, [cacertfile: Path.join(__DIR__, "../support/ca.pem")], 100)
+
+      # Check that echo works over new transport
+      :ssl.send(client, "Test me")
+      assert :ssl.recv(client, 0) == {:ok, ~c"Test me"}
+    end
   end
 
   describe "handle_data" do

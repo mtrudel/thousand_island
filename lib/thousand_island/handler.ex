@@ -179,6 +179,9 @@ defmodule ThousandIsland.Handler do
           {:continue, state :: term()}
           | {:continue, state :: term(), timeout()}
           | {:continue, state :: term(), {:persistent, timeout()}}
+          | {:switch_transport, {module(), handshake_opts :: [term()]}, state :: term()}
+          | {:switch_transport, {module(), handshake_opts :: [term()]}, state :: term(),
+             timeout()}
           | {:close, state :: term()}
           | {:error, term(), state :: term()}
 
@@ -201,6 +204,14 @@ defmodule ThousandIsland.Handler do
   is received. In order to set a persistent timeout for all future messages (essentially
   overwriting the value of `read_timeout` that was set at server startup), a value of
   `{:persistent, timeout}` may be returned.
+  * Returning `{:switch_transport, {module, opts}, state} will cause Thousand Island to try switching the transport of the
+  current socket. The `module` should be an Elixir module that implements the `ThousandIsland.Transport` behaviour.
+  Thousand Island will call `c:ThousandIsland.Transport.handshake/2` for the given module to upgrade the transport in-place.
+  After a successful handshake Thousand Island will switch the socket to an asynchronous mode, as if `{:continue, state}`
+  was returned.
+  * Returning `{:switch_transport, {module, opts}, state, timeout} is identical to the previous case with the addition of a timeout.
+  After a successful handshake Thousand Island will switch the socket to an asynchronous mode with a timeout, as if
+  `{:continue, state, timeout}` was returned.
   * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to
   allow final cleanup to be done.
   """
@@ -486,6 +497,12 @@ defmodule ThousandIsland.Handler do
             _ = ThousandIsland.Socket.setopts(socket, active: :once)
             {:noreply, {socket, state}, timeout}
 
+          {:switch_transport, {module, handshake_opts}, state} ->
+            handle_switch_continuation(socket, module, handshake_opts, state, socket.read_timeout)
+
+          {:switch_transport, {module, handshake_opts}, state, timeout} ->
+            handle_switch_continuation(socket, module, handshake_opts, state, timeout)
+
           {:close, state} ->
             {:stop, {:shutdown, :local_closed}, {socket, state}}
 
@@ -494,6 +511,18 @@ defmodule ThousandIsland.Handler do
 
           {:error, reason, state} ->
             {:stop, reason, {socket, state}}
+        end
+      end
+
+      defp handle_switch_continuation(socket, module, handshake_opts, state, timeout) do
+        case ThousandIsland.Socket.switch_transport(socket, module, handshake_opts) do
+          {:ok, socket} ->
+            # Upgrade successful, set the socket into active mode again
+            _ = ThousandIsland.Socket.setopts(socket, active: :once)
+            {:noreply, {socket, state}, timeout}
+
+          {:error, reason} ->
+            {:stop, {:shutdown, {:handshake, reason}}, {socket, state}}
         end
       end
     end
