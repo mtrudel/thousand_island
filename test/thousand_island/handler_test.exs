@@ -147,7 +147,7 @@ defmodule ThousandIsland.HandlerTest do
         ThousandIsland.Socket.send(socket, "HELLO")
 
         {:switch_transport,
-         {ThousandIsland.Transport.SSL,
+         {ThousandIsland.Transports.SSL,
           certfile: Path.join(__DIR__, "../support/cert.pem"),
           keyfile: Path.join(__DIR__, "../support/key.pem")}, state}
       end
