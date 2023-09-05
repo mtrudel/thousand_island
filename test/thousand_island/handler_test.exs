@@ -166,7 +166,11 @@ defmodule ThousandIsland.HandlerTest do
       assert :gen_tcp.recv(client, 0) == {:ok, ~c"HELLO"}
 
       assert {:ok, client} =
-               :ssl.connect(client, [cacertfile: Path.join(__DIR__, "../support/ca.pem")], 100)
+               :ssl.connect(
+                 client,
+                 [cacertfile: Path.join(__DIR__, "../support/ca.pem"), verify: :verify_none],
+                 100
+               )
 
       # Check that echo works over new transport
       :ssl.send(client, "Test me")

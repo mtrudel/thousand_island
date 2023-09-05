@@ -80,7 +80,7 @@ defmodule ThousandIsland.Transports.SSL do
 
   @impl ThousandIsland.Transport
   @spec handshake(socket()) ::
-          {:ok, socket()} | {:error, reason}
+          {:ok, socket()} | {:ok, socket(), any()} | {:error, reason}
         when reason: :closed | :timeout | :ssl.error_alert()
   defdelegate handshake(socket), to: :ssl
 
