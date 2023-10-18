@@ -62,7 +62,7 @@
 ### Changes
 
 * Thousand Island now sets its `id` field in its spec to be `{ThousandIsland, ref()}`
-* `num_connections` defaults to 16384 connections per acceptor 
+* `num_connections` defaults to 16384 connections per acceptor
 
 ### Enhancements
 

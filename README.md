@@ -164,4 +164,3 @@ Documentation can be found at [https://hexdocs.pm/thousand_island](https://hexdo
 ## License
 
 MIT
-
