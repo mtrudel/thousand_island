@@ -1,5 +1,12 @@
 # Changelog for 0.6.x
 
+## 1.0.0 (18 Oct 2023)
+
+### Changes
+
+* Do not consider `ECONNABORTED` errors to be exceptional at socket start time
+  (#72, thanks @dch!)
+
 ## 1.0.0-pre.7 (12 Aug 2023)
 
 ### Fixes
