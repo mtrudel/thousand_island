@@ -4,7 +4,7 @@ defmodule ThousandIsland.Socket do
   read, write, and otherwise manipulate a connection from a client.
   """
 
-  @enforce_keys [:socket, :transport_module, :read_timeout, :span]
+  @enforce_keys [:socket, :transport_module, :read_timeout, :silent_terminate_on_error, :span]
   defstruct @enforce_keys
 
   @typedoc "A reference to a socket along with metadata describing how to use it"
@@ -12,6 +12,7 @@ defmodule ThousandIsland.Socket do
           socket: ThousandIsland.Transport.socket(),
           transport_module: module(),
           read_timeout: timeout(),
+          silent_terminate_on_error: boolean(),
           span: ThousandIsland.Telemetry.t()
         }
 
@@ -26,6 +27,7 @@ defmodule ThousandIsland.Socket do
       socket: raw_socket,
       transport_module: server_config.transport_module,
       read_timeout: server_config.read_timeout,
+      silent_terminate_on_error: server_config.silent_terminate_on_error,
       span: span
     }
   end

@@ -411,6 +411,11 @@ defmodule ThousandIsland.Handler do
         :ok
       end
 
+      # Called if the remote end closed the connection before we could initialize it
+      def terminate({:shutdown, {:premature_conn_closing, _reason}}, {_raw_socket, _state}) do
+        :ok
+      end
+
       # Called by GenServer if we hit our read_timeout. Socket is still open
       def terminate({:shutdown, :timeout}, {socket, state}) do
         __MODULE__.handle_timeout(socket, state)
@@ -429,16 +434,18 @@ defmodule ThousandIsland.Handler do
         do_socket_close(socket, reason)
       end
 
+      # Called if the socket encountered an error and we are configured to shutdown silently.
+      # Socket is closed
+      def terminate({:shutdown, {:silent_termination, reason}}, {socket, state}) do
+        __MODULE__.handle_error(reason, socket, state)
+        do_socket_close(socket, reason)
+      end
+
       # Called if the remote end shut down the connection, or if the local end closed the
       # connection by returning a `{:close,...}` tuple (in which case the socket will be open)
       def terminate({:shutdown, reason}, {socket, state}) do
         __MODULE__.handle_close(socket, state)
         do_socket_close(socket, reason)
-      end
-
-      # Called if the remote end closed the connection before we could initialize it
-      def terminate({:shutdown, {:premature_conn_closing, _reason}}, {raw_socket, state}) do
-        state
       end
 
       # Called if the socket encountered an error. Socket is closed
@@ -493,7 +500,11 @@ defmodule ThousandIsland.Handler do
             {:stop, {:shutdown, :timeout}, {socket, state}}
 
           {:error, reason, state} ->
-            {:stop, reason, {socket, state}}
+            if socket.silent_terminate_on_error do
+              {:stop, {:shutdown, {:silent_termination, reason}}, {socket, state}}
+            else
+              {:stop, reason, {socket, state}}
+            end
         end
       end
     end

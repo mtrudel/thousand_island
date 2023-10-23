@@ -14,7 +14,8 @@ defmodule ThousandIsland.ServerConfig do
           max_connections_retry_count: non_neg_integer(),
           max_connections_retry_wait: timeout(),
           read_timeout: timeout(),
-          shutdown_timeout: timeout()
+          shutdown_timeout: timeout(),
+          silent_terminate_on_error: boolean()
         }
 
   defstruct port: 4000,
@@ -28,7 +29,8 @@ defmodule ThousandIsland.ServerConfig do
             max_connections_retry_count: 5,
             max_connections_retry_wait: 1000,
             read_timeout: 60_000,
-            shutdown_timeout: 15_000
+            shutdown_timeout: 15_000,
+            silent_terminate_on_error: false
 
   @spec new(ThousandIsland.options()) :: t()
   def new(opts \\ []) do

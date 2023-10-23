@@ -80,7 +80,7 @@ defmodule ThousandIsland.Connection do
 
       {:error, :max_children} ->
         # We gave up trying to find room for this connection in our supervisor.
-        # Close the raw socket here and let the acceptor process handle propogating the error
+        # Close the raw socket here and let the acceptor process handle propagating the error
         server_config.transport_module.close(raw_socket)
         {:error, :too_many_connections}
 
