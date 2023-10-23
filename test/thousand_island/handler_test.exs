@@ -103,6 +103,24 @@ defmodule ThousandIsland.HandlerTest do
           Process.sleep(100)
         end)
 
+      # Ensure that we saw the message dispalyed by the runtime
+      assert messages =~ "terminating\n** (stop) :nope"
+      # Ensure that we saw the message displayed by the handle_error callback
+      assert messages =~ "handle_error: nope"
+    end
+
+    test "it should terminate silently if {:error, reason, state} is returned and the server is so configured" do
+      {:ok, port} = start_handler(HandleConnection.Error, silent_terminate_on_error: true)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          assert :gen_tcp.recv(client, 0) == {:error, :closed}
+          Process.sleep(100)
+        end)
+
+      # Ensure that we did not see the message dispalyed by the runtime
+      refute messages =~ "terminating\n** (stop) :nope"
       # Ensure that we saw the message displayed by the handle_error callback
       assert messages =~ "handle_error: nope"
     end
@@ -133,6 +151,24 @@ defmodule ThousandIsland.HandlerTest do
           Process.sleep(100)
         end)
 
+      # Ensure that we saw the message dispalyed by the runtime
+      assert messages =~ "terminating\n** (RuntimeError) nope"
+      # Ensure that we saw the message displayed by the handle_error callback
+      assert messages =~ "handle_error: nope"
+    end
+
+    test "it should NOT terminate silently if an error is raised even if the server is so configured" do
+      {:ok, port} = start_handler(HandleConnection.Exploding, silent_terminate_on_error: true)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          assert :gen_tcp.recv(client, 0) == {:error, :closed}
+          Process.sleep(100)
+        end)
+
+      # Ensure that we saw the message dispalyed by the runtime
+      assert messages =~ "terminating\n** (RuntimeError) nope"
       # Ensure that we saw the message displayed by the handle_error callback
       assert messages =~ "handle_error: nope"
     end

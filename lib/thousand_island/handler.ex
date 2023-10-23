@@ -434,6 +434,13 @@ defmodule ThousandIsland.Handler do
         do_socket_close(socket, reason)
       end
 
+      # Called if the socket encountered an error and we are configured to shutdown silently.
+      # Socket is closed
+      def terminate({:shutdown, {:silent_termination, reason}}, {socket, state}) do
+        __MODULE__.handle_error(reason, socket, state)
+        do_socket_close(socket, reason)
+      end
+
       # Called if the remote end shut down the connection, or if the local end closed the
       # connection by returning a `{:close,...}` tuple (in which case the socket will be open)
       def terminate({:shutdown, reason}, {socket, state}) do
@@ -493,7 +500,11 @@ defmodule ThousandIsland.Handler do
             {:stop, {:shutdown, :timeout}, {socket, state}}
 
           {:error, reason, state} ->
-            {:stop, reason, {socket, state}}
+            if socket.silent_terminate_on_error do
+              {:stop, {:shutdown, {:silent_termination, reason}}, {socket, state}}
+            else
+              {:stop, reason, {socket, state}}
+            end
         end
       end
     end

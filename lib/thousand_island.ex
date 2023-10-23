@@ -135,6 +135,11 @@ defmodule ThousandIsland do
   forcibly shutting those connections down at server shutdown time, in milliseconds. Defaults to
   15_000. May also be `:infinity` or `:brutal_kill` as described in the `Supervisor`
   documentation
+  * `silent_terminate_on_error`: Whether to silently ignore errors returned by the handler or to
+  surface them to the runtime via an abnormal termination result. This only applies to errors
+  returned via `{:error, reason, state}` responses; exceptions raised within a handler are always
+  logged regardless of this value. Note also that telemetry events will always be sent for errors
+  regardless of this value. Defaults to false
   """
   @type options :: [
           handler_module: module(),
@@ -148,7 +153,8 @@ defmodule ThousandIsland do
           max_connections_retry_count: non_neg_integer(),
           max_connections_retry_wait: timeout(),
           read_timeout: timeout(),
-          shutdown_timeout: timeout()
+          shutdown_timeout: timeout(),
+          silent_terminate_on_error: boolean()
         ]
 
   @typedoc "A module implementing `ThousandIsland.Transport` behaviour"
