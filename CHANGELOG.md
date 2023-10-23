@@ -1,4 +1,9 @@
-# Changelog for 0.6.x
+## 1.1.0 (23 Oct 2023)
+
+### Enhancements
+
+* Add support for `silent_terminate_on_error` option to run quietly in case of
+  error (#92)
 
 ## 1.0.0 (18 Oct 2023)
 
