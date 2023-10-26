@@ -136,7 +136,7 @@ defmodule ThousandIsland.ListenerTest do
       }
 
       assert Listener.handle_call(:acceptor_info, nil, state) ==
-      {:reply, {state.listener_socket, state.listener_span}, state}
+               {:reply, {state.listener_socket, state.listener_span}, state}
 
       # Close the socket to cleanup.
       :gen_tcp.close(socket)
