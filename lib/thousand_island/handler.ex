@@ -454,31 +454,19 @@ defmodule ThousandIsland.Handler do
         do_socket_close(socket, reason)
       end
 
-      @spec do_socket_close(
-              ThousandIsland.Socket.t(),
-              reason :: :shutdown | :local_closed | term()
-            ) :: :ok
-      defp do_socket_close(socket, reason) do
-        measurements =
-          case ThousandIsland.Socket.getstat(socket) do
-            {:ok, stats} ->
-              stats
-              |> Keyword.take([:send_oct, :send_cnt, :recv_oct, :recv_cnt])
-              |> Enum.into(%{})
+      @doc """
+      This function bridges `ThousandIsland.handler_result()` response values to `GenServer` ones.
 
-            _ ->
-              %{}
-          end
-
-        metadata = if reason in [:shutdown, :local_closed], do: %{}, else: %{error: reason}
-
-        _ = ThousandIsland.Socket.close(socket)
-        ThousandIsland.Telemetry.stop_span(socket.span, measurements, metadata)
-      end
-
-      # Dialyzer gets confused by handle_continuation being a defp and not a def
-      @dialyzer {:no_match, handle_continuation: 2}
-      defp handle_continuation(continuation, socket) do
+      The function is useful if the implementation needs to tap into `GenServer.handle_*` methods,
+      but wants to match the returned values to what `ThousandIsland.Handler` returns
+      from `c:handle_connection/2` and `c:handle_data/3` to `GenServer` handlers.
+      """
+      @spec handle_continuation(handler_result(), ThousandIsland.Socket.t()) ::
+              {:noreply, new_state}
+              | {:noreply, new_state, timeout | :hibernate | {:continue, term}}
+              | {:stop, reason :: term, new_state}
+            when new_state: term
+      def handle_continuation(continuation, socket) do
         case continuation do
           {:continue, state} ->
             _ = ThousandIsland.Socket.setopts(socket, active: :once)
@@ -506,6 +494,28 @@ defmodule ThousandIsland.Handler do
               {:stop, reason, {socket, state}}
             end
         end
+      end
+
+      @spec do_socket_close(
+              ThousandIsland.Socket.t(),
+              reason :: :shutdown | :local_closed | term()
+            ) :: :ok
+      defp do_socket_close(socket, reason) do
+        measurements =
+          case ThousandIsland.Socket.getstat(socket) do
+            {:ok, stats} ->
+              stats
+              |> Keyword.take([:send_oct, :send_cnt, :recv_oct, :recv_cnt])
+              |> Enum.into(%{})
+
+            _ ->
+              %{}
+          end
+
+        metadata = if reason in [:shutdown, :local_closed], do: %{}, else: %{error: reason}
+
+        _ = ThousandIsland.Socket.close(socket)
+        ThousandIsland.Telemetry.stop_span(socket.span, measurements, metadata)
       end
     end
   end
