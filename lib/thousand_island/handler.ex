@@ -386,6 +386,13 @@ defmodule ThousandIsland.Handler do
         {:stop, reason, {socket, state}}
       end
 
+      def handle_info({msg, _raw_socket, _data}, _state) when msg in [:tcp, :ssl] do
+        raise """
+          The callback's `state` doesn't match the expected `{socket, state}` form.
+          Please pass a `{socket, state}` tuple from `GenServer.handle_*` callbacks.
+        """
+      end
+
       def handle_info(:timeout, {socket, state}) do
         {:stop, {:shutdown, :timeout}, {socket, state}}
       end
@@ -452,6 +459,11 @@ defmodule ThousandIsland.Handler do
       def terminate(reason, {socket, state}) do
         __MODULE__.handle_error(reason, socket, state)
         do_socket_close(socket, reason)
+      end
+
+      # Called if a callback raises an exception.
+      def terminate(_reason, []) do
+        :ok
       end
 
       @spec do_socket_close(
