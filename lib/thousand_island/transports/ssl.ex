@@ -4,7 +4,7 @@ defmodule ThousandIsland.Transports.SSL do
   as provided by Erlang's `:ssl` module. For the most part, users of Thousand
   Island will only ever need to deal with this module via `transport_options`
   passed to `ThousandIsland` at startup time. A complete list of such options
-  is defined via the `t::ssl.tls_server_option` type. This list can be somewhat
+  is defined via the `t::ssl.tls_server_option/0` type. This list can be somewhat
   difficult to decipher; by far the most common values to pass to this transport
   are the following:
 
