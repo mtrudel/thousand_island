@@ -99,9 +99,7 @@ defmodule ThousandIsland do
   * `handler_module`: The name of the module used to handle connections to this server.
   The module is expected to implement the `ThousandIsland.Handler` behaviour. Required
   * `handler_options`: A term which is passed as the initial state value to
-  `c:ThousandIsland.Handler.handle_connection/2` calls. Optional, defaulting to nil.
-  * `genserver_options`: A term which is passed as the value to the handler module's
-  underlying `GenServer.start_link/3` call. Optional, defaulting to []
+  `c:ThousandIsland.Handler.handle_connection/2` calls. Optional, defaulting to nil
   * `port`: The TCP port number to listen on. If not specified this defaults to 4000.
   If a port number of `0` is given, the server will dynamically assign a port number
   which can then be obtained via `ThousandIsland.listener_info/1` or
@@ -116,6 +114,11 @@ defmodule ThousandIsland do
   `ThousandIsland.Transports.TCP` and `ThousandIsland.Transports.SSL` modules. Any options
   in terms of interfaces to listen to / certificates and keys to use for SSL connections
   will be passed in via this option
+  * `genserver_options`: A term which is passed as the option value to the handler module's
+  underlying `GenServer.start_link/3` call. Optional, defaulting to `[]`
+  * `supervisor_options`: A term which is passed as the option value to this server's top-level
+  supervisor's `Supervisor.start_link/3` call. Useful for setting the `name` for this server.
+  Optional, defaulting to `[]`
   * `num_acceptors`: The number of acceptor processes to run. Defaults to 100
   * `num_connections`: The maximum number of concurrent connections which each acceptor will
   accept before throttling connections. Connections will be throttled by having the acceptor
@@ -145,6 +148,7 @@ defmodule ThousandIsland do
           handler_module: module(),
           handler_options: term(),
           genserver_options: GenServer.options(),
+          supervisor_options: [Supervisor.option()],
           port: :inet.port_number(),
           transport_module: module(),
           transport_options: transport_options(),
