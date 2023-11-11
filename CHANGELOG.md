@@ -1,3 +1,9 @@
+## 1.2.0 (11 Nov 2023)
+
+### Enhancements
+
+* Add `supervisor_options` option to specify top-level supervisor options (#97)
+
 ## 1.1.0 (23 Oct 2023)
 
 ### Enhancements
