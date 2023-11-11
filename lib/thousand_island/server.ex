@@ -5,7 +5,7 @@ defmodule ThousandIsland.Server do
 
   @spec start_link(ThousandIsland.ServerConfig.t()) :: Supervisor.on_start()
   def start_link(%ThousandIsland.ServerConfig{} = config) do
-    Supervisor.start_link(__MODULE__, config)
+    Supervisor.start_link(__MODULE__, config, config.supervisor_options)
   end
 
   @spec listener_pid(Supervisor.supervisor()) :: pid() | nil
