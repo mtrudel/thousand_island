@@ -14,7 +14,6 @@ defmodule ThousandIsland.MixProject do
       description: "A simple & modern pure Elixir socket server",
       source_url: "https://github.com/mtrudel/thousand_island",
       package: [
-        files: ["lib", "test", "mix.exs", "README*", "LICENSE*"],
         maintainers: ["Mat Trudel"],
         licenses: ["MIT"],
         links: %{"GitHub" => "https://github.com/mtrudel/thousand_island"}
