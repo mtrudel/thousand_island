@@ -375,6 +375,8 @@ defmodule ThousandIsland.ServerTest do
           cacertfile: Path.join(__DIR__, "../support/ca.pem")
         )
 
+      Process.sleep(100)
+
       ThousandIsland.stop(server_pid)
 
       assert_received {:options, {:certfile, _, _}}
@@ -406,6 +408,9 @@ defmodule ThousandIsland.ServerTest do
             %{cipher: :rc4_128, key_exchange: :rsa, mac: :md5, prf: :default_prf}
           ]
         )
+
+      # Negotiation failures seem to take longer
+      Process.sleep(500)
 
       ThousandIsland.stop(server_pid)
 
