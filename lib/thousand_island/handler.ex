@@ -389,7 +389,8 @@ defmodule ThousandIsland.Handler do
       def handle_info({msg, _raw_socket, _data}, _state) when msg in [:tcp, :ssl] do
         raise """
           The callback's `state` doesn't match the expected `{socket, state}` form.
-          Please pass a `{socket, state}` tuple from `GenServer.handle_*` callbacks.
+          Please ensure that you are returning a `{socket, state}` tuple from any
+          `GenServer.handle_*` callbacks you have implemented
         """
       end
 
@@ -402,67 +403,61 @@ defmodule ThousandIsland.Handler do
       # This ensures that the `c:terminate/2` calls below are able to properly
       # close down the process
       @impl GenServer
-      def handle_continue(:handle_connection, {socket, state}) do
+      def handle_continue(:handle_connection, {%ThousandIsland.Socket{} = socket, state}) do
         __MODULE__.handle_connection(socket, state)
         |> handle_continuation(socket)
       end
 
-      @impl GenServer
-      def terminate(reason, state)
-
-      # This clause could happen if we are shut down before we have had a chance to fully set up
-      # the handler process. In this case we would have never called any of the `Handler`
-      # callbacks so the connection hasn't started yet from the perspective of the user
-      # See https://github.com/mtrudel/bandit/issues/54 for details
-      def terminate(_reason, {nil, _state}) do
-        :ok
-      end
-
       # Called if the remote end closed the connection before we could initialize it
+      @impl GenServer
       def terminate({:shutdown, {:premature_conn_closing, _reason}}, {_raw_socket, _state}) do
         :ok
       end
 
       # Called by GenServer if we hit our read_timeout. Socket is still open
-      def terminate({:shutdown, :timeout}, {socket, state}) do
+      def terminate({:shutdown, :timeout}, {%ThousandIsland.Socket{} = socket, state}) do
         __MODULE__.handle_timeout(socket, state)
         do_socket_close(socket, :timeout)
       end
 
       # Called if we're being shutdown in an orderly manner. Socket is still open
-      def terminate(:shutdown, {socket, state}) do
+      def terminate(:shutdown, {%ThousandIsland.Socket{} = socket, state}) do
         __MODULE__.handle_shutdown(socket, state)
         do_socket_close(socket, :shutdown)
       end
 
       # Called if the socket encountered an error during handshaking
-      def terminate({:shutdown, {:handshake, reason}}, {socket, state}) do
+      def terminate({:shutdown, {:handshake, reason}}, {%ThousandIsland.Socket{} = socket, state}) do
         __MODULE__.handle_error(reason, socket, state)
         do_socket_close(socket, reason)
       end
 
       # Called if the socket encountered an error and we are configured to shutdown silently.
       # Socket is closed
-      def terminate({:shutdown, {:silent_termination, reason}}, {socket, state}) do
+      def terminate(
+            {:shutdown, {:silent_termination, reason}},
+            {%ThousandIsland.Socket{} = socket, state}
+          ) do
         __MODULE__.handle_error(reason, socket, state)
         do_socket_close(socket, reason)
       end
 
       # Called if the remote end shut down the connection, or if the local end closed the
       # connection by returning a `{:close,...}` tuple (in which case the socket will be open)
-      def terminate({:shutdown, reason}, {socket, state}) do
+      def terminate({:shutdown, reason}, {%ThousandIsland.Socket{} = socket, state}) do
         __MODULE__.handle_close(socket, state)
         do_socket_close(socket, reason)
       end
 
       # Called if the socket encountered an error. Socket is closed
-      def terminate(reason, {socket, state}) do
+      def terminate(reason, {%ThousandIsland.Socket{} = socket, state}) do
         __MODULE__.handle_error(reason, socket, state)
         do_socket_close(socket, reason)
       end
 
-      # Called if a callback raises an exception.
-      def terminate(_reason, []) do
+      # This clause could happen if we do not have a socket defined in state (either because the
+      # process crashed before setting it up, or because the user sent an invalid state)
+      def terminate(_reason, _state) do
         :ok
       end
 
