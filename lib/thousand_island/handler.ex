@@ -393,7 +393,7 @@ defmodule ThousandIsland.Handler do
         """
       end
 
-      def handle_info(:timeout, {socket, state}) do
+      def handle_info(:timeout, {%ThousandIsland.Socket{} = socket, state}) do
         {:stop, {:shutdown, :timeout}, {socket, state}}
       end
 
