@@ -375,7 +375,7 @@ defmodule ThousandIsland.ServerTest do
           cacertfile: Path.join(__DIR__, "../support/ca.pem")
         )
 
-      Process.sleep(100)
+      Process.sleep(500)
 
       ThousandIsland.stop(server_pid)
 
@@ -409,7 +409,6 @@ defmodule ThousandIsland.ServerTest do
           ]
         )
 
-      # Negotiation failures seem to take longer
       Process.sleep(500)
 
       ThousandIsland.stop(server_pid)
