@@ -78,13 +78,21 @@ defmodule ThousandIsland.Transports.SSL do
 
   @impl ThousandIsland.Transport
   @spec handshake(socket()) :: ThousandIsland.Transport.on_handshake()
-  defdelegate handshake(socket), to: :ssl
+  def handshake(socket) do
+    case :ssl.handshake(socket) do
+      {:ok, socket, _protocol_extensions} -> {:ok, socket}
+      other -> other
+    end
+  end
 
   @impl ThousandIsland.Transport
-  @spec handshake(socket(), options()) ::
-          {:ok, socket()} | {:error, reason}
-        when reason: :closed | :timeout | :ssl.error_alert()
-  defdelegate handshake(socket, opts), to: :ssl
+  @spec upgrade(socket(), options()) :: ThousandIsland.Transport.on_upgrade()
+  def upgrade(socket, opts) do
+    case :ssl.handshake(socket, opts) do
+      {:ok, socket, _protocol_extensions} -> {:ok, socket}
+      other -> other
+    end
+  end
 
   @impl ThousandIsland.Transport
   @spec controlling_process(socket(), pid()) :: ThousandIsland.Transport.on_controlling_process()

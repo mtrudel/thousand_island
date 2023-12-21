@@ -120,11 +120,11 @@ defmodule ThousandIsland.Transport do
   @callback handshake(socket()) :: on_handshake()
 
   @doc """
-  Performs a handshake on an existing client connection (for example upgrading
-  an already-established connection to SSL). Transports which do not have such a
-  handshake can simply pass the socket through unchanged.
+  Performs an upgrade of an existing client connection (for example upgrading
+  an already-established connection to SSL). Transports which do not support upgrading can return
+  `{:error, :unsupported_upgrade}`.
   """
-  @callback handshake(socket(), listen_options()) :: on_handshake()
+  @callback upgrade(socket(), term()) :: on_upgrade()
 
   @doc """
   Transfers ownership of the given socket to the given process. This will always

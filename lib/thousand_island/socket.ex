@@ -49,15 +49,16 @@ defmodule ThousandIsland.Socket do
   end
 
   @doc """
-  Switches the transport of the socket, performing a handshake if required.
+  Upgrades the transport of the socket to use the specified transport module, performing any client
+  handshaking that may be required. The passed options are blindly passed through to the new
+  transport module.
 
   This is normally called internally by `ThousandIsland.Handler` and does not need to be
   called by implementations which are based on `ThousandIsland.Handler`
   """
-  @spec switch_transport(t(), module(), [term()]) :: ThousandIsland.Transport.on_handshake()
-  def switch_transport(%__MODULE__{} = socket, module, opts)
-      when is_atom(module) and is_list(opts) do
-    case module.handshake(socket.socket, opts) do
+  @spec upgrade(t(), module(), term()) :: ThousandIsland.Transport.on_upgrade()
+  def upgrade(%__MODULE__{} = socket, module, opts) when is_atom(module) do
+    case module.upgrade(socket.socket, opts) do
       {:ok, updated_socket} ->
         {:ok, %__MODULE__{socket | socket: updated_socket, transport_module: module}}
 
