@@ -295,7 +295,6 @@ defmodule ThousandIsland.Handler do
 
   @spec __using__(any) :: Macro.t()
   defmacro __using__(_opts) do
-    # credo:disable-for-next-line Credo.Check.Refactor.LongQuoteBlocks
     quote location: :keep do
       @behaviour ThousandIsland.Handler
 
