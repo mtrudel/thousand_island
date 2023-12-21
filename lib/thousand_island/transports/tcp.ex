@@ -46,8 +46,7 @@ defmodule ThousandIsland.Transports.TCP do
 
   @impl ThousandIsland.Transport
   @spec listen(:inet.port_number(), [:inet.inet_backend() | :gen_tcp.listen_option()]) ::
-          {:ok, listener_socket()} | {:error, reason}
-        when reason: :system_limit | :inet.posix()
+          ThousandIsland.Transport.on_listen()
   def listen(port, user_options) do
     default_options = [
       backlog: 1024,
@@ -63,22 +62,19 @@ defmodule ThousandIsland.Transports.TCP do
   end
 
   @impl ThousandIsland.Transport
-  @spec accept(listener_socket()) ::
-          {:ok, socket()} | {:error, reason}
-        when reason: :closed | :system_limit | :inet.posix()
+  @spec accept(listener_socket()) :: ThousandIsland.Transport.on_accept()
   defdelegate accept(listener_socket), to: :gen_tcp
 
   @impl ThousandIsland.Transport
-  @spec handshake(socket()) :: {:ok, socket()}
+  @spec handshake(socket()) :: ThousandIsland.Transport.on_handshake()
   def handshake(socket), do: {:ok, socket}
 
   @impl ThousandIsland.Transport
-  @spec handshake(socket(), options()) :: {:ok, socket()}
-  def handshake(socket, _), do: {:ok, socket}
+  @spec upgrade(socket(), options()) :: ThousandIsland.Transport.on_upgrade()
+  def upgrade(_, _), do: {:error, :unsupported_upgrade}
 
   @impl ThousandIsland.Transport
-  @spec controlling_process(socket(), pid()) :: :ok | {:error, reason}
-        when reason: :closed | :not_owner | :badarg | :inet.posix()
+  @spec controlling_process(socket(), pid()) :: ThousandIsland.Transport.on_controlling_process()
   defdelegate controlling_process(socket, pid), to: :gen_tcp
 
   @impl ThousandIsland.Transport
@@ -138,7 +134,7 @@ defmodule ThousandIsland.Transports.TCP do
   defdelegate peername(socket), to: :inet
 
   @impl ThousandIsland.Transport
-  @spec peercert(socket()) :: {:error, :not_secure}
+  @spec peercert(socket()) :: ThousandIsland.Transport.on_peercert()
   def peercert(_socket), do: {:error, :not_secure}
 
   @impl ThousandIsland.Transport
@@ -150,6 +146,6 @@ defmodule ThousandIsland.Transports.TCP do
   defdelegate getstat(socket), to: :inet
 
   @impl ThousandIsland.Transport
-  @spec negotiated_protocol(socket()) :: {:error, :protocol_not_negotiated}
+  @spec negotiated_protocol(socket()) :: ThousandIsland.Transport.on_negotiated_protocol()
   def negotiated_protocol(_socket), do: {:error, :protocol_not_negotiated}
 end

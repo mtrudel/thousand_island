@@ -48,8 +48,7 @@ defmodule ThousandIsland.Transports.SSL do
 
   @impl ThousandIsland.Transport
   @spec listen(:inet.port_number(), [:ssl.tls_server_option()]) ::
-          {:ok, listener_socket()} | {:error, reason}
-        when reason: :system_limit | :inet.posix()
+          ThousandIsland.Transport.on_listen()
   def listen(port, user_options) do
     default_options = [
       backlog: 1024,
@@ -74,14 +73,11 @@ defmodule ThousandIsland.Transports.SSL do
   end
 
   @impl ThousandIsland.Transport
-  @spec accept(listener_socket()) :: {:ok, socket()} | {:error, reason}
-        when reason: :closed | :system_limit | :inet.posix()
+  @spec accept(listener_socket()) :: ThousandIsland.Transport.on_accept()
   defdelegate accept(listener_socket), to: :ssl, as: :transport_accept
 
   @impl ThousandIsland.Transport
-  @spec handshake(socket()) ::
-          {:ok, socket()} | {:ok, socket(), any()} | {:error, reason}
-        when reason: :closed | :timeout | :ssl.error_alert()
+  @spec handshake(socket()) :: ThousandIsland.Transport.on_handshake()
   defdelegate handshake(socket), to: :ssl
 
   @impl ThousandIsland.Transport
@@ -91,8 +87,7 @@ defmodule ThousandIsland.Transports.SSL do
   defdelegate handshake(socket, opts), to: :ssl
 
   @impl ThousandIsland.Transport
-  @spec controlling_process(socket(), pid()) :: :ok | {:error, reason}
-        when reason: :closed | :not_owner | :badarg | :inet.posix()
+  @spec controlling_process(socket(), pid()) :: ThousandIsland.Transport.on_controlling_process()
   defdelegate controlling_process(socket, pid), to: :ssl
 
   @impl ThousandIsland.Transport
