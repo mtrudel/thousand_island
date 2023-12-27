@@ -97,6 +97,21 @@ defmodule ThousandIsland.Telemetry do
 
       * `telemetry_span_context`: A unique identifier for this span
 
+  * `[:thousand_island, :acceptor, :econnaborted]`
+
+      Thousand Island was unable to spawn a process to handle a connection since the remote end
+      closed before we could accept it. This usually occurs when it takes too long for your server
+      to start processing a connection; you may want to look at tuning OS-level TCP parameters or
+      adding more server capacity.
+
+      This event contains the following measurements:
+
+      * `monotonic_time`: The time of this event, in `:native` units
+
+      This event contains the following metadata:
+
+      * `telemetry_span_context`: A unique identifier for this span
+
   ## `[:thousand_island, :connection, *]`
 
   Represents Thousand Island handling a specific client request
@@ -281,6 +296,7 @@ defmodule ThousandIsland.Telemetry do
   @type event_name ::
           :ready
           | :spawn_error
+          | :econnaborted
           | :recv_error
           | :send_error
           | :sendfile_error
