@@ -21,7 +21,10 @@ defmodule ThousandIsland.Logger do
   """
   @spec attach_logger(log_level()) :: :ok | {:error, :already_exists}
   def attach_logger(:error) do
-    events = [[:thousand_island, :acceptor, :spawn_error]]
+    events = [
+      [:thousand_island, :acceptor, :spawn_error],
+      [:thousand_island, :acceptor, :econnaborted]
+    ]
 
     :telemetry.attach_many("#{__MODULE__}.error", events, &__MODULE__.log_error/4, nil)
   end

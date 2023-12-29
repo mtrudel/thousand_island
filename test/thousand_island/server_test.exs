@@ -134,6 +134,20 @@ defmodule ThousandIsland.ServerTest do
       assert :gen_tcp.recv(client, 0) == {:ok, ~c"HELLO"}
       assert :gen_tcp.recv(other_client, 0) == {:error, :closed}
       :gen_tcp.close(other_client)
+
+      # Close the first connection and ensure new connections are now accepted
+      :gen_tcp.close(client)
+
+      # Give things enough time for the first connection to time out
+      Process.sleep(500)
+
+      {:ok, third_client} = :gen_tcp.connect(:localhost, port, active: false)
+      :ok = :gen_tcp.send(third_client, "BUONGIORNO")
+
+      # Give things enough time to send if they were going to
+      Process.sleep(100)
+
+      assert :gen_tcp.recv(third_client, 0) == {:ok, ~c"BUONGIORNO"}
     end
 
     test "should emit telemetry events as expected" do
