@@ -174,6 +174,96 @@ defmodule ThousandIsland.HandlerTest do
     end
   end
 
+  describe "upgrade" do
+    defmodule HandleConnection.UpgradingEcho do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_connection(socket, state) do
+        ThousandIsland.Socket.send(socket, "HELLO")
+
+        {:switch_transport,
+         {ThousandIsland.Transports.SSL,
+          certfile: Path.join(__DIR__, "../support/cert.pem"),
+          keyfile: Path.join(__DIR__, "../support/key.pem")}, state}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_data(data, socket, state) do
+        ThousandIsland.Socket.send(socket, data)
+        {:continue, state}
+      end
+    end
+
+    test "it should allow upgrading the transport mid-connection when supported" do
+      {:ok, port} = start_handler(HandleConnection.UpgradingEcho)
+
+      assert {:ok, client} = :gen_tcp.connect(:localhost, port, [active: false], 100)
+      assert :gen_tcp.recv(client, 0) == {:ok, ~c"HELLO"}
+
+      assert {:ok, client} =
+               :ssl.connect(
+                 client,
+                 [cacertfile: Path.join(__DIR__, "../support/ca.pem"), verify: :verify_none],
+                 100
+               )
+
+      # Check that echo works over new transport
+      :ssl.send(client, "Test me")
+      assert :ssl.recv(client, 0) == {:ok, ~c"Test me"}
+    end
+
+    test "it should handle upgrade errors" do
+      {:ok, port} =
+        start_handler(HandleConnection.UpgradeError,
+          transport_module: ThousandIsland.Transports.SSL,
+          transport_options: [
+            certfile: Path.join(__DIR__, "../support/cert.pem"),
+            keyfile: Path.join(__DIR__, "../support/key.pem"),
+            alpn_preferred_protocols: ["foo"]
+          ]
+        )
+
+      messages =
+        capture_log(fn ->
+          assert {:ok, client} =
+                   :ssl.connect(
+                     ~c"localhost",
+                     port,
+                     active: false,
+                     cacertfile: Path.join(__DIR__, "../support/ca.pem"),
+                     verify: :verify_peer
+                   )
+
+          assert :ssl.recv(client, 0) == {:ok, ~c"HELLO"}
+          Process.sleep(100)
+        end)
+
+      # Ensure that we saw the message displayed by the handle_error callback
+      assert messages =~ "handle_error: unsupported_upgrade"
+    end
+
+    defmodule HandleConnection.UpgradeError do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_connection(socket, state) do
+        ThousandIsland.Socket.send(socket, "HELLO")
+
+        {:switch_transport, {ThousandIsland.Transports.TCP, []}, state}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_error(error, _socket, _state) do
+        Logger.error("handle_error: #{error}")
+      end
+    end
+  end
+
   describe "handle_data" do
     defmodule HandleData.HelloWorld do
       use ThousandIsland.Handler

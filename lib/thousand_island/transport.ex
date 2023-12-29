@@ -41,11 +41,32 @@ defmodule ThousandIsland.Transport do
   @typedoc "The direction in which to shutdown a connection in advance of closing it"
   @type way() :: :read | :write | :read_write
 
-  @typedoc "The return value from a getopts/2 call"
-  @type on_getopts() :: {:ok, [:inet.socket_optval()]} | {:error, :inet.posix()}
+  @typedoc "The return value from a listen/2 call"
+  @type on_listen() ::
+          {:ok, listener_socket()} | {:error, :system_limit} | {:error, :inet.posix()}
 
-  @typedoc "The return value from a setopts/2 call"
-  @type on_setopts() :: :ok | {:error, :inet.posix()}
+  @typedoc "The return value from an accept/1 call"
+  @type on_accept() :: {:ok, socket()} | {:error, on_accept_tcp_error() | on_accept_ssl_error()}
+
+  @type on_accept_tcp_error() :: :closed | :system_limit | :inet.posix()
+  @type on_accept_ssl_error() :: :closed | :timeout | :ssl.error_alert()
+
+  @typedoc "The return value from a controlling_process/2 call"
+  @type on_controlling_process() :: :ok | {:error, :closed | :not_owner | :badarg | :inet.posix()}
+
+  @typedoc "The return value from a handshake/1 call"
+  @type on_handshake() :: {:ok, socket()} | {:error, on_handshake_ssl_error()}
+
+  @type on_handshake_ssl_error() :: :closed | :timeout | :ssl.error_alert()
+
+  @typedoc "The return value from a upgrade/2 call"
+  @type on_upgrade() :: {:ok, socket()} | {:error, term()}
+
+  @typedoc "The return value from a shutdown/2 call"
+  @type on_shutdown() :: :ok | {:error, :inet.posix()}
+
+  @typedoc "The return value from a close/1 call"
+  @type on_close() :: :ok | {:error, any()}
 
   @typedoc "The return value from a recv/3 call"
   @type on_recv() :: {:ok, binary()} | {:error, :closed | :timeout | :inet.posix()}
@@ -58,23 +79,11 @@ defmodule ThousandIsland.Transport do
           {:ok, non_neg_integer()}
           | {:error, :inet.posix() | :closed | :badarg | :not_owner | :eof}
 
-  @typedoc "The return value from an accept/1 call"
-  @type on_accept() :: {:ok, socket()} | {:error, on_accept_tcp_error() | on_accept_ssl_error()}
+  @typedoc "The return value from a getopts/2 call"
+  @type on_getopts() :: {:ok, [:inet.socket_optval()]} | {:error, :inet.posix()}
 
-  @type on_accept_tcp_error() :: :closed | :system_limit | :inet.posix()
-  @type on_accept_ssl_error() :: :closed | :timeout | :ssl.error_alert()
-
-  @typedoc "The return value from a handshake/1 call"
-  @type on_handshake() ::
-          {:ok, socket()} | {:ok, socket(), any()} | {:error, on_handshake_ssl_error()}
-
-  @type on_handshake_ssl_error() :: :closed | :timeout | :ssl.error_alert()
-
-  @typedoc "The return value from a shutdown/2 call"
-  @type on_shutdown() :: :ok | {:error, :inet.posix()}
-
-  @typedoc "The return value from a close/1 call"
-  @type on_close() :: :ok | {:error, any()}
+  @typedoc "The return value from a setopts/2 call"
+  @type on_setopts() :: :ok | {:error, :inet.posix()}
 
   @typedoc "The return value from a sockname/1 call"
   @type on_sockname() :: {:ok, socket_info()} | {:error, :inet.posix()}
@@ -111,11 +120,17 @@ defmodule ThousandIsland.Transport do
   @callback handshake(socket()) :: on_handshake()
 
   @doc """
+  Performs an upgrade of an existing client connection (for example upgrading
+  an already-established connection to SSL). Transports which do not support upgrading can return
+  `{:error, :unsupported_upgrade}`.
+  """
+  @callback upgrade(socket(), term()) :: on_upgrade()
+
+  @doc """
   Transfers ownership of the given socket to the given process. This will always
   be called by the process which currently owns the socket.
   """
-  @callback controlling_process(socket(), pid()) ::
-              :ok | {:error, :closed | :not_owner | :badarg | :inet.posix()}
+  @callback controlling_process(socket(), pid()) :: on_controlling_process()
 
   @doc """
   Returns available bytes on the given socket. Up to `num_bytes` bytes will be

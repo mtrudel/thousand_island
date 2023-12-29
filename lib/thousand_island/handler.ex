@@ -174,11 +174,16 @@ defmodule ThousandIsland.Handler do
   likely that such spans will not behave as expected.
   """
 
+  @typedoc "The possible ways to indicate a timeout when returning values to Thousand Island"
+  @type timeout_options :: timeout() | {:persistent, timeout()}
+
   @typedoc "The value returned by `c:handle_connection/2` and `c:handle_data/3`"
   @type handler_result ::
           {:continue, state :: term()}
-          | {:continue, state :: term(), timeout()}
-          | {:continue, state :: term(), {:persistent, timeout()}}
+          | {:continue, state :: term(), timeout_options()}
+          | {:switch_transport, {module(), upgrade_opts :: [term()]}, state :: term()}
+          | {:switch_transport, {module(), upgrade_opts :: [term()]}, state :: term(),
+             timeout_options()}
           | {:close, state :: term()}
           | {:error, term(), state :: term()}
 
@@ -201,6 +206,12 @@ defmodule ThousandIsland.Handler do
   is received. In order to set a persistent timeout for all future messages (essentially
   overwriting the value of `read_timeout` that was set at server startup), a value of
   `{:persistent, timeout}` may be returned.
+  * Returning `{:switch_transport, {module, opts}, state} will cause Thousand Island to try switching the transport of the
+  current socket. The `module` should be an Elixir module that implements the `ThousandIsland.Transport` behaviour.
+  Thousand Island will call `c:ThousandIsland.Transport.upgrade/2` for the given module to upgrade the transport in-place.
+  After a successful upgrade Thousand Island will switch the socket to an asynchronous mode, as if `{:continue, state}`
+  was returned. As with `:continue` return values, there are also timeout-specifying variants of
+  this return value.
   * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to
   allow final cleanup to be done.
   """
@@ -284,7 +295,6 @@ defmodule ThousandIsland.Handler do
 
   @spec __using__(any) :: Macro.t()
   defmacro __using__(_opts) do
-    # credo:disable-for-next-line Credo.Check.Refactor.LongQuoteBlocks
     quote location: :keep do
       @behaviour ThousandIsland.Handler
 
@@ -442,6 +452,12 @@ defmodule ThousandIsland.Handler do
         do_socket_close(socket, reason)
       end
 
+      # Called if the socket encountered an error during upgrading
+      def terminate({:shutdown, {:upgrade, reason}}, {socket, state}) do
+        __MODULE__.handle_error(reason, socket, state)
+        do_socket_close(socket, reason)
+      end
+
       # Called if the remote end shut down the connection, or if the local end closed the
       # connection by returning a `{:close,...}` tuple (in which case the socket will be open)
       def terminate({:shutdown, reason}, {%ThousandIsland.Socket{} = socket, state}) do
@@ -500,6 +516,16 @@ defmodule ThousandIsland.Handler do
             _ = ThousandIsland.Socket.setopts(socket, active: :once)
             {:noreply, {socket, state}, timeout}
 
+          {:switch_transport, {module, upgrade_opts}, state} ->
+            handle_switch_continuation(socket, module, upgrade_opts, state, socket.read_timeout)
+
+          {:switch_transport, {module, upgrade_opts}, state, {:persistent, timeout}} ->
+            socket = %{socket | read_timeout: timeout}
+            handle_switch_continuation(socket, module, upgrade_opts, state, timeout)
+
+          {:switch_transport, {module, upgrade_opts}, state, timeout} ->
+            handle_switch_continuation(socket, module, upgrade_opts, state, timeout)
+
           {:close, state} ->
             {:stop, {:shutdown, :local_closed}, {socket, state}}
 
@@ -512,6 +538,17 @@ defmodule ThousandIsland.Handler do
             else
               {:stop, reason, {socket, state}}
             end
+        end
+      end
+
+      defp handle_switch_continuation(socket, module, upgrade_opts, state, timeout) do
+        case ThousandIsland.Socket.upgrade(socket, module, upgrade_opts) do
+          {:ok, socket} ->
+            _ = ThousandIsland.Socket.setopts(socket, active: :once)
+            {:noreply, {socket, state}, timeout}
+
+          {:error, reason} ->
+            {:stop, {:shutdown, {:upgrade, reason}}, {socket, state}}
         end
       end
     end
