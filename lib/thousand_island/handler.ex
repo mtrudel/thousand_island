@@ -541,6 +541,7 @@ defmodule ThousandIsland.Handler do
         end
       end
 
+      @dialyzer {:nowarn_function, handle_switch_continuation: 5}
       defp handle_switch_continuation(socket, module, upgrade_opts, state, timeout) do
         case ThousandIsland.Socket.upgrade(socket, module, upgrade_opts) do
           {:ok, socket} ->
