@@ -16,7 +16,8 @@ defmodule ThousandIsland.MixProject do
       package: [
         maintainers: ["Mat Trudel"],
         licenses: ["MIT"],
-        links: %{"GitHub" => "https://github.com/mtrudel/thousand_island"}
+        links: %{"GitHub" => "https://github.com/mtrudel/thousand_island"},
+        files: ["lib", "mix.exs", "README*", "LICENSE*", "CHANGELOG*"]
       ],
       docs: docs()
     ]
