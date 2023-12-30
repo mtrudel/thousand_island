@@ -1,3 +1,22 @@
+## 1.3.0 (30 Dec 2023)
+
+### Fixes
+
+* Fix issue with eventual acceptor starvation when handling certain network
+  conditions (#103)
+
+### Enhancements
+
+* Add check (and logging) for cases where a Handler implementation does not
+  return the expected state from GenServer handle_* calls (#96, thanks
+  @elfenlaid!)
+* Allow protocol upgrades within an active connection (#86, thanks @icehaunter!)
+
+### Changes
+
+* Improve file list for hex packaging (#98, thanks @patrickjaberg and
+  @wojtekmach!)
+
 ## 1.2.0 (11 Nov 2023)
 
 ### Enhancements
