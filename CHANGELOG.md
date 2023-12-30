@@ -1,3 +1,9 @@
+## 1.3.1 (30 Dec 2023)
+
+### Fixes
+
+* Fix downstream dialyzer error introduced by #86
+
 ## 1.3.0 (30 Dec 2023)
 
 ### Fixes
