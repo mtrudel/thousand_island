@@ -206,7 +206,7 @@ defmodule ThousandIsland.Handler do
   is received. In order to set a persistent timeout for all future messages (essentially
   overwriting the value of `read_timeout` that was set at server startup), a value of
   `{:persistent, timeout}` may be returned.
-  * Returning `{:switch_transport, {module, opts}, state} will cause Thousand Island to try switching the transport of the
+  * Returning `{:switch_transport, {module, opts}, state}` will cause Thousand Island to try switching the transport of the
   current socket. The `module` should be an Elixir module that implements the `ThousandIsland.Transport` behaviour.
   Thousand Island will call `c:ThousandIsland.Transport.upgrade/2` for the given module to upgrade the transport in-place.
   After a successful upgrade Thousand Island will switch the socket to an asynchronous mode, as if `{:continue, state}`
