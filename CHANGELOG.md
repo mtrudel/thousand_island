@@ -1,3 +1,14 @@
+## 1.3.2 (31 Dec 2023)
+
+### Changes
+
+* Allow `sni_hosts` or `sni_fun` in place of `cert`/`certfile` and
+  `key`/`keyfile`
+
+### Fixes
+
+* Move `handle_info` fallback clause to module compilation hook (#105)
+
 ## 1.3.1 (30 Dec 2023)
 
 ### Fixes
