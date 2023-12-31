@@ -396,17 +396,11 @@ defmodule ThousandIsland.Handler do
         {:stop, reason, {socket, state}}
       end
 
-      def handle_info({msg, _raw_socket, _data}, _state) when msg in [:tcp, :ssl] do
-        raise """
-          The callback's `state` doesn't match the expected `{socket, state}` form.
-          Please ensure that you are returning a `{socket, state}` tuple from any
-          `GenServer.handle_*` callbacks you have implemented
-        """
-      end
-
       def handle_info(:timeout, {%ThousandIsland.Socket{} = socket, state}) do
         {:stop, {:shutdown, :timeout}, {socket, state}}
       end
+
+      @before_compile {ThousandIsland.Handler, :add_handle_info_fallback}
 
       # Use a continue pattern here so that we have committed the socket
       # to state in case the `c:handle_connection/2` callback raises an error.
@@ -551,6 +545,18 @@ defmodule ThousandIsland.Handler do
           {:error, reason} ->
             {:stop, {:shutdown, {:upgrade, reason}}, {socket, state}}
         end
+      end
+    end
+  end
+
+  defmacro add_handle_info_fallback(_module) do
+    quote do
+      def handle_info({msg, _raw_socket, _data}, _state) when msg in [:tcp, :ssl] do
+        raise """
+          The callback's `state` doesn't match the expected `{socket, state}` form.
+          Please ensure that you are returning a `{socket, state}` tuple from any
+          `GenServer.handle_*` callbacks you have implemented
+        """
       end
     end
   end
