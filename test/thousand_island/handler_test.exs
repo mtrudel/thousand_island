@@ -42,6 +42,59 @@ defmodule ThousandIsland.HandlerTest do
       # Ensure that we saw the message displayed by the handle_close callback
       assert messages =~ "Closing with hello"
     end
+
+    defmodule BogusState do
+      use ThousandIsland.Handler
+
+      @impl ThousandIsland.Handler
+      def handle_connection(_socket, state) do
+        send(self(), "bogus")
+        {:continue, state}
+      end
+
+      def handle_info("bogus", {_socket, state}) do
+        # Intentionally dropping socket here
+        {:noreply, state}
+      end
+    end
+
+    test "it should complain loudly if a handle_info callback returns the wrong shaped state" do
+      {:ok, port} = start_handler(BogusState)
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      messages =
+        capture_log(fn ->
+          :gen_tcp.send(client, "ping")
+          Process.sleep(100)
+        end)
+
+      # Ensure that we saw the message displayed when we tried to handle_data
+      # after getting a bogus state back
+      assert messages =~
+               "The callback's `state` doesn't match the expected `{socket, state}` form"
+    end
+
+    defmodule FakeProxy do
+      use ThousandIsland.Handler
+
+      @impl ThousandIsland.Handler
+      def handle_connection(_socket, state) do
+        send(self(), {:tcp, :othersocket, "otherdata"})
+        {:continue, state}
+      end
+
+      def handle_info({:tcp, _othersocket, _otherdata}, {socket, state}) do
+        ThousandIsland.Socket.send(socket, "Got other data")
+        {:noreply, {socket, state}}
+      end
+    end
+
+    test "it should allow tcp messages sent from other sockets to be accepted by a Handler" do
+      {:ok, port} = start_handler(FakeProxy)
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      assert :gen_tcp.recv(client, 14) == {:ok, ~c"Got other data"}
+    end
   end
 
   describe "handle_connection" do
