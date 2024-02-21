@@ -1,3 +1,11 @@
+## 1.3.3 (21 Feb 2024)
+
+### Changes
+
+* Do not set `:linger` as a default option on either TCP or SSL transports. This
+  was causing oddball node hangs on larger instances (#110, thanks @jonjon &
+  @pojiro!)
+
 ## 1.3.2 (31 Dec 2023)
 
 ### Changes
