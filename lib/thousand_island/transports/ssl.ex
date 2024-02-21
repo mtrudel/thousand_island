@@ -23,7 +23,6 @@ defmodule ThousandIsland.Transports.SSL do
   ```elixir
   backlog: 1024,
   nodelay: true,
-  linger: {true, 30},
   send_timeout: 30_000,
   send_timeout_close: true,
   reuseaddr: true
@@ -53,7 +52,6 @@ defmodule ThousandIsland.Transports.SSL do
     default_options = [
       backlog: 1024,
       nodelay: true,
-      linger: {true, 30},
       send_timeout: 30_000,
       send_timeout_close: true,
       reuseaddr: true
