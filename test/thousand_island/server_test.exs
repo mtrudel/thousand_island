@@ -35,6 +35,17 @@ defmodule ThousandIsland.ServerTest do
     end
   end
 
+  defmodule ReadOpt do
+    use ThousandIsland.Handler
+
+    @impl ThousandIsland.Handler
+    def handle_data(data, socket, state) do
+      opts = [String.to_atom(data)]
+      ThousandIsland.Socket.send(socket, inspect(ThousandIsland.Socket.getopts(socket, opts)))
+      {:close, state}
+    end
+  end
+
   defmodule Error do
     use ThousandIsland.Handler
 
@@ -361,6 +372,66 @@ defmodule ThousandIsland.ServerTest do
                 %{connections: 0, duration: integer(), monotonic_time: integer()},
                 %{telemetry_span_context: reference(), parent_telemetry_span_context: reference()}}
              ]
+    end
+  end
+
+  describe "configuration" do
+    test "tcp should allow default options to be overridden" do
+      {:ok, _, port} = start_handler(ReadOpt, transport_options: [send_timeout: 1230])
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      :gen_tcp.send(client, "send_timeout")
+      {:ok, ~c"{:ok, [send_timeout: 1230]}"} = :gen_tcp.recv(client, 0, 100)
+    end
+
+    test "tcp should not allow hardcoded options to be overridden" do
+      {:ok, _, port} = start_handler(ReadOpt, transport_options: [mode: :list])
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      :gen_tcp.send(client, "mode")
+      {:ok, ~c"{:ok, [mode: :binary]}"} = :gen_tcp.recv(client, 0, 100)
+    end
+
+    test "ssl should allow default options to be overridden" do
+      {:ok, _, port} =
+        start_handler(ReadOpt,
+          transport_module: ThousandIsland.Transports.SSL,
+          transport_options: [
+            send_timeout: 1230,
+            certfile: Path.join(__DIR__, "../support/cert.pem"),
+            keyfile: Path.join(__DIR__, "../support/key.pem")
+          ]
+        )
+
+      {:ok, client} =
+        :ssl.connect(:localhost, port,
+          active: false,
+          verify: :verify_none,
+          cacertfile: Path.join(__DIR__, "../support/ca.pem")
+        )
+
+      :ssl.send(client, "send_timeout")
+      {:ok, ~c"{:ok, [send_timeout: 1230]}"} = :ssl.recv(client, 0, 100)
+    end
+
+    test "ssl should not allow hardcoded options to be overridden" do
+      {:ok, _, port} =
+        start_handler(ReadOpt,
+          transport_module: ThousandIsland.Transports.SSL,
+          transport_options: [
+            mode: :list,
+            certfile: Path.join(__DIR__, "../support/cert.pem"),
+            keyfile: Path.join(__DIR__, "../support/key.pem")
+          ]
+        )
+
+      {:ok, client} =
+        :ssl.connect(:localhost, port,
+          active: false,
+          verify: :verify_none,
+          cacertfile: Path.join(__DIR__, "../support/ca.pem")
+        )
+
+      :ssl.send(client, "mode")
+      {:ok, ~c"{:ok, [mode: :binary]}"} = :ssl.recv(client, 0, 100)
     end
   end
 
