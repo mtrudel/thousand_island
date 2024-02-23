@@ -57,7 +57,10 @@ defmodule ThousandIsland.Transports.SSL do
       reuseaddr: true
     ]
 
-    resolved_options = @hardcoded_options ++ user_options ++ default_options
+    resolved_options =
+      default_options
+      |> Keyword.merge(user_options)
+      |> Keyword.merge(@hardcoded_options)
 
     if not Enum.any?(
          [:keyfile, :key, :sni_hosts, :sni_fun],
