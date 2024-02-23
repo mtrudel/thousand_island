@@ -55,10 +55,11 @@ defmodule ThousandIsland.Transports.TCP do
       reuseaddr: true
     ]
 
+    # We can't use Keyword functions here because :gen_tcp accepts non-keyword style options
     resolved_options =
-      default_options
-      |> Keyword.merge(user_options)
-      |> Keyword.merge(@hardcoded_options)
+      default_options ++
+        user_options ++
+        @hardcoded_options
 
     :gen_tcp.listen(port, resolved_options)
   end

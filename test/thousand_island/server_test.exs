@@ -390,6 +390,13 @@ defmodule ThousandIsland.ServerTest do
       {:ok, ~c"{:ok, [mode: :binary]}"} = :gen_tcp.recv(client, 0, 100)
     end
 
+    test "tcp should allow Erlang style bare options" do
+      {:ok, _, port} = start_handler(Echo, transport_options: [:inet6])
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      :gen_tcp.send(client, "HI")
+      {:ok, ~c"HI"} = :gen_tcp.recv(client, 0, 100)
+    end
+
     test "ssl should allow default options to be overridden" do
       {:ok, _, port} =
         start_handler(ReadOpt,
@@ -432,6 +439,29 @@ defmodule ThousandIsland.ServerTest do
 
       :ssl.send(client, "mode")
       {:ok, ~c"{:ok, [mode: :binary]}"} = :ssl.recv(client, 0, 100)
+    end
+
+    test "ssl should allow Erlang style bare options" do
+      {:ok, _, port} =
+        start_handler(Echo,
+          transport_module: ThousandIsland.Transports.SSL,
+          transport_options:
+            [:inet6] ++
+              [
+                certfile: Path.join(__DIR__, "../support/cert.pem"),
+                keyfile: Path.join(__DIR__, "../support/key.pem")
+              ]
+        )
+
+      {:ok, client} =
+        :ssl.connect(:localhost, port,
+          active: false,
+          verify: :verify_none,
+          cacertfile: Path.join(__DIR__, "../support/ca.pem")
+        )
+
+      :ssl.send(client, "HI")
+      {:ok, ~c"HI"} = :ssl.recv(client, 0, 100)
     end
   end
 
