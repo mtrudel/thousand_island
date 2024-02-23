@@ -1,3 +1,10 @@
+## 1.3.4 (23 Feb 2024)
+
+### Fixes
+
+* Fix the ability to override default options (and not override hardcoded
+  options) for both TCP and SSL transports (#111, thanks @moogle19!)
+
 ## 1.3.3 (21 Feb 2024)
 
 ### Changes
