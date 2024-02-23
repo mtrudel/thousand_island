@@ -204,7 +204,7 @@ defmodule ThousandIsland.ServerTest do
     assert {:ok, []} == ThousandIsland.connection_pids(server_pid)
   end
 
-  describe "suspend / reume" do
+  describe "suspend / resume" do
     test "suspend should stop accepting connections but keep existing ones open" do
       {:ok, server_pid, port} = start_handler(LongEcho, port: 9999)
       {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
@@ -367,20 +367,16 @@ defmodule ThousandIsland.ServerTest do
   describe "invalid configuration" do
     @tag capture_log: true
     test "it should error if a certificate is not found" do
-      server_args = [
-        port: 0,
-        handler_module: Error,
-        handler_options: [test_pid: self()],
-        transport_module: ThousandIsland.Transports.SSL,
-        transport_options: [
-          certfile: Path.join(__DIR__, "./not/a/cert.pem"),
-          keyfile: Path.join(__DIR__, "./not/a/key.pem"),
-          alpn_preferred_protocols: ["foo"]
-        ]
-      ]
-
-      {:ok, server_pid} = start_supervised({ThousandIsland, server_args})
-      {:ok, {_ip, port}} = ThousandIsland.listener_info(server_pid)
+      {:ok, server_pid, port} =
+        start_handler(Error,
+          handler_options: [test_pid: self()],
+          transport_module: ThousandIsland.Transports.SSL,
+          transport_options: [
+            certfile: Path.join(__DIR__, "./not/a/cert.pem"),
+            keyfile: Path.join(__DIR__, "./not/a/key.pem"),
+            alpn_preferred_protocols: ["foo"]
+          ]
+        )
 
       {:error, _} =
         :ssl.connect(~c"localhost", port,
