@@ -62,7 +62,8 @@ defmodule ThousandIsland.Transports.TCP do
         fn
           {key, _} when is_atom(key) -> key
           key when is_atom(key) -> key
-        end)
+        end
+      )
 
     :gen_tcp.listen(port, resolved_options)
   end

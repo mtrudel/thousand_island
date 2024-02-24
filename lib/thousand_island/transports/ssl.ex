@@ -64,7 +64,8 @@ defmodule ThousandIsland.Transports.SSL do
         fn
           {key, _} when is_atom(key) -> key
           key when is_atom(key) -> key
-        end)
+        end
+      )
 
     if not Enum.any?(
          [:keyfile, :key, :sni_hosts, :sni_fun],
