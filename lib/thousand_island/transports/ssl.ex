@@ -59,9 +59,12 @@ defmodule ThousandIsland.Transports.SSL do
 
     # We can't use Keyword functions here because :ssl accepts non-keyword style options
     resolved_options =
-      default_options ++
-        user_options ++
-        @hardcoded_options
+      Enum.uniq_by(
+        @hardcoded_options ++ user_options ++ default_options,
+        fn
+          {key, _} when is_atom(key) -> key
+          key when is_atom(key) -> key
+        end)
 
     if not Enum.any?(
          [:keyfile, :key, :sni_hosts, :sni_fun],
