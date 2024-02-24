@@ -1,3 +1,10 @@
+## 1.3.5 (24 Feb 2024)
+
+### Fixes
+
+* Fix regression on non-keyword options (such as `:inet6`) introduced in 1.3.4
+  (#113, thanks @danschultzer!)
+
 ## 1.3.4 (23 Feb 2024)
 
 ### Fixes
