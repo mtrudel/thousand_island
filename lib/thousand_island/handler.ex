@@ -32,16 +32,19 @@ defmodule ThousandIsland.Handler do
 
         # ...handle_data and other Handler callbacks
 
-        def handle_cast(msg, from, {socket, state}) do
+        @impl GenServer
+        def handle_call(msg, from, {socket, state}) do
           # Do whatever you'd like with msg & from
           {:reply, :ok, {socket, state}, socket.read_timeout}
         end
 
+        @impl GenServer
         def handle_cast(msg, {socket, state}) do
           # Do whatever you'd like with msg
           {:noreply, {socket, state}, socket.read_timeout}
         end
 
+        @impl GenServer
         def handle_info(msg, {socket, state}) do
           # Do whatever you'd like with msg
           {:noreply, {socket, state}, socket.read_timeout}
