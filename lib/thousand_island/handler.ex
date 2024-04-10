@@ -552,6 +552,7 @@ defmodule ThousandIsland.Handler do
     end
   end
 
+  @doc false
   defmacro add_handle_info_fallback(_module) do
     quote do
       def handle_info({msg, _raw_socket, _data}, _state) when msg in [:tcp, :ssl] do
