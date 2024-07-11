@@ -11,3 +11,13 @@ jobs:
     uses: mtrudel/elixir-ci-actions/.github/workflows/test.yml@main
   lint:
     uses: mtrudel/elixir-ci-actions/.github/workflows/lint.yml@main
+  re-run:
+    needs: [test, lint]
+    if: failure() && fromJSON(github.run_attempt) < 3
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          GH_DEBUG: api
+        run: gh workflow run rerun.yml -F run_id=${{ github.run_id }}
