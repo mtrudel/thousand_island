@@ -707,6 +707,47 @@ defmodule ThousandIsland.HandlerTest do
              ]
     end
 
+    defmodule Telemetry.HelloWorld do
+      use ThousandIsland.Handler
+
+      @impl ThousandIsland.Handler
+      def handle_connection(socket, state) do
+        ThousandIsland.Socket.send(socket, "HELLO")
+        {:continue, state}
+      end
+    end
+
+    test "it should send `stop` telemetry event on client shutdown" do
+      {:ok, collector_pid} =
+        start_supervised(
+          {ThousandIsland.TelemetryCollector, [[:thousand_island, :connection, :stop]]}
+        )
+
+      {:ok, port} = start_handler(Telemetry.HelloWorld)
+
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      {:ok, {ip, port}} = :inet.sockname(client)
+      {:ok, ~c"HELLO"} = :gen_tcp.recv(client, 5)
+      :gen_tcp.close(client)
+      Process.sleep(100)
+
+      # When the remote end closes the socket we do not get octet counts, unfortunately
+      assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
+             ~> [
+               {[:thousand_island, :connection, :stop],
+                %{
+                  duration: integer(),
+                  monotonic_time: integer()
+                },
+                %{
+                  parent_telemetry_span_context: reference(),
+                  remote_address: ip,
+                  remote_port: port,
+                  telemetry_span_context: reference()
+                }}
+             ]
+    end
+
     defmodule Telemetry.Closer do
       use ThousandIsland.Handler
 

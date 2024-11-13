@@ -493,7 +493,8 @@ defmodule ThousandIsland.Handler do
               %{}
           end
 
-        metadata = if reason in [:shutdown, :local_closed], do: %{}, else: %{error: reason}
+        metadata =
+          if reason in [:shutdown, :local_closed, :peer_closed], do: %{}, else: %{error: reason}
 
         _ = ThousandIsland.Socket.close(socket)
         ThousandIsland.Telemetry.stop_span(socket.span, measurements, metadata)
