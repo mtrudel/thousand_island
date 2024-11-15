@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-As Thousand Island is still in active development (its [major version is still 0](https://semver.org/#spec-item-4)), no formal support exists for any version earlier than the most recently released version.
+Bug and security fixes are provided only for the most recent version of Thousand Island.
 
 ## Reporting a Vulnerability
 
