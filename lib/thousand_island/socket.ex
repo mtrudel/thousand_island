@@ -16,7 +16,12 @@ defmodule ThousandIsland.Socket do
           span: ThousandIsland.Telemetry.t()
         }
 
-  @doc false
+  @doc """
+  Creates a new socket struct based on the passed parameters.
+
+  This is normally called internally by `ThousandIsland.Handler` and does not need to be
+  called by implementations which are based on `ThousandIsland.Handler`
+  """
   @spec new(
           ThousandIsland.Transport.socket(),
           ThousandIsland.ServerConfig.t(),

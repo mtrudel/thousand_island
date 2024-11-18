@@ -1,5 +1,9 @@
 defmodule ThousandIsland.ServerConfig do
-  @moduledoc false
+  @moduledoc """
+  Encapsulates the configuration of a ThousandIsland server instance
+
+  This is used internally by `ThousandIsland.Handler`
+  """
 
   @typedoc "A set of configuration parameters for a ThousandIsland server instance"
   @type t :: %__MODULE__{
