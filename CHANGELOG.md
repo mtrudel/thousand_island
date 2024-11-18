@@ -1,3 +1,11 @@
+## 1.3.6 (18 Nov 2024)
+
+### Fixes
+
+* Don't consider remote end closure as an error condition for telemetry
+* Fix typo & clarify docs (#117)
+* Update security policy (#138)
+
 ## 1.3.5 (24 Feb 2024)
 
 ### Fixes
