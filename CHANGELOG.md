@@ -1,3 +1,9 @@
+## 1.3.7 (29 Nov 2024)
+
+### Fixes
+
+* Use socket as returned from transport handshake (#142, thanks @danielspofford!)
+
 ## 1.3.6 (18 Nov 2024)
 
 ### Fixes
