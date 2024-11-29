@@ -46,8 +46,8 @@ defmodule ThousandIsland.Socket do
   @spec handshake(t()) :: ThousandIsland.Transport.on_handshake()
   def handshake(%__MODULE__{} = socket) do
     case socket.transport_module.handshake(socket.socket) do
-      {:ok, _} ->
-        {:ok, socket}
+      {:ok, inner_socket} ->
+        {:ok, %{socket | socket: inner_socket}}
 
       {:error, reason} = err ->
         ThousandIsland.Telemetry.stop_span(socket.span, %{}, %{error: reason})
