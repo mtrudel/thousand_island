@@ -250,6 +250,30 @@ defmodule ThousandIsland.Handler do
               handler_result()
 
   @doc """
+  Handles messages sent to the process.
+
+  The value returned by this callback causes Thousand Island to proceed in one of several ways:
+
+  * Returning `{:close, state}` will cause Thousand Island to close the socket & call the `c:handle_close/2` callback to
+  allow final cleanup to be done.
+  * Returning `{:continue, state}` will cause Thousand Island to switch the socket to an asynchronous mode. When the
+  client subsequently sends data (or if there is already unread data waiting from the client), Thousand Island will call
+  `c:handle_data/3` to allow this data to be processed.
+  * Returning `{:continue, state, timeout}` is identical to the previous case with the
+  addition of a timeout. If `timeout` milliseconds passes with no data being received or messages
+  being sent to the process, the socket will be closed and `c:handle_timeout/2` will be called.
+  Note that this timeout is not persistent; it applies only to the interval until the next message
+  is received. In order to set a persistent timeout for all future messages (essentially
+  overwriting the value of `read_timeout` that was set at server startup), a value of
+  `{:persistent, timeout}` may be returned.
+  * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to
+  allow final cleanup to be done.
+
+  """
+  @callback handle_info(data :: binary(), socket :: ThousandIsland.Socket.t(), state :: term()) ::
+              handler_result()
+
+  @doc """
   This callback is called when the underlying socket is closed by the remote end; it should perform any cleanup required
   as it is the last callback called before the process backing this connection is terminated. The underlying socket
   has already been closed by the time this callback is called. The return value is ignored.
@@ -299,18 +323,21 @@ defmodule ThousandIsland.Handler do
                       handle_shutdown: 2,
                       handle_timeout: 2
 
+  use GenServer, restart: :temporary
+
   @spec __using__(any) :: Macro.t()
-  defmacro __using__(_opts) do
+  defmacro __using__(opts) do
     quote location: :keep do
       @behaviour ThousandIsland.Handler
-
-      use GenServer, restart: :temporary
 
       @impl ThousandIsland.Handler
       def handle_connection(_socket, state), do: {:continue, state}
 
       @impl ThousandIsland.Handler
       def handle_data(_data, _socket, state), do: {:continue, state}
+
+      @impl ThousandIsland.Handler
+      def handle_info(_data, _socket, state), do: {:continue, state}
 
       @impl ThousandIsland.Handler
       def handle_close(_socket, _state), do: :ok
@@ -328,244 +355,293 @@ defmodule ThousandIsland.Handler do
 
       @spec start_link({handler_options :: term(), GenServer.options()}) :: GenServer.on_start()
       def start_link({handler_options, genserver_options}) do
-        GenServer.start_link(__MODULE__, handler_options, genserver_options)
+        ThousandIsland.Handler.start_link({__MODULE__, handler_options, genserver_options})
       end
 
-      @impl GenServer
-      def init(handler_options) do
-        Process.flag(:trap_exit, true)
-        {:ok, {nil, handler_options}}
-      end
-
-      @impl GenServer
-      def handle_info(
-            {:thousand_island_ready, raw_socket, server_config, acceptor_span, start_time},
-            {nil, state}
-          ) do
-        {ip, port} =
-          case server_config.transport_module.peername(raw_socket) do
-            {:ok, remote_info} ->
-              remote_info
-
-            {:error, reason} ->
-              # the socket has been prematurely closed by the client, we can't do anything with it
-              # so we just close the socket, stop the GenServer with the error reason and move on.
-              _ = server_config.transport_module.close(raw_socket)
-              throw({:stop, {:shutdown, {:premature_conn_closing, reason}}, {raw_socket, state}})
-          end
-
-        span_meta = %{remote_address: ip, remote_port: port}
-
-        connection_span =
-          ThousandIsland.Telemetry.start_child_span(
-            acceptor_span,
-            :connection,
-            %{monotonic_time: start_time},
-            span_meta
-          )
-
-        socket = ThousandIsland.Socket.new(raw_socket, server_config, connection_span)
-        ThousandIsland.Telemetry.span_event(connection_span, :ready)
-
-        case ThousandIsland.Socket.handshake(socket) do
-          {:ok, socket} -> {:noreply, {socket, state}, {:continue, :handle_connection}}
-          {:error, reason} -> {:stop, {:shutdown, {:handshake, reason}}, {socket, state}}
-        end
-      catch
-        {:stop, _, _} = stop -> stop
-      end
-
-      def handle_info(
-            {msg, raw_socket, data},
-            {%ThousandIsland.Socket{socket: raw_socket} = socket, state}
-          )
-          when msg in [:tcp, :ssl] do
-        ThousandIsland.Telemetry.untimed_span_event(socket.span, :async_recv, %{data: data})
-
-        __MODULE__.handle_data(data, socket, state)
-        |> handle_continuation(socket)
-      end
-
-      def handle_info(
-            {msg, raw_socket},
-            {%ThousandIsland.Socket{socket: raw_socket} = socket, state}
-          )
-          when msg in [:tcp_closed, :ssl_closed] do
-        {:stop, {:shutdown, :peer_closed}, {socket, state}}
-      end
-
-      def handle_info(
-            {msg, raw_socket, reason},
-            {%ThousandIsland.Socket{socket: raw_socket} = socket, state}
-          )
-          when msg in [:tcp_error, :ssl_error] do
-        {:stop, reason, {socket, state}}
-      end
-
-      def handle_info(:timeout, {%ThousandIsland.Socket{} = socket, state}) do
-        {:stop, {:shutdown, :timeout}, {socket, state}}
-      end
-
-      @before_compile {ThousandIsland.Handler, :add_handle_info_fallback}
-
-      # Use a continue pattern here so that we have committed the socket
-      # to state in case the `c:handle_connection/2` callback raises an error.
-      # This ensures that the `c:terminate/2` calls below are able to properly
-      # close down the process
-      @impl GenServer
-      def handle_continue(:handle_connection, {%ThousandIsland.Socket{} = socket, state}) do
-        __MODULE__.handle_connection(socket, state)
-        |> handle_continuation(socket)
-      end
-
-      # Called if the remote end closed the connection before we could initialize it
-      @impl GenServer
-      def terminate({:shutdown, {:premature_conn_closing, _reason}}, {_raw_socket, _state}) do
-        :ok
-      end
-
-      # Called by GenServer if we hit our read_timeout. Socket is still open
-      def terminate({:shutdown, :timeout}, {%ThousandIsland.Socket{} = socket, state}) do
-        __MODULE__.handle_timeout(socket, state)
-        do_socket_close(socket, :timeout)
-      end
-
-      # Called if we're being shutdown in an orderly manner. Socket is still open
-      def terminate(:shutdown, {%ThousandIsland.Socket{} = socket, state}) do
-        __MODULE__.handle_shutdown(socket, state)
-        do_socket_close(socket, :shutdown)
-      end
-
-      # Called if the socket encountered an error during handshaking
-      def terminate({:shutdown, {:handshake, reason}}, {%ThousandIsland.Socket{} = socket, state}) do
-        __MODULE__.handle_error(reason, socket, state)
-        do_socket_close(socket, reason)
-      end
-
-      # Called if the socket encountered an error and we are configured to shutdown silently.
-      # Socket is closed
-      def terminate(
-            {:shutdown, {:silent_termination, reason}},
-            {%ThousandIsland.Socket{} = socket, state}
-          ) do
-        __MODULE__.handle_error(reason, socket, state)
-        do_socket_close(socket, reason)
-      end
-
-      # Called if the socket encountered an error during upgrading
-      def terminate({:shutdown, {:upgrade, reason}}, {socket, state}) do
-        __MODULE__.handle_error(reason, socket, state)
-        do_socket_close(socket, reason)
-      end
-
-      # Called if the remote end shut down the connection, or if the local end closed the
-      # connection by returning a `{:close,...}` tuple (in which case the socket will be open)
-      def terminate({:shutdown, reason}, {%ThousandIsland.Socket{} = socket, state}) do
-        __MODULE__.handle_close(socket, state)
-        do_socket_close(socket, reason)
-      end
-
-      # Called if the socket encountered an error. Socket is closed
-      def terminate(reason, {%ThousandIsland.Socket{} = socket, state}) do
-        __MODULE__.handle_error(reason, socket, state)
-        do_socket_close(socket, reason)
-      end
-
-      # This clause could happen if we do not have a socket defined in state (either because the
-      # process crashed before setting it up, or because the user sent an invalid state)
-      def terminate(_reason, _state) do
-        :ok
-      end
-
-      @spec do_socket_close(
-              ThousandIsland.Socket.t(),
-              reason :: :shutdown | :local_closed | term()
-            ) :: :ok
-      defp do_socket_close(socket, reason) do
-        measurements =
-          case ThousandIsland.Socket.getstat(socket) do
-            {:ok, stats} ->
-              stats
-              |> Keyword.take([:send_oct, :send_cnt, :recv_oct, :recv_cnt])
-              |> Enum.into(%{})
-
-            _ ->
-              %{}
-          end
-
-        metadata =
-          if reason in [:shutdown, :local_closed, :peer_closed], do: %{}, else: %{error: reason}
-
-        _ = ThousandIsland.Socket.close(socket)
-        ThousandIsland.Telemetry.stop_span(socket.span, measurements, metadata)
-      end
-
-      # Dialyzer gets confused by handle_continuation being a defp and not a def
-      @dialyzer {:no_match, handle_continuation: 2}
-      defp handle_continuation(continuation, socket) do
-        case continuation do
-          {:continue, state} ->
-            _ = ThousandIsland.Socket.setopts(socket, active: :once)
-            {:noreply, {socket, state}, socket.read_timeout}
-
-          {:continue, state, {:persistent, timeout}} ->
-            socket = %{socket | read_timeout: timeout}
-            _ = ThousandIsland.Socket.setopts(socket, active: :once)
-            {:noreply, {socket, state}, timeout}
-
-          {:continue, state, timeout} ->
-            _ = ThousandIsland.Socket.setopts(socket, active: :once)
-            {:noreply, {socket, state}, timeout}
-
-          {:switch_transport, {module, upgrade_opts}, state} ->
-            handle_switch_continuation(socket, module, upgrade_opts, state, socket.read_timeout)
-
-          {:switch_transport, {module, upgrade_opts}, state, {:persistent, timeout}} ->
-            socket = %{socket | read_timeout: timeout}
-            handle_switch_continuation(socket, module, upgrade_opts, state, timeout)
-
-          {:switch_transport, {module, upgrade_opts}, state, timeout} ->
-            handle_switch_continuation(socket, module, upgrade_opts, state, timeout)
-
-          {:close, state} ->
-            {:stop, {:shutdown, :local_closed}, {socket, state}}
-
-          {:error, :timeout, state} ->
-            {:stop, {:shutdown, :timeout}, {socket, state}}
-
-          {:error, reason, state} ->
-            if socket.silent_terminate_on_error do
-              {:stop, {:shutdown, {:silent_termination, reason}}, {socket, state}}
-            else
-              {:stop, reason, {socket, state}}
-            end
-        end
-      end
-
-      @dialyzer {:nowarn_function, handle_switch_continuation: 5}
-      defp handle_switch_continuation(socket, module, upgrade_opts, state, timeout) do
-        case ThousandIsland.Socket.upgrade(socket, module, upgrade_opts) do
-          {:ok, socket} ->
-            _ = ThousandIsland.Socket.setopts(socket, active: :once)
-            {:noreply, {socket, state}, timeout}
-
-          {:error, reason} ->
-            {:stop, {:shutdown, {:upgrade, reason}}, {socket, state}}
-        end
+      @doc false
+      def child_spec(args) do
+        %{
+          id: __MODULE__,
+          start: {__MODULE__, :start_link, [args]},
+          restart: :temporary
+        }
+        |> Supervisor.child_spec(unquote(Macro.escape(opts)))
       end
     end
   end
 
-  @doc false
-  defmacro add_handle_info_fallback(_module) do
-    quote do
-      def handle_info({msg, _raw_socket, _data}, _state) when msg in [:tcp, :ssl] do
-        raise """
-          The callback's `state` doesn't match the expected `{socket, state}` form.
-          Please ensure that you are returning a `{socket, state}` tuple from any
-          `GenServer.handle_*` callbacks you have implemented
-        """
+  @spec start_link({handler_module :: module(), handler_options :: term(), GenServer.options()}) ::
+          GenServer.on_start()
+  def start_link({handler_module, handler_options, genserver_options}) do
+    GenServer.start_link(__MODULE__, {handler_module, handler_options}, genserver_options)
+  end
+
+  @impl GenServer
+  def init({handler_module, handler_options}) do
+    Process.flag(:trap_exit, true)
+    {:ok, {handler_module, nil, handler_options}}
+  end
+
+  @impl GenServer
+  def handle_info(
+        {:thousand_island_ready, raw_socket, server_config, acceptor_span, start_time},
+        {handler_module, nil, state}
+      ) do
+    {ip, port} =
+      case server_config.transport_module.peername(raw_socket) do
+        {:ok, remote_info} ->
+          remote_info
+
+        {:error, reason} ->
+          # the socket has been prematurely closed by the client, we can't do anything with it
+          # so we just close the socket, stop the GenServer with the error reason and move on.
+          _ = server_config.transport_module.close(raw_socket)
+
+          throw(
+            {:stop, {:shutdown, {:premature_conn_closing, reason}},
+             {handler_module, raw_socket, state}}
+          )
       end
+
+    span_meta = %{remote_address: ip, remote_port: port}
+
+    connection_span =
+      ThousandIsland.Telemetry.start_child_span(
+        acceptor_span,
+        :connection,
+        %{monotonic_time: start_time},
+        span_meta
+      )
+
+    socket = ThousandIsland.Socket.new(raw_socket, server_config, connection_span)
+    ThousandIsland.Telemetry.span_event(connection_span, :ready)
+
+    case ThousandIsland.Socket.handshake(socket) do
+      {:ok, socket} ->
+        {:noreply, {handler_module, socket, state}, {:continue, :handle_connection}}
+
+      {:error, reason} ->
+        {:stop, {:shutdown, {:handshake, reason}}, {handler_module, socket, state}}
+    end
+  catch
+    {:stop, _, _} = stop -> stop
+  end
+
+  def handle_info(
+        {msg, raw_socket, data},
+        {handler_module, %ThousandIsland.Socket{socket: raw_socket} = socket, state}
+      )
+      when msg in [:tcp, :ssl] do
+    ThousandIsland.Telemetry.untimed_span_event(socket.span, :async_recv, %{data: data})
+
+    handler_module.handle_data(data, socket, state)
+    |> handle_continuation(handler_module, socket)
+  end
+
+  def handle_info(
+        {msg, raw_socket},
+        {handler_module, %ThousandIsland.Socket{socket: raw_socket} = socket, state}
+      )
+      when msg in [:tcp_closed, :ssl_closed] do
+    {:stop, {:shutdown, :peer_closed}, {handler_module, socket, state}}
+  end
+
+  def handle_info(
+        {msg, raw_socket, reason},
+        {handler_module, %ThousandIsland.Socket{socket: raw_socket} = socket, state}
+      )
+      when msg in [:tcp_error, :ssl_error] do
+    {:stop, reason, {handler_module, socket, state}}
+  end
+
+  def handle_info(:timeout, {handler_module, %ThousandIsland.Socket{} = socket, state}) do
+    {:stop, {:shutdown, :timeout}, {handler_module, socket, state}}
+  end
+
+  def handle_info(msg, {handler_module, %ThousandIsland.Socket{} = socket, state}) do
+    handler_module.handle_info(msg, socket, state)
+    |> handle_continuation(handler_module, socket)
+  end
+
+  # Use a continue pattern here so that we have committed the socket
+  # to state in case the `c:handle_connection/2` callback raises an error.
+  # This ensures that the `c:terminate/2` calls below are able to properly
+  # close down the process
+  @impl GenServer
+  def handle_continue(
+        :handle_connection,
+        {handler_module, %ThousandIsland.Socket{} = socket, state}
+      ) do
+    handler_module.handle_connection(socket, state)
+    |> handle_continuation(handler_module, socket)
+  end
+
+  # Called if the remote end closed the connection before we could initialize it
+  @impl GenServer
+  def terminate(
+        {:shutdown, {:premature_conn_closing, _reason}},
+        {_handler_module, _raw_socket, _state}
+      ) do
+    :ok
+  end
+
+  # Called by GenServer if we hit our read_timeout. Socket is still open
+  def terminate({:shutdown, :timeout}, {handler_module, %ThousandIsland.Socket{} = socket, state}) do
+    handler_module.handle_timeout(socket, state)
+    do_socket_close(socket, :timeout)
+  end
+
+  # Called if we're being shutdown in an orderly manner. Socket is still open
+  def terminate(:shutdown, {handler_module, %ThousandIsland.Socket{} = socket, state}) do
+    handler_module.handle_shutdown(socket, state)
+    do_socket_close(socket, :shutdown)
+  end
+
+  # Called if the socket encountered an error during handshaking
+  def terminate(
+        {:shutdown, {:handshake, reason}},
+        {handler_module, %ThousandIsland.Socket{} = socket, state}
+      ) do
+    handler_module.handle_error(reason, socket, state)
+    do_socket_close(socket, reason)
+  end
+
+  # Called if the socket encountered an error and we are configured to shutdown silently.
+  # Socket is closed
+  def terminate(
+        {:shutdown, {:silent_termination, reason}},
+        {handler_module, %ThousandIsland.Socket{} = socket, state}
+      ) do
+    handler_module.handle_error(reason, socket, state)
+    do_socket_close(socket, reason)
+  end
+
+  # Called if the socket encountered an error during upgrading
+  def terminate({:shutdown, {:upgrade, reason}}, {handler_module, socket, state}) do
+    handler_module.handle_error(reason, socket, state)
+    do_socket_close(socket, reason)
+  end
+
+  # Called if the remote end shut down the connection, or if the local end closed the
+  # connection by returning a `{:close,...}` tuple (in which case the socket will be open)
+  def terminate({:shutdown, reason}, {handler_module, %ThousandIsland.Socket{} = socket, state}) do
+    handler_module.handle_close(socket, state)
+    do_socket_close(socket, reason)
+  end
+
+  # Called if the socket encountered an error. Socket is closed
+  def terminate(reason, {handler_module, %ThousandIsland.Socket{} = socket, state}) do
+    handler_module.handle_error(reason, socket, state)
+    do_socket_close(socket, reason)
+  end
+
+  # This clause could happen if we do not have a socket defined in state (either because the
+  # process crashed before setting it up, or because the user sent an invalid state)
+  def terminate(_reason, _state) do
+    :ok
+  end
+
+  @spec do_socket_close(
+          ThousandIsland.Socket.t(),
+          reason :: :shutdown | :local_closed | term()
+        ) :: :ok
+  defp do_socket_close(socket, reason) do
+    measurements =
+      case ThousandIsland.Socket.getstat(socket) do
+        {:ok, stats} ->
+          stats
+          |> Keyword.take([:send_oct, :send_cnt, :recv_oct, :recv_cnt])
+          |> Enum.into(%{})
+
+        _ ->
+          %{}
+      end
+
+    metadata =
+      if reason in [:shutdown, :local_closed, :peer_closed], do: %{}, else: %{error: reason}
+
+    _ = ThousandIsland.Socket.close(socket)
+    ThousandIsland.Telemetry.stop_span(socket.span, measurements, metadata)
+  end
+
+  # Dialyzer gets confused by handle_continuation being a defp and not a def
+  defp handle_continuation(continuation, handler_module, socket) do
+    case continuation do
+      {:continue, state} ->
+        _ = ThousandIsland.Socket.setopts(socket, active: :once)
+        {:noreply, {handler_module, socket, state}, socket.read_timeout}
+
+      {:continue, state, {:persistent, timeout}} ->
+        socket = %{socket | read_timeout: timeout}
+        _ = ThousandIsland.Socket.setopts(socket, active: :once)
+        {:noreply, {handler_module, socket, state}, timeout}
+
+      {:continue, state, timeout} ->
+        _ = ThousandIsland.Socket.setopts(socket, active: :once)
+        {:noreply, {handler_module, socket, state}, timeout}
+
+      {:switch_transport, {transport_module, upgrade_opts}, state} ->
+        handle_switch_continuation(
+          handler_module,
+          socket,
+          transport_module,
+          upgrade_opts,
+          state,
+          socket.read_timeout
+        )
+
+      {:switch_transport, {transport_module, upgrade_opts}, state, {:persistent, timeout}} ->
+        socket = %{socket | read_timeout: timeout}
+
+        handle_switch_continuation(
+          handler_module,
+          socket,
+          transport_module,
+          upgrade_opts,
+          state,
+          timeout
+        )
+
+      {:switch_transport, {transport_module, upgrade_opts}, state, timeout} ->
+        handle_switch_continuation(
+          handler_module,
+          socket,
+          transport_module,
+          upgrade_opts,
+          state,
+          timeout
+        )
+
+      {:close, state} ->
+        {:stop, {:shutdown, :local_closed}, {handler_module, socket, state}}
+
+      {:error, :timeout, state} ->
+        {:stop, {:shutdown, :timeout}, {handler_module, socket, state}}
+
+      {:error, reason, state} ->
+        if socket.silent_terminate_on_error do
+          {:stop, {:shutdown, {:silent_termination, reason}}, {handler_module, socket, state}}
+        else
+          {:stop, reason, {handler_module, socket, state}}
+        end
+    end
+  end
+
+  defp handle_switch_continuation(
+         handler_module,
+         socket,
+         transport_module,
+         upgrade_opts,
+         state,
+         timeout
+       ) do
+    case ThousandIsland.Socket.upgrade(socket, transport_module, upgrade_opts) do
+      {:ok, socket} ->
+        _ = ThousandIsland.Socket.setopts(socket, active: :once)
+        {:noreply, {handler_module, socket, state}, timeout}
+
+      {:error, reason} ->
+        {:stop, {:shutdown, {:upgrade, reason}}, {handler_module, socket, state}}
     end
   end
 end
