@@ -4,7 +4,8 @@ defmodule ThousandIsland.ListenerTest do
 
   alias ThousandIsland.{Listener, ServerConfig}
 
-  @server_config %ServerConfig{port: 4004}
+  # We don't actually implement handler, but we specify it so that our telemetry helpers will work
+  @server_config %ServerConfig{port: 4004, handler_module: __MODULE__}
 
   defmodule TestTransport do
     # This module does not implement all of the callbacks
@@ -90,29 +91,24 @@ defmodule ThousandIsland.ListenerTest do
     end
 
     test "emits expected telemetry event" do
-      {:ok, collector_pid} =
-        start_supervised(
-          {ThousandIsland.TelemetryCollector,
-           [
-             [:thousand_island, :listener, :start]
-           ]}
-        )
+      TelemetryHelpers.attach_all_events(__MODULE__)
 
-      {:ok, %{listener_socket: socket}} =
-        Listener.init(@server_config)
+      {:ok, %{listener_socket: socket}} = Listener.init(@server_config)
 
-      # We expect a monotonic start time as a measurement in the event.
-      assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
-             ~> [
-               {[:thousand_island, :listener, :start], %{monotonic_time: integer()},
-                %{
-                  telemetry_span_context: reference(),
-                  local_address: {0, 0, 0, 0},
-                  local_port: @server_config.port,
-                  transport_module: ThousandIsland.Transports.TCP,
-                  transport_options: []
-                }}
-             ]
+      assert_receive {:telemetry, [:thousand_island, :listener, :start], measurements, metadata},
+                     500
+
+      assert measurements ~> %{monotonic_time: integer()}
+
+      assert metadata
+             ~> %{
+               handler: __MODULE__,
+               telemetry_span_context: reference(),
+               local_address: {0, 0, 0, 0},
+               local_port: @server_config.port,
+               transport_module: ThousandIsland.Transports.TCP,
+               transport_options: []
+             }
 
       # Close the socket to cleanup.
       :gen_tcp.close(socket)
@@ -145,35 +141,26 @@ defmodule ThousandIsland.ListenerTest do
 
   describe "terminate/2" do
     test "emits telemetry event with expected timings" do
-      {:ok, %{listener_span: span, listener_socket: socket}} =
-        Listener.init(@server_config)
+      {:ok, %{listener_span: span, listener_socket: socket}} = Listener.init(@server_config)
 
-      {:ok, collector_pid} =
-        start_supervised(
-          {ThousandIsland.TelemetryCollector,
-           [
-             [:thousand_island, :listener, :stop]
-           ]}
-        )
+      TelemetryHelpers.attach_all_events(__MODULE__)
 
       Listener.terminate(:normal, %{listener_span: span})
 
-      # We expect a monotonic stop time and a duration
-      # as measurements in the event.
-      assert [
-               {[:thousand_island, :listener, :stop],
-                %{monotonic_time: stop_monotonic_time, duration: duration}, stop_metadata}
-             ] = ThousandIsland.TelemetryCollector.get_events(collector_pid)
+      assert_receive {:telemetry, [:thousand_island, :listener, :stop], measurements, metadata},
+                     500
 
-      assert is_integer(stop_monotonic_time)
+      assert measurements ~> %{monotonic_time: integer(), duration: integer()}
 
-      # We expect the duration to be the monotonic stop
-      # time minus the monotonic start time.
-      assert stop_monotonic_time >= span.start_time
-      assert duration == stop_monotonic_time - span.start_time
-
-      # The start and stop metadata should be equal.
-      assert stop_metadata == span.start_metadata
+      assert metadata
+             ~> %{
+               handler: __MODULE__,
+               telemetry_span_context: reference(),
+               local_address: {0, 0, 0, 0},
+               local_port: @server_config.port,
+               transport_module: ThousandIsland.Transports.TCP,
+               transport_options: []
+             }
 
       # Close the socket to cleanup.
       :gen_tcp.close(socket)

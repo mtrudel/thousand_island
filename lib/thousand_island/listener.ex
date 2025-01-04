@@ -32,14 +32,15 @@ defmodule ThousandIsland.Listener do
            ),
          {:ok, {ip, port}} <-
            server_config.transport_module.sockname(listener_socket) do
-      span_meta = %{
+      span_metadata = %{
+        handler: server_config.handler_module,
         local_address: ip,
         local_port: port,
         transport_module: server_config.transport_module,
         transport_options: server_config.transport_options
       }
 
-      listener_span = ThousandIsland.Telemetry.start_span(:listener, %{}, span_meta)
+      listener_span = ThousandIsland.Telemetry.start_span(:listener, %{}, span_metadata)
 
       {:ok,
        %{listener_socket: listener_socket, local_info: {ip, port}, listener_span: listener_span}}
