@@ -1,5 +1,5 @@
 defmodule ThousandIsland.ListenerTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   use Machete
 
   alias ThousandIsland.{Listener, ServerConfig}

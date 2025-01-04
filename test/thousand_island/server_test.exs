@@ -1,6 +1,5 @@
 defmodule ThousandIsland.ServerTest do
-  # False due to telemetry raciness
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   use Machete
 
