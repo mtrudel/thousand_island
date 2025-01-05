@@ -329,6 +329,7 @@ defmodule ThousandIsland.Handler do
     end
   end
 
+  # credo:disable-for-next-line Credo.Check.Refactor.CyclomaticComplexity
   def genserver_impl do
     quote do
       @impl true
