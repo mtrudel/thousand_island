@@ -1,3 +1,10 @@
+## 1.3.8 (5 Jan 2025)
+
+### Changes
+
+* Refactor `ThousandIsland.Handler` implementation to facilitate partial reuse
+by custom Handler authors (#146 thanks @mruoss!)
+
 ## 1.3.7 (29 Nov 2024)
 
 ### Fixes
