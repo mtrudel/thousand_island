@@ -329,6 +329,8 @@ defmodule ThousandIsland.Handler do
     end
   end
 
+  @doc false
+  # credo:disable-for-next-line Credo.Check.Refactor.CyclomaticComplexity
   def genserver_impl do
     quote do
       @impl true
@@ -528,6 +530,7 @@ defmodule ThousandIsland.Handler do
   end
 
   @doc false
+  # credo:disable-for-next-line Credo.Check.Refactor.CyclomaticComplexity
   def handle_continuation(continuation, socket) do
     case continuation do
       {:continue, state} ->
