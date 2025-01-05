@@ -332,7 +332,9 @@ defmodule ThousandIsland.Telemetry do
   @spec start_child_span(t(), span_name(), measurements(), metadata()) :: t()
   def start_child_span(parent_span, span_name, measurements \\ %{}, metadata \\ %{}) do
     metadata =
-      Map.put(metadata, :parent_telemetry_span_context, parent_span.telemetry_span_context)
+      metadata
+      |> Map.put(:parent_telemetry_span_context, parent_span.telemetry_span_context)
+      |> Map.put(:handler, parent_span.start_metadata.handler)
 
     start_span(span_name, measurements, metadata)
   end
@@ -361,7 +363,11 @@ defmodule ThousandIsland.Telemetry do
   @spec untimed_span_event(t(), event_name() | untimed_event_name(), measurements(), metadata()) ::
           :ok
   def untimed_span_event(span, name, measurements \\ %{}, metadata \\ %{}) do
-    metadata = Map.put(metadata, :telemetry_span_context, span.telemetry_span_context)
+    metadata =
+      metadata
+      |> Map.put(:telemetry_span_context, span.telemetry_span_context)
+      |> Map.put(:handler, span.start_metadata.handler)
+
     event([span.span_name, name], measurements, metadata)
   end
 

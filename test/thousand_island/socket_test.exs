@@ -1,6 +1,5 @@
 defmodule ThousandIsland.SocketTest do
-  # False due to telemetry raciness
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   use Machete
 
@@ -99,14 +98,7 @@ defmodule ThousandIsland.SocketTest do
       end
 
       test "it should emit telemetry events as expected", context do
-        {:ok, collector_pid} =
-          start_supervised(
-            {ThousandIsland.TelemetryCollector,
-             [
-               [:thousand_island, :connection, :recv],
-               [:thousand_island, :connection, :send]
-             ]}
-          )
+        TelemetryHelpers.attach_all_events(Echo)
 
         {:ok, port} = start_handler(Echo, context.server_opts)
         {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
@@ -115,16 +107,19 @@ defmodule ThousandIsland.SocketTest do
         {:ok, ~c"HELLO"} = context.client_mod.recv(client, 0)
         context.client_mod.close(client)
 
-        # Give the server process a chance to shut down
-        Process.sleep(100)
+        assert_receive {:telemetry, [:thousand_island, :connection, :recv], measurements,
+                        metadata},
+                       500
 
-        assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
-               ~> [
-                 {[:thousand_island, :connection, :recv], %{data: "HELLO"},
-                  %{telemetry_span_context: reference()}},
-                 {[:thousand_island, :connection, :send], %{data: "HELLO"},
-                  %{telemetry_span_context: reference()}}
-               ]
+        assert measurements ~> %{data: "HELLO"}
+        assert metadata ~> %{handler: Echo, telemetry_span_context: reference()}
+
+        assert_receive {:telemetry, [:thousand_island, :connection, :send], measurements,
+                        metadata},
+                       500
+
+        assert measurements ~> %{data: "HELLO"}
+        assert metadata ~> %{handler: Echo, telemetry_span_context: reference()}
       end
     end
   end)

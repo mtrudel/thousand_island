@@ -1,6 +1,5 @@
 defmodule ThousandIsland.ServerTest do
-  # False due to telemetry raciness
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   use Machete
 
@@ -162,10 +161,7 @@ defmodule ThousandIsland.ServerTest do
     end
 
     test "should emit telemetry events as expected" do
-      {:ok, collector_pid} =
-        start_supervised(
-          {ThousandIsland.TelemetryCollector, [[:thousand_island, :acceptor, :spawn_error]]}
-        )
+      TelemetryHelpers.attach_all_events(LongEcho)
 
       {:ok, _, port} =
         start_handler(LongEcho,
@@ -180,14 +176,12 @@ defmodule ThousandIsland.ServerTest do
       :ok = :gen_tcp.send(client, "HELLO")
       :ok = :gen_tcp.send(other_client, "BONJOUR")
 
-      # Give things enough time for the second connection to time out
-      Process.sleep(700)
+      assert_receive {:telemetry, [:thousand_island, :acceptor, :spawn_error], measurements,
+                      metadata},
+                     1000
 
-      assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
-             ~> [
-               {[:thousand_island, :acceptor, :spawn_error], %{monotonic_time: integer()},
-                %{telemetry_span_context: reference()}}
-             ]
+      assert measurements ~> %{monotonic_time: integer()}
+      assert metadata ~> %{handler: LongEcho, telemetry_span_context: reference()}
     end
   end
 
@@ -332,46 +326,65 @@ defmodule ThousandIsland.ServerTest do
     end
 
     test "it should emit telemetry events as expected" do
-      {:ok, collector_pid} =
-        start_supervised(
-          {ThousandIsland.TelemetryCollector,
-           [
-             [:thousand_island, :listener, :start],
-             [:thousand_island, :listener, :stop],
-             [:thousand_island, :acceptor, :start],
-             [:thousand_island, :acceptor, :stop]
-           ]}
-        )
+      TelemetryHelpers.attach_all_events(Echo)
 
       {:ok, server_pid, _} = start_handler(Echo, num_acceptors: 1)
 
+      assert_receive {:telemetry, [:thousand_island, :listener, :start], measurements, metadata},
+                     500
+
+      assert measurements ~> %{monotonic_time: integer()}
+
+      assert metadata
+             ~> %{
+               handler: Echo,
+               telemetry_span_context: reference(),
+               local_address: {0, 0, 0, 0},
+               local_port: integer(),
+               transport_module: ThousandIsland.Transports.TCP,
+               transport_options: []
+             }
+
+      assert_receive {:telemetry, [:thousand_island, :acceptor, :start], measurements, metadata},
+                     500
+
+      assert measurements ~> %{monotonic_time: integer()}
+
+      assert metadata
+             ~> %{
+               handler: Echo,
+               telemetry_span_context: reference(),
+               parent_telemetry_span_context: reference()
+             }
+
       ThousandIsland.stop(server_pid)
 
-      assert ThousandIsland.TelemetryCollector.get_events(collector_pid)
-             ~> [
-               {[:thousand_island, :listener, :start], %{monotonic_time: integer()},
-                %{
-                  telemetry_span_context: reference(),
-                  local_address: {0, 0, 0, 0},
-                  local_port: integer(),
-                  transport_module: ThousandIsland.Transports.TCP,
-                  transport_options: []
-                }},
-               {[:thousand_island, :acceptor, :start], %{monotonic_time: integer()},
-                %{telemetry_span_context: reference(), parent_telemetry_span_context: reference()}},
-               {[:thousand_island, :listener, :stop],
-                %{duration: integer(), monotonic_time: integer()},
-                %{
-                  telemetry_span_context: reference(),
-                  local_address: {0, 0, 0, 0},
-                  local_port: integer(),
-                  transport_module: ThousandIsland.Transports.TCP,
-                  transport_options: []
-                }},
-               {[:thousand_island, :acceptor, :stop],
-                %{connections: 0, duration: integer(), monotonic_time: integer()},
-                %{telemetry_span_context: reference(), parent_telemetry_span_context: reference()}}
-             ]
+      assert_receive {:telemetry, [:thousand_island, :acceptor, :stop], measurements, metadata},
+                     500
+
+      assert measurements ~> %{monotonic_time: integer(), duration: integer(), connections: 0}
+
+      assert metadata
+             ~> %{
+               handler: Echo,
+               telemetry_span_context: reference(),
+               parent_telemetry_span_context: reference()
+             }
+
+      assert_receive {:telemetry, [:thousand_island, :listener, :stop], measurements, metadata},
+                     500
+
+      assert measurements ~> %{monotonic_time: integer(), duration: integer()}
+
+      assert metadata
+             ~> %{
+               handler: Echo,
+               telemetry_span_context: reference(),
+               local_address: {0, 0, 0, 0},
+               local_port: integer(),
+               transport_module: ThousandIsland.Transports.TCP,
+               transport_options: []
+             }
     end
   end
 
