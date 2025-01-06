@@ -1,3 +1,9 @@
+## 1.3.9 (6 Jan 2025)
+
+### Fixes
+
+* Explicitly ignore several Handler return values to silence Dialyzer in dependent libraries
+
 ## 1.3.8 (5 Jan 2025)
 
 ### Changes
