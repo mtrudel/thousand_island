@@ -427,19 +427,19 @@ defmodule ThousandIsland.Handler do
 
       # Called by GenServer if we hit our read_timeout. Socket is still open
       def terminate({:shutdown, :timeout}, {%ThousandIsland.Socket{} = socket, state}) do
-        __MODULE__.handle_timeout(socket, state)
+        _ = __MODULE__.handle_timeout(socket, state)
         ThousandIsland.Handler.do_socket_close(socket, :timeout)
       end
 
       # Called if we're being shutdown in an orderly manner. Socket is still open
       def terminate(:shutdown, {%ThousandIsland.Socket{} = socket, state}) do
-        __MODULE__.handle_shutdown(socket, state)
+        _ = __MODULE__.handle_shutdown(socket, state)
         ThousandIsland.Handler.do_socket_close(socket, :shutdown)
       end
 
       # Called if the socket encountered an error during handshaking
       def terminate({:shutdown, {:handshake, reason}}, {%ThousandIsland.Socket{} = socket, state}) do
-        __MODULE__.handle_error(reason, socket, state)
+        _ = __MODULE__.handle_error(reason, socket, state)
         ThousandIsland.Handler.do_socket_close(socket, reason)
       end
 
@@ -449,26 +449,26 @@ defmodule ThousandIsland.Handler do
             {:shutdown, {:silent_termination, reason}},
             {%ThousandIsland.Socket{} = socket, state}
           ) do
-        __MODULE__.handle_error(reason, socket, state)
+        _ = __MODULE__.handle_error(reason, socket, state)
         ThousandIsland.Handler.do_socket_close(socket, reason)
       end
 
       # Called if the socket encountered an error during upgrading
       def terminate({:shutdown, {:upgrade, reason}}, {socket, state}) do
-        __MODULE__.handle_error(reason, socket, state)
+        _ = __MODULE__.handle_error(reason, socket, state)
         ThousandIsland.Handler.do_socket_close(socket, reason)
       end
 
       # Called if the remote end shut down the connection, or if the local end closed the
       # connection by returning a `{:close,...}` tuple (in which case the socket will be open)
       def terminate({:shutdown, reason}, {%ThousandIsland.Socket{} = socket, state}) do
-        __MODULE__.handle_close(socket, state)
+        _ = __MODULE__.handle_close(socket, state)
         ThousandIsland.Handler.do_socket_close(socket, reason)
       end
 
       # Called if the socket encountered an error. Socket is closed
       def terminate(reason, {%ThousandIsland.Socket{} = socket, state}) do
-        __MODULE__.handle_error(reason, socket, state)
+        _ = __MODULE__.handle_error(reason, socket, state)
         ThousandIsland.Handler.do_socket_close(socket, reason)
       end
 
