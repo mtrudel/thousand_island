@@ -1,3 +1,9 @@
+## 1.3.10 (17 Feb 2025)
+
+### Enhancements
+
+* Add support for `certs_keys` TLS config option (#153, thanks @joshk!)
+
 ## 1.3.9 (6 Jan 2025)
 
 ### Fixes
