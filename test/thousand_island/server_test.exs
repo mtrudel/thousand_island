@@ -410,6 +410,13 @@ defmodule ThousandIsland.ServerTest do
       {:ok, ~c"HI"} = :gen_tcp.recv(client, 0, 100)
     end
 
+    test "tcp should allow inet_backend option" do
+      {:ok, _, port} = start_handler(Echo, transport_options: [inet_backend: :socket])
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      :gen_tcp.send(client, "HI")
+      {:ok, ~c"HI"} = :gen_tcp.recv(client, 0, 100)
+    end
+
     test "ssl should allow default options to be overridden" do
       {:ok, _, port} =
         start_handler(ReadOpt,
