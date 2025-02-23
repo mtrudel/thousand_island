@@ -64,11 +64,13 @@ defmodule ThousandIsland.Transports.TCP do
           key when is_atom(key) -> key
         end
       )
+
     # `inet_backend`, if present, needs to be the first option
-    sorted_options = Enum.sort(resolved_options, fn
-      _, {:inet_backend, _} -> false
-      _, _ -> :true
-    end)
+    sorted_options =
+      Enum.sort(resolved_options, fn
+        _, {:inet_backend, _} -> false
+        _, _ -> true
+      end)
 
     :gen_tcp.listen(port, sorted_options)
   end
