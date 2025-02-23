@@ -1,3 +1,9 @@
+## 1.3.11 (23 Feb 2025)
+
+### Fixes
+
+* Properly support `inet_backend` transport option for TCP connections (#155, thanks @paulswartz!)
+
 ## 1.3.10 (17 Feb 2025)
 
 ### Enhancements
