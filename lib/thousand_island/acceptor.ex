@@ -30,11 +30,11 @@ defmodule ThousandIsland.Acceptor do
         ThousandIsland.Telemetry.span_event(span, :spawn_error)
         accept(listener_socket, connection_sup_pid, server_config, span, count + 1)
 
-      {:error, :econnaborted} ->
-        ThousandIsland.Telemetry.span_event(span, :econnaborted)
+      {:error, reason} when reason in [:econnaborted, :einval] ->
+        ThousandIsland.Telemetry.span_event(span, reason)
         accept(listener_socket, connection_sup_pid, server_config, span, count + 1)
 
-      {:error, reason} when reason in [:closed, :einval] ->
+      {:error, :closed} ->
         ThousandIsland.Telemetry.stop_span(span, %{connections: count})
 
       {:error, reason} ->
