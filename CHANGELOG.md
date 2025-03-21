@@ -1,3 +1,10 @@
+## 1.3.12 (21 Mar 2025)
+
+### Fixes
+
+* Do not kill off acceptors when encountering an `:einval` socket status (#162,
+  thanks @marschro!)
+
 ## 1.3.11 (23 Feb 2025)
 
 ### Fixes
