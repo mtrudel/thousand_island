@@ -314,6 +314,57 @@ defmodule ThousandIsland.HandlerTest do
         Logger.error("handle_error: #{error}")
       end
     end
+
+    defmodule HandleConnection.UpgradingEchoWithContinue do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_connection(socket, state) do
+        ThousandIsland.Socket.send(socket, "HELLO")
+
+        {:switch_transport,
+         {ThousandIsland.Transports.SSL,
+          certfile: Path.join(__DIR__, "../support/cert.pem"),
+          keyfile: Path.join(__DIR__, "../support/key.pem")}, state, {:continue, :keep_going}}
+      end
+
+      def handle_continue(:keep_going, state) do
+        Logger.error("handle_continue")
+        {:noreply, state}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_data(data, socket, state) do
+        ThousandIsland.Socket.send(socket, data)
+        {:continue, state}
+      end
+    end
+
+    test "it should allow calling handle_continue when upgrading the transport mid-connection" do
+      {:ok, port} = start_handler(HandleConnection.UpgradingEchoWithContinue)
+
+      assert {:ok, client} = :gen_tcp.connect(:localhost, port, [active: false], 100)
+
+      messages =
+        capture_log(fn ->
+          assert :gen_tcp.recv(client, 0) == {:ok, ~c"HELLO"}
+
+          assert {:ok, client} =
+                   :ssl.connect(
+                     client,
+                     [cacertfile: Path.join(__DIR__, "../support/ca.pem"), verify: :verify_none],
+                     100
+                   )
+
+          # Check that echo works over new transport
+          :ssl.send(client, "Test me")
+          assert :ssl.recv(client, 0) == {:ok, ~c"Test me"}
+        end)
+
+      assert messages =~ "handle_continue"
+    end
   end
 
   describe "handle_data" do
@@ -481,6 +532,22 @@ defmodule ThousandIsland.HandlerTest do
       end
     end
 
+    defmodule ContinueData do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_data("ping", _socket, state) do
+        {:continue, state, {:continue, :keep_going}}
+      end
+
+      def handle_continue(:keep_going, state) do
+        Logger.error("handle_continue")
+        {:stop, :normal, state}
+      end
+    end
+
     test "it should close the connection and call handle_timeout if the specified timeout is reached waiting for client data" do
       {:ok, port} = start_handler(TimeoutData)
 
@@ -607,6 +674,20 @@ defmodule ThousandIsland.HandlerTest do
 
       # Ensure that we saw the message displayed by the handle_timeout callback
       assert messages =~ "handle_timeout"
+    end
+
+    test "it should call handle_continue from the callback functions if specified" do
+      {:ok, port} = start_handler(ContinueData)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          :gen_tcp.send(client, "ping")
+          assert :gen_tcp.recv(client, 0, 200) == {:error, :closed}
+        end)
+
+      # Ensure that we saw the message displayed by the handle_continue callback
+      assert messages =~ "handle_continue"
     end
 
     defmodule DoNothing do
