@@ -1,3 +1,10 @@
+## 1.3.13 (29 Apr 2025)
+
+### Enhancements
+
+* Allow `handle_connection` and `handle_data` callbacks to return tuples to call
+  `handle_continue` per GenServer conventions (#166)
+
 ## 1.3.12 (21 Mar 2025)
 
 ### Fixes
