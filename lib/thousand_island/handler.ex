@@ -186,10 +186,10 @@ defmodule ThousandIsland.Handler do
   @typedoc "The value returned by `c:handle_connection/2` and `c:handle_data/3`"
   @type handler_result ::
           {:continue, state :: term()}
-          | {:continue, state :: term(), timeout_options()}
+          | {:continue, state :: term(), timeout_options() | {:continue, term()}}
           | {:switch_transport, {module(), upgrade_opts :: [term()]}, state :: term()}
           | {:switch_transport, {module(), upgrade_opts :: [term()]}, state :: term(),
-             timeout_options()}
+             timeout_options() | {:continue, term()}}
           | {:close, state :: term()}
           | {:error, term(), state :: term()}
 
@@ -212,6 +212,9 @@ defmodule ThousandIsland.Handler do
   is received. In order to set a persistent timeout for all future messages (essentially
   overwriting the value of `read_timeout` that was set at server startup), a value of
   `{:persistent, timeout}` may be returned.
+  * Returning `{:continue, state, {:continue, continue}}` is identical to the previous case with the
+  addition of a `c:GenServer.handle_continue/2` callback being made immediately after, in line with
+  similar behaviour on `GenServer` callbacks.
   * Returning `{:switch_transport, {module, opts}, state}` will cause Thousand Island to try switching the transport of the
   current socket. The `module` should be an Elixir module that implements the `ThousandIsland.Transport` behaviour.
   Thousand Island will call `c:ThousandIsland.Transport.upgrade/2` for the given module to upgrade the transport in-place.
@@ -243,6 +246,9 @@ defmodule ThousandIsland.Handler do
   is received. In order to set a persistent timeout for all future messages (essentially
   overwriting the value of `read_timeout` that was set at server startup), a value of
   `{:persistent, timeout}` may be returned.
+  * Returning `{:continue, state, {:continue, continue}}` is identical to the previous case with the
+  addition of a `c:GenServer.handle_continue/2` callback being made immediately after, in line with
+  similar behaviour on `GenServer` callbacks.
   * Returning `{:error, reason, state}` will cause Thousand Island to close the socket & call the `c:handle_error/3` callback to
   allow final cleanup to be done.
   """
@@ -535,6 +541,10 @@ defmodule ThousandIsland.Handler do
         _ = ThousandIsland.Socket.setopts(socket, active: :once)
         {:noreply, {socket, state}, socket.read_timeout}
 
+      {:continue, state, {:continue, continue}} ->
+        _ = ThousandIsland.Socket.setopts(socket, active: :once)
+        {:noreply, {socket, state}, {:continue, continue}}
+
       {:continue, state, {:persistent, timeout}} ->
         socket = %{socket | read_timeout: timeout}
         _ = ThousandIsland.Socket.setopts(socket, active: :once)
@@ -546,6 +556,9 @@ defmodule ThousandIsland.Handler do
 
       {:switch_transport, {module, upgrade_opts}, state} ->
         handle_switch_continuation(socket, module, upgrade_opts, state, socket.read_timeout)
+
+      {:switch_transport, {module, upgrade_opts}, state, {:continue, continue}} ->
+        handle_switch_continuation(socket, module, upgrade_opts, state, {:continue, continue})
 
       {:switch_transport, {module, upgrade_opts}, state, {:persistent, timeout}} ->
         socket = %{socket | read_timeout: timeout}
@@ -569,11 +582,11 @@ defmodule ThousandIsland.Handler do
     end
   end
 
-  defp handle_switch_continuation(socket, module, upgrade_opts, state, timeout) do
+  defp handle_switch_continuation(socket, module, upgrade_opts, state, timeout_or_continue) do
     case ThousandIsland.Socket.upgrade(socket, module, upgrade_opts) do
       {:ok, socket} ->
         _ = ThousandIsland.Socket.setopts(socket, active: :once)
-        {:noreply, {socket, state}, timeout}
+        {:noreply, {socket, state}, timeout_or_continue}
 
       {:error, reason} ->
         {:stop, {:shutdown, {:upgrade, reason}}, {socket, state}}
