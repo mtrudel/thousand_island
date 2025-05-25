@@ -67,10 +67,11 @@ defmodule ThousandIsland.SocketTest do
       {:ok, peer_info} = ThousandIsland.Socket.peername(socket)
       {:ok, local_info} = ThousandIsland.Socket.sockname(socket)
       negotiated_protocol = ThousandIsland.Socket.negotiated_protocol(socket)
+      connection_information = ThousandIsland.Socket.connection_information(socket)
 
       ThousandIsland.Socket.send(
         socket,
-        "#{inspect([local_info, peer_info, negotiated_protocol])}"
+        "#{inspect([local_info, peer_info, negotiated_protocol, connection_information])}"
       )
 
       {:close, state}
@@ -133,13 +134,15 @@ defmodule ThousandIsland.SocketTest do
       {:ok, resp} = context.client_mod.recv(client, 0)
       {:ok, local_port} = :inet.port(client)
 
-      expected = [
-        {{127, 0, 0, 1}, port},
-        {{127, 0, 0, 1}, local_port},
-        {:error, :protocol_not_negotiated}
-      ]
+      expected =
+        inspect([
+          {{127, 0, 0, 1}, port},
+          {{127, 0, 0, 1}, local_port},
+          {:error, :protocol_not_negotiated},
+          {:error, :not_secure}
+        ])
 
-      assert to_string(resp) == inspect(expected)
+      assert to_string(resp) == expected
 
       context.client_mod.close(client)
     end
@@ -170,13 +173,18 @@ defmodule ThousandIsland.SocketTest do
       {:ok, {_, local_port}} = context.client_mod.sockname(client)
       {:ok, resp} = context.client_mod.recv(client, 0)
 
-      expected = [
-        {{127, 0, 0, 1}, port},
-        {{127, 0, 0, 1}, local_port},
-        {:ok, "foo"}
-      ]
+      # This is a pretty bogus hack but keeps us from having to have test dependencies on JSON
+      expected_prefix =
+        inspect([
+          {{127, 0, 0, 1}, port},
+          {{127, 0, 0, 1}, local_port},
+          {:ok, "foo"}
+        ])
+        |> String.trim_trailing("]")
 
-      assert to_string(resp) == inspect(expected)
+      assert ^expected_prefix <> rest = to_string(resp)
+      assert rest =~ ~r/protocol/
+      assert rest =~ ~r/ciphers/
 
       context.client_mod.close(client)
     end

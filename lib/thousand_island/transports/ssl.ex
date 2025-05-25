@@ -195,4 +195,8 @@ defmodule ThousandIsland.Transports.SSL do
   @impl ThousandIsland.Transport
   @spec negotiated_protocol(socket()) :: ThousandIsland.Transport.on_negotiated_protocol()
   defdelegate negotiated_protocol(socket), to: :ssl
+
+  @impl ThousandIsland.Transport
+  @spec connection_information(socket()) :: ThousandIsland.Transport.on_connection_information()
+  defdelegate connection_information(socket), to: :ssl
 end
