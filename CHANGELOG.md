@@ -1,3 +1,10 @@
+## 1.3.14 (25 May 2025)
+
+### Enhancements
+
+* Add support for `ThousandIsland.Socket.connection_information/1` to get info
+about the underlying SSL connection, if one is present.
+
 ## 1.3.13 (29 Apr 2025)
 
 ### Enhancements
