@@ -219,6 +219,14 @@ defmodule ThousandIsland.Socket do
   end
 
   @doc """
+  Returns information about the SSL connection info, if transport is SSL.
+  """
+  @spec connection_information(t()) :: ThousandIsland.Transport.on_connection_information()
+  def connection_information(%__MODULE__{} = socket) do
+    socket.transport_module.connection_information(socket.socket)
+  end
+
+  @doc """
   Returns the telemetry span representing the lifetime of this socket
   """
   @spec telemetry_span(t()) :: ThousandIsland.Telemetry.t()

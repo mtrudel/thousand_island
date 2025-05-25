@@ -94,6 +94,9 @@ defmodule ThousandIsland.Transport do
   @typedoc "The return value from a peercert/1 call"
   @type on_peercert() :: {:ok, :public_key.der_encoded()} | {:error, reason :: any()}
 
+  @typedoc "The return value from a connection_information/1 call"
+  @type on_connection_information() :: {:ok, :ssl.connection_info()} | {:error, reason :: any()}
+
   @typedoc "The return value from a negotiated_protocol/1 call"
   @type on_negotiated_protocol() ::
           {:ok, binary()} | {:error, :protocol_not_negotiated | :closed}
@@ -208,4 +211,10 @@ defmodule ThousandIsland.Transport do
   (or if one was not negotiated), `{:error, :protocol_not_negotiated}` is returned
   """
   @callback negotiated_protocol(socket()) :: on_negotiated_protocol()
+
+  @doc """
+  Returns the SSL connection_info for the given socket. If the socket is not secure,
+  `{:error, :not_secure}` is returned.
+  """
+  @callback connection_information(socket()) :: on_connection_information()
 end
