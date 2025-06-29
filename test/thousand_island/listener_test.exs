@@ -53,7 +53,7 @@ defmodule ThousandIsland.ListenerTest do
 
     test "listens using transport module specified in config" do
       {:ok, %{listener_socket: socket}} =
-        Listener.init(%ServerConfig{@server_config | transport_module: TestTransport})
+        Listener.init(%{@server_config | transport_module: TestTransport})
 
       # 1) Listener.init/1 calls the listen/2 function
       #    in the :transport_module with the :port as an argument
