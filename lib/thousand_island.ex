@@ -120,6 +120,13 @@ defmodule ThousandIsland do
   supervisor's `Supervisor.start_link/3` call. Useful for setting the `name` for this server.
   Optional, defaulting to `[]`
   * `num_acceptors`: The number of acceptor processes to run. Defaults to 100
+  * `num_listen_sockets`: The number of listener sockets to create. When set to a value greater
+  than 1, multiple listener sockets will be created to distribute incoming connections across
+  multiple sockets for improved performance on multi-core systems. This requires setting either
+  `reuseport: true` or `reuseport_lb: true` in the `transport_options`, and will only work on
+  systems that support such socket functionality (most modern Unix-like systems). If the system
+  does not support the required socket options, server startup will fail. This value must be
+  less than or equal to `num_acceptors`. Defaults to 1
   * `num_connections`: The maximum number of concurrent connections which each acceptor will
   accept before throttling connections. Connections will be throttled by having the acceptor
   process wait `max_connections_retry_wait` milliseconds, up to `max_connections_retry_count`
@@ -153,6 +160,7 @@ defmodule ThousandIsland do
           transport_module: module(),
           transport_options: transport_options(),
           num_acceptors: pos_integer(),
+          num_listen_sockets: pos_integer(),
           num_connections: non_neg_integer() | :infinity,
           max_connections_retry_count: non_neg_integer(),
           max_connections_retry_wait: timeout(),

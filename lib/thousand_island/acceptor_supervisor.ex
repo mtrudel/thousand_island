@@ -3,7 +3,8 @@ defmodule ThousandIsland.AcceptorSupervisor do
 
   use Supervisor
 
-  @spec start_link({server_pid :: pid, ThousandIsland.ServerConfig.t()}) :: Supervisor.on_start()
+  @spec start_link({server_pid :: pid, pos_integer(), ThousandIsland.ServerConfig.t()}) ::
+          Supervisor.on_start()
   def start_link(arg) do
     Supervisor.start_link(__MODULE__, arg)
   end
@@ -39,15 +40,15 @@ defmodule ThousandIsland.AcceptorSupervisor do
   end
 
   @impl Supervisor
-  @spec init({server_pid :: pid, ThousandIsland.ServerConfig.t()}) ::
+  @spec init({server_pid :: pid, pos_integer(), ThousandIsland.ServerConfig.t()}) ::
           {:ok,
            {Supervisor.sup_flags(),
             [Supervisor.child_spec() | (old_erlang_child_spec :: :supervisor.child_spec())]}}
-  def init({server_pid, %ThousandIsland.ServerConfig{} = config}) do
+  def init({server_pid, acceptor_id, %ThousandIsland.ServerConfig{} = config}) do
     children = [
       {DynamicSupervisor, strategy: :one_for_one, max_children: config.num_connections}
       |> Supervisor.child_spec(id: :connection_sup),
-      {ThousandIsland.Acceptor, {server_pid, self(), config}}
+      {ThousandIsland.Acceptor, {server_pid, self(), acceptor_id, config}}
       |> Supervisor.child_spec(id: :acceptor)
     ]
 

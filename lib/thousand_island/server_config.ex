@@ -15,6 +15,7 @@ defmodule ThousandIsland.ServerConfig do
           genserver_options: GenServer.options(),
           supervisor_options: [Supervisor.option()],
           num_acceptors: pos_integer(),
+          num_listen_sockets: pos_integer(),
           num_connections: non_neg_integer() | :infinity,
           max_connections_retry_count: non_neg_integer(),
           max_connections_retry_wait: timeout(),
@@ -31,6 +32,7 @@ defmodule ThousandIsland.ServerConfig do
             genserver_options: [],
             supervisor_options: [],
             num_acceptors: 100,
+            num_listen_sockets: 1,
             num_connections: 16_384,
             max_connections_retry_count: 5,
             max_connections_retry_wait: 1000,
@@ -43,6 +45,14 @@ defmodule ThousandIsland.ServerConfig do
     if !:proplists.is_defined(:handler_module, opts),
       do: raise("No handler_module defined in server configuration")
 
-    struct!(__MODULE__, opts)
+    config = struct!(__MODULE__, opts)
+
+    if config.num_listen_sockets > config.num_acceptors do
+      raise(
+        "num_listen_sockets (#{config.num_listen_sockets}) must be less than or equal to num_acceptors (#{config.num_acceptors})"
+      )
+    end
+
+    config
   end
 end
