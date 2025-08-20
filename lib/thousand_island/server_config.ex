@@ -42,17 +42,36 @@ defmodule ThousandIsland.ServerConfig do
 
   @spec new(ThousandIsland.options()) :: t()
   def new(opts \\ []) do
-    if !:proplists.is_defined(:handler_module, opts),
-      do: raise("No handler_module defined in server configuration")
-
     config = struct!(__MODULE__, opts)
+    validate_handler_module!(config)
+    validate_num_sockets!(config)
+    validate_reuseport_options!(config)
+    config
+  end
 
+  defp validate_handler_module!(config) do
+    if !config.handler_module do
+      raise("No handler_module defined in server configuration")
+    end
+  end
+
+  defp validate_num_sockets!(config) do
     if config.num_listen_sockets > config.num_acceptors do
       raise(
         "num_listen_sockets (#{config.num_listen_sockets}) must be less than or equal to num_acceptors (#{config.num_acceptors})"
       )
     end
+  end
 
-    config
+  defp validate_reuseport_options!(config) do
+    num_listen_sockets = config.num_listen_sockets
+    transport_options = config.transport_options
+    has_reuseport = :proplists.get_value(:reuseport, transport_options, false)
+    has_reuseport_lb = :proplists.get_value(:reuseport_lb, transport_options, false)
+
+    unless num_listen_sockets <= 1 or has_reuseport or has_reuseport_lb do
+      raise ArgumentError,
+            "reuseport: true or reuseport_lb: true must be set in transport_options when using num_listen_sockets > 1"
+    end
   end
 end

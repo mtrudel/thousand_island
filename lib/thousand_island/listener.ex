@@ -52,21 +52,7 @@ defmodule ThousandIsland.Listener do
 
   defp start_listen_sockets(%ThousandIsland.ServerConfig{} = server_config) do
     num_sockets = server_config.num_listen_sockets
-    if num_sockets > 1, do: validate_reuseport_options!(server_config.transport_options)
-    create_multiple_sockets(server_config, num_sockets)
-  end
 
-  defp validate_reuseport_options!(transport_options) do
-    has_reuseport = :proplists.get_value(:reuseport, transport_options, false)
-    has_reuseport_lb = :proplists.get_value(:reuseport_lb, transport_options, false)
-
-    unless has_reuseport or has_reuseport_lb do
-      raise ArgumentError,
-            "reuseport: true or reuseport_lb: true must be set in transport_options when using num_listen_sockets > 1"
-    end
-  end
-
-  defp create_multiple_sockets(%ThousandIsland.ServerConfig{} = server_config, num_sockets) do
     sockets =
       for socket_id <- 1..num_sockets do
         case server_config.transport_module.listen(
