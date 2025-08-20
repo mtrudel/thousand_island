@@ -51,32 +51,9 @@ defmodule ThousandIsland.Listener do
   end
 
   defp start_listen_sockets(%ThousandIsland.ServerConfig{} = server_config) do
-    case server_config.num_listen_sockets do
-      1 ->
-        # Single socket case - original behavior
-        case server_config.transport_module.listen(
-               server_config.port,
-               server_config.transport_options
-             ) do
-          {:ok, socket} ->
-            case server_config.transport_module.sockname(socket) do
-              {:ok, {ip, port}} ->
-                {:ok, [{1, socket}], {ip, port}}
-
-              {:error, reason} ->
-                server_config.transport_module.close(socket)
-                {:error, reason}
-            end
-
-          {:error, reason} ->
-            {:error, reason}
-        end
-
-      num_sockets when num_sockets > 1 ->
-        # Multiple sockets case - requires reuseport options
-        validate_reuseport_options!(server_config.transport_options)
-        create_multiple_sockets(server_config, num_sockets)
-    end
+    num_sockets = server_config.num_listen_sockets
+    if num_sockets > 1, do: validate_reuseport_options!(server_config.transport_options)
+    create_multiple_sockets(server_config, num_sockets)
   end
 
   defp validate_reuseport_options!(transport_options) do
