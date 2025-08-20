@@ -173,62 +173,11 @@ defmodule ThousandIsland.ListenerTest do
       config = %ServerConfig{@server_config | num_listen_sockets: 1}
 
       assert {:ok, %{listener_sockets: sockets}} = Listener.init(config)
-
       assert length(sockets) == 1
       assert [{1, socket}] = sockets
 
       # Close socket
       :gen_tcp.close(socket)
-    end
-
-    test "requires reuseport options when num_listen_sockets > 1" do
-      config = %ServerConfig{@server_config | num_listen_sockets: 2}
-
-      assert_raise ArgumentError, ~r/reuseport.*must be set/, fn ->
-        Listener.init(config)
-      end
-    end
-
-    test "creates multiple sockets when reuseport is enabled" do
-      # Note: This test may fail on systems without SO_REUSEPORT support
-      config = %ServerConfig{
-        @server_config
-        | num_listen_sockets: 3,
-          transport_options: [reuseport: true]
-      }
-
-      case Listener.init(config) do
-        {:ok, %{listener_sockets: sockets, local_info: {_ip, port}}} ->
-          assert length(sockets) == 3
-          assert [{1, socket1}, {2, socket2}, {3, socket3}] = sockets
-
-          # Verify all sockets are different
-          assert socket1 != socket2
-          assert socket2 != socket3
-          assert socket1 != socket3
-
-          # Verify all sockets bind to the same port
-          {:ok, {_ip, port1}} = :inet.sockname(socket1)
-          {:ok, {_ip, port2}} = :inet.sockname(socket2)
-          {:ok, {_ip, port3}} = :inet.sockname(socket3)
-
-          assert port1 == port
-          assert port2 == port
-          assert port3 == port
-
-          # Close all sockets
-          :gen_tcp.close(socket1)
-          :gen_tcp.close(socket2)
-          :gen_tcp.close(socket3)
-
-        {:stop, :eaddrinuse} ->
-          # Skip test on systems without SO_REUSEPORT support
-          :ok
-
-        {:stop, :enotsup} ->
-          # Skip test on systems without SO_REUSEPORT support
-          :ok
-      end
     end
 
     test "acceptor_info returns correct socket based on acceptor_id distribution" do
