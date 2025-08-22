@@ -37,10 +37,10 @@ defmodule ThousandIsland.ListenerTest do
       :gen_tcp.close(socket)
     end
 
-    test "returns an :ok tuple with map containing :listener_socket, :local_info and :listener_span" do
+    test "returns an :ok tuple with map containing :listener_sockets, :local_info and :listener_span" do
       assert {:ok,
               %{
-                listener_socket: socket,
+                listener_sockets: [{1, socket}],
                 local_info: {{0, 0, 0, 0}, port},
                 listener_span: %ThousandIsland.Telemetry{}
               }} = Listener.init(@server_config)
@@ -52,7 +52,7 @@ defmodule ThousandIsland.ListenerTest do
     end
 
     test "listens using transport module specified in config" do
-      {:ok, %{listener_socket: socket}} =
+      {:ok, %{listener_sockets: [{1, socket}]}} =
         Listener.init(%ServerConfig{@server_config | transport_module: TestTransport})
 
       # 1) Listener.init/1 calls the listen/2 function
@@ -78,7 +78,7 @@ defmodule ThousandIsland.ListenerTest do
       assert {:ok, socket} = :gen_tcp.listen(@server_config.port, [])
       :gen_tcp.close(socket)
 
-      {:ok, %{listener_socket: socket}} =
+      {:ok, %{listener_sockets: [{1, socket}]}} =
         Listener.init(@server_config)
 
       # Confirm the port is bound by asserting
@@ -93,7 +93,7 @@ defmodule ThousandIsland.ListenerTest do
     test "emits expected telemetry event" do
       TelemetryHelpers.attach_all_events(__MODULE__)
 
-      {:ok, %{listener_socket: socket}} = Listener.init(@server_config)
+      {:ok, %{listener_sockets: [{1, socket}]}} = Listener.init(@server_config)
 
       assert_receive {:telemetry, [:thousand_island, :listener, :start], measurements, metadata},
                      500
@@ -122,17 +122,17 @@ defmodule ThousandIsland.ListenerTest do
       assert Listener.handle_call(:listener_info, nil, state) == {:reply, state.local_info, state}
     end
 
-    test "an :acceptor_info_info call gives a reply with the :listener_socket and :listener_span" do
-      {:ok, %{listener_span: span, listener_socket: socket}} =
+    test "an :acceptor_info call gives a reply with the listener socket and :listener_span" do
+      {:ok, %{listener_span: span, listener_sockets: [{1, socket}]}} =
         Listener.init(@server_config)
 
       state = %{
-        listener_socket: socket,
+        listener_sockets: [{1, socket}],
         listener_span: span
       }
 
-      assert Listener.handle_call(:acceptor_info, nil, state) ==
-               {:reply, {state.listener_socket, state.listener_span}, state}
+      assert Listener.handle_call({:acceptor_info, 1}, nil, state) ==
+               {:reply, {socket, state.listener_span}, state}
 
       # Close the socket to cleanup.
       :gen_tcp.close(socket)
@@ -141,7 +141,8 @@ defmodule ThousandIsland.ListenerTest do
 
   describe "terminate/2" do
     test "emits telemetry event with expected timings" do
-      {:ok, %{listener_span: span, listener_socket: socket}} = Listener.init(@server_config)
+      {:ok, %{listener_span: span, listener_sockets: [{1, socket}]}} =
+        Listener.init(@server_config)
 
       TelemetryHelpers.attach_all_events(__MODULE__)
 
@@ -164,6 +165,80 @@ defmodule ThousandIsland.ListenerTest do
 
       # Close the socket to cleanup.
       :gen_tcp.close(socket)
+    end
+  end
+
+  describe "multiple listen sockets" do
+    test "creates single socket when num_listen_sockets = 1 (backward compatibility)" do
+      config = %ServerConfig{@server_config | num_listen_sockets: 1}
+
+      assert {:ok, %{listener_sockets: sockets}} = Listener.init(config)
+      assert length(sockets) == 1
+      assert [{1, socket}] = sockets
+
+      # Close socket
+      :gen_tcp.close(socket)
+    end
+
+    test "acceptor_info returns correct socket based on acceptor_id distribution" do
+      # Test with single socket first (always works)
+      config = %ServerConfig{@server_config | num_listen_sockets: 1}
+
+      assert {:ok, %{listener_sockets: sockets, listener_span: span}} = Listener.init(config)
+      assert [{1, socket}] = sockets
+
+      state = %{
+        listener_sockets: sockets,
+        listener_span: span
+      }
+
+      # All acceptors should get the same socket when there's only one
+      assert {:reply, {^socket, ^span}, ^state} =
+               Listener.handle_call({:acceptor_info, 1}, nil, state)
+
+      assert {:reply, {^socket, ^span}, ^state} =
+               Listener.handle_call({:acceptor_info, 2}, nil, state)
+
+      assert {:reply, {^socket, ^span}, ^state} =
+               Listener.handle_call({:acceptor_info, 10}, nil, state)
+
+      # Close socket
+      :gen_tcp.close(socket)
+    end
+
+    test "acceptor_info distribution with multiple sockets" do
+      # Create a mock state with multiple sockets for testing distribution logic
+      # Mock sockets with refs
+      socket1 = make_ref()
+      socket2 = make_ref()
+      socket3 = make_ref()
+      span = ThousandIsland.Telemetry.start_span(:listener, %{}, %{handler: __MODULE__})
+
+      state = %{
+        listener_sockets: [{1, socket1}, {2, socket2}, {3, socket3}],
+        listener_span: span
+      }
+
+      # Test Ranch-like distribution: (acceptor_id - 1) rem num_sockets + 1
+      # Acceptor 1 -> socket 1
+      assert {:reply, {^socket1, ^span}, ^state} =
+               Listener.handle_call({:acceptor_info, 1}, nil, state)
+
+      # Acceptor 2 -> socket 2
+      assert {:reply, {^socket2, ^span}, ^state} =
+               Listener.handle_call({:acceptor_info, 2}, nil, state)
+
+      # Acceptor 3 -> socket 3
+      assert {:reply, {^socket3, ^span}, ^state} =
+               Listener.handle_call({:acceptor_info, 3}, nil, state)
+
+      # Acceptor 4 -> socket 1 (wraps around)
+      assert {:reply, {^socket1, ^span}, ^state} =
+               Listener.handle_call({:acceptor_info, 4}, nil, state)
+
+      # Acceptor 5 -> socket 2 (wraps around)
+      assert {:reply, {^socket2, ^span}, ^state} =
+               Listener.handle_call({:acceptor_info, 5}, nil, state)
     end
   end
 end
