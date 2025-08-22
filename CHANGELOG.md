@@ -1,3 +1,10 @@
+## 1.4.0 (22 Aug 2025)
+
+### Enhancements
+
+* Add `num_listen_sockets` parameter to allow for improved performance on
+specific systems (#174, thanks @NelsonVides!)
+
 ## 1.3.14 (25 May 2025)
 
 ### Enhancements
