@@ -4,7 +4,7 @@ defmodule ThousandIsland.SocketTest do
   use Machete
 
   def gen_tcp_setup(_context) do
-    {:ok, %{client_mod: :gen_tcp, client_opts: [active: false], server_opts: []}}
+    {:ok, %{client_mod: :gen_tcp, client_opts: [:binary, active: false], server_opts: []}}
   end
 
   def ssl_setup(_context) do
@@ -12,6 +12,7 @@ defmodule ThousandIsland.SocketTest do
      %{
        client_mod: :ssl,
        client_opts: [
+         :binary,
          active: false,
          verify: :verify_peer,
          cacertfile: Path.join(__DIR__, "../support/ca.pem")
@@ -88,7 +89,7 @@ defmodule ThousandIsland.SocketTest do
         {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
 
         assert context.client_mod.send(client, "HELLO") == :ok
-        assert context.client_mod.recv(client, 0) == {:ok, ~c"HELLO"}
+        assert context.client_mod.recv(client, 0) == {:ok, "HELLO"}
       end
 
       test "it should close connections", context do
@@ -105,7 +106,7 @@ defmodule ThousandIsland.SocketTest do
         {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
 
         :ok = context.client_mod.send(client, "HELLO")
-        {:ok, ~c"HELLO"} = context.client_mod.recv(client, 0)
+        {:ok, "HELLO"} = context.client_mod.recv(client, 0)
         context.client_mod.close(client)
 
         assert_receive {:telemetry, [:thousand_island, :connection, :recv], measurements,
@@ -151,7 +152,7 @@ defmodule ThousandIsland.SocketTest do
       server_opts = Keyword.put(context.server_opts, :handler_options, test_pid: self())
       {:ok, port} = start_handler(Sendfile, server_opts)
       {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
-      assert context.client_mod.recv(client, 9) == {:ok, ~c"ABCDEFBCD"}
+      assert context.client_mod.recv(client, 9) == {:ok, "ABCDEFBCD"}
       assert_receive {:monitored_by, []}
     end
   end
@@ -193,7 +194,7 @@ defmodule ThousandIsland.SocketTest do
       server_opts = Keyword.put(context.server_opts, :handler_options, test_pid: self())
       {:ok, port} = start_handler(Sendfile, server_opts)
       {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
-      assert context.client_mod.recv(client, 9) == {:ok, ~c"ABCDEFBCD"}
+      assert context.client_mod.recv(client, 9) == {:ok, "ABCDEFBCD"}
       assert_receive {:monitored_by, [_pid]}
     end
   end
