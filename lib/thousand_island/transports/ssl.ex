@@ -45,6 +45,9 @@ defmodule ThousandIsland.Transports.SSL do
 
   @hardcoded_options [mode: :binary, active: false]
 
+  # Default chunk size: 8MB - balances memory usage vs syscall overhead
+  @sendfile_chunk_size 8 * 1024 * 1024
+
   @impl ThousandIsland.Transport
   @spec listen(:inet.port_number(), [:ssl.tls_server_option()]) ::
           ThousandIsland.Transport.on_listen()
@@ -126,18 +129,12 @@ defmodule ThousandIsland.Transports.SSL do
           length :: non_neg_integer()
         ) :: ThousandIsland.Transport.on_sendfile()
   def sendfile(socket, filename, offset, length) do
-    # We can't use :file.sendfile here since it works on clear sockets, not ssl
-    # sockets. Build our own (much slower and not optimized for large files) version.
+    # We can't use :file.sendfile here since it works on clear sockets, not ssl sockets.
+    # Build our own version with chunking for large files.
     case :file.open(filename, [:read, :raw, :binary]) do
       {:ok, fd} ->
         try do
-          with {:ok, data} <- :file.pread(fd, offset, length),
-               :ok <- :ssl.send(socket, data) do
-            {:ok, length}
-          else
-            :eof -> {:error, :eof}
-            {:error, reason} -> {:error, reason}
-          end
+          sendfile_loop(socket, fd, offset, length, 0)
         after
           :file.close(fd)
         end
@@ -146,6 +143,28 @@ defmodule ThousandIsland.Transports.SSL do
         {:error, reason}
     end
   end
+
+  defp sendfile_loop(_socket, _fd, _offset, sent, sent) when 0 != sent do
+    {:ok, sent}
+  end
+
+  defp sendfile_loop(socket, fd, offset, length, sent) do
+    with read_size <- chunk_size(length, sent, @sendfile_chunk_size),
+         {:ok, data} <- :file.pread(fd, offset, read_size),
+         :ok <- :ssl.send(socket, data) do
+      now_sent = byte_size(data)
+      sendfile_loop(socket, fd, offset + now_sent, length, sent + now_sent)
+    else
+      :eof ->
+        {:ok, sent}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp chunk_size(0, _sent, chunk_size), do: chunk_size
+  defp chunk_size(length, sent, chunk), do: min(length - sent, chunk)
 
   @impl ThousandIsland.Transport
   @spec getopts(socket(), ThousandIsland.Transport.socket_get_options()) ::
