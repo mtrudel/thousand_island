@@ -159,7 +159,7 @@ defmodule ThousandIsland.Handler do
   2. The raw `t:ThousandIsland.Transport.socket()` socket will be passed to the new process via a
   message of the form `{:thousand_island_ready, raw_socket, server_config, acceptor_span,
   start_time}`.
-  3. Your implenentation must turn this into a `to:ThousandIsland.Socket.t()` socket by using the
+  3. Your implementation must turn this into a `to:ThousandIsland.Socket.t()` socket by using the
   `ThousandIsland.Socket.new/3` call.
   4. Your implementation must then call `ThousandIsland.Socket.handshake/1` with the socket as the
   sole argument in order to finalize the setup of the socket.
