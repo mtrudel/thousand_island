@@ -3,15 +3,22 @@ defmodule ThousandIsland.SocketTest do
 
   use Machete
 
-  def gen_tcp_setup(_context) do
-    {:ok, %{client_mod: :gen_tcp, client_opts: [active: false], server_opts: []}}
+  @eight_mb_chunks 8 * 1024 * 1024
+  @large_file_size 256 * 1024 * 1024
+
+  def gen_tcp_setup(context) do
+    if context[:tmp_dir], do: maybe_create_big_file(context.tmp_dir)
+    {:ok, %{client_mod: :gen_tcp, client_opts: [:binary, active: false], server_opts: []}}
   end
 
-  def ssl_setup(_context) do
+  def ssl_setup(context) do
+    if context[:tmp_dir], do: maybe_create_big_file(context.tmp_dir)
+
     {:ok,
      %{
        client_mod: :ssl,
        client_opts: [
+         :binary,
          active: false,
          verify: :verify_peer,
          cacertfile: Path.join(__DIR__, "../support/ca.pem")
@@ -45,6 +52,18 @@ defmodule ThousandIsland.SocketTest do
     def handle_connection(socket, state) do
       ThousandIsland.Socket.sendfile(socket, Path.join(__DIR__, "../support/sendfile"), 0, 6)
       ThousandIsland.Socket.sendfile(socket, Path.join(__DIR__, "../support/sendfile"), 1, 3)
+      send(state[:test_pid], Process.info(self(), :monitored_by))
+      {:close, state}
+    end
+  end
+
+  defmodule LargeSendfile do
+    use ThousandIsland.Handler
+
+    @impl ThousandIsland.Handler
+    def handle_connection(socket, state) do
+      large_file_path = Path.join(state[:tmp_dir], "large_sendfile")
+      ThousandIsland.Socket.sendfile(socket, large_file_path, 0, 0)
       send(state[:test_pid], Process.info(self(), :monitored_by))
       {:close, state}
     end
@@ -88,7 +107,7 @@ defmodule ThousandIsland.SocketTest do
         {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
 
         assert context.client_mod.send(client, "HELLO") == :ok
-        assert context.client_mod.recv(client, 0) == {:ok, ~c"HELLO"}
+        assert context.client_mod.recv(client, 0) == {:ok, "HELLO"}
       end
 
       test "it should close connections", context do
@@ -105,7 +124,7 @@ defmodule ThousandIsland.SocketTest do
         {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
 
         :ok = context.client_mod.send(client, "HELLO")
-        {:ok, ~c"HELLO"} = context.client_mod.recv(client, 0)
+        {:ok, "HELLO"} = context.client_mod.recv(client, 0)
         context.client_mod.close(client)
 
         assert_receive {:telemetry, [:thousand_island, :connection, :recv], measurements,
@@ -151,7 +170,18 @@ defmodule ThousandIsland.SocketTest do
       server_opts = Keyword.put(context.server_opts, :handler_options, test_pid: self())
       {:ok, port} = start_handler(Sendfile, server_opts)
       {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
-      assert context.client_mod.recv(client, 9) == {:ok, ~c"ABCDEFBCD"}
+      assert context.client_mod.recv(client, 9) == {:ok, "ABCDEFBCD"}
+      assert_receive {:monitored_by, []}
+    end
+
+    @tag :tmp_dir
+    test "it should send large files", %{tmp_dir: tmp_dir} = context do
+      opts = [test_pid: self(), tmp_dir: tmp_dir]
+      server_opts = Keyword.put(context.server_opts, :handler_options, opts)
+      {:ok, port} = start_handler(LargeSendfile, server_opts)
+      {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
+      total_received = receive_all_data(context.client_mod, client, @large_file_size, "")
+      assert byte_size(total_received) == @large_file_size
       assert_receive {:monitored_by, []}
     end
   end
@@ -193,7 +223,18 @@ defmodule ThousandIsland.SocketTest do
       server_opts = Keyword.put(context.server_opts, :handler_options, test_pid: self())
       {:ok, port} = start_handler(Sendfile, server_opts)
       {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
-      assert context.client_mod.recv(client, 9) == {:ok, ~c"ABCDEFBCD"}
+      assert context.client_mod.recv(client, 9) == {:ok, "ABCDEFBCD"}
+      assert_receive {:monitored_by, [_pid]}
+    end
+
+    @tag :tmp_dir
+    test "it should send large files", %{tmp_dir: tmp_dir} = context do
+      opts = [test_pid: self(), tmp_dir: tmp_dir]
+      server_opts = Keyword.put(context.server_opts, :handler_options, opts)
+      {:ok, port} = start_handler(LargeSendfile, server_opts)
+      {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
+      total_received = receive_all_data(context.client_mod, client, @large_file_size, "")
+      assert byte_size(total_received) == @large_file_size
       assert_receive {:monitored_by, [_pid]}
     end
   end
@@ -203,5 +244,33 @@ defmodule ThousandIsland.SocketTest do
     {:ok, server_pid} = start_supervised({ThousandIsland, resolved_args})
     {:ok, {_ip, port}} = ThousandIsland.listener_info(server_pid)
     {:ok, port}
+  end
+
+  defp maybe_create_big_file(tmp_dir) do
+    path = Path.join(tmp_dir, "large_sendfile")
+
+    unless File.exists?(path) and File.stat!(path).size == @large_file_size do
+      # Create a large file by writing 8MB chunks to avoid memory issues
+      chunks_needed = div(@large_file_size, @eight_mb_chunks)
+      chunk_data = :binary.copy(<<0>>, @eight_mb_chunks)
+      {:ok, file} = File.open(path, [:write, :binary])
+      for _i <- 1..chunks_needed, do: IO.binwrite(file, chunk_data)
+      File.close(file)
+    end
+  end
+
+  defp receive_all_data(_, _, total_size, acc) when total_size <= 0, do: acc
+
+  defp receive_all_data(client_mod, client, total_size, acc) do
+    case client_mod.recv(client, @eight_mb_chunks) do
+      {:ok, data} ->
+        receive_all_data(client_mod, client, total_size - byte_size(data), acc <> data)
+
+      {:error, :closed} when byte_size(acc) == total_size ->
+        acc
+
+      {:error, reason} ->
+        raise "Failed to receive data: #{inspect(reason)}"
+    end
   end
 end

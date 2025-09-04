@@ -25,6 +25,7 @@ thousand_island-*.tar
 # Ignore dialyzer caches
 /priv/plts/
 
+/tmp/
 
 # ElixirLS
 /.elixir_ls
