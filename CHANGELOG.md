@@ -1,3 +1,9 @@
+## 1.4.1 (4 Sept 2025)
+
+### Enhancements
+
+* Improve performance of SSL sendfile function on larger files (#176, thanks @NelsonVides!)
+
 ## 1.4.0 (22 Aug 2025)
 
 ### Enhancements
