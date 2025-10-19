@@ -1,3 +1,9 @@
+## 1.4.2 (19 Oct 2025)
+
+### Changes
+
+* Resolve compiler warnings in Elixir 1.19 (#171, thanks @psantos10!)
+
 ## 1.4.1 (4 Sept 2025)
 
 ### Enhancements
