@@ -486,31 +486,55 @@ defmodule ThousandIsland.ServerTest do
   end
 
   describe "invalid configuration" do
-    @tag capture_log: true
-    test "it should error if a certificate is not found" do
-      {:ok, server_pid, port} =
-        start_handler(Error,
-          handler_options: [test_pid: self()],
-          transport_module: ThousandIsland.Transports.SSL,
-          transport_options: [
-            certfile: Path.join(__DIR__, "./not/a/cert.pem"),
-            keyfile: Path.join(__DIR__, "./not/a/key.pem"),
-            alpn_preferred_protocols: ["foo"]
-          ]
-        )
+    # SSL startup behaviour with invalid PEM files changed in OTP 28.1. See OTP-19706
+    major = :erlang.system_info(:otp_release) |> List.to_string()
+    vsn_file = Path.join([:code.root_dir(), "releases", major, "OTP_VERSION"])
+    {:ok, contents} = File.read(vsn_file)
 
-      {:error, _} =
-        :ssl.connect(~c"localhost", port,
-          active: false,
-          verify: :verify_peer,
-          cacertfile: Path.join(__DIR__, "../support/ca.pem")
-        )
+    if contents >= "28.1\n" do
+      @tag capture_log: true
+      test "it should error if a certificate is not found (OTP 28.1+)" do
+        assert {:error, _} =
+                 start_supervised(
+                   {ThousandIsland,
+                    port: 0,
+                    handler_module: Error,
+                    handler_options: [test_pid: self()],
+                    transport_module: ThousandIsland.Transports.SSL,
+                    transport_options: [
+                      certfile: Path.join(__DIR__, "./not/a/cert.pem"),
+                      keyfile: Path.join(__DIR__, "./not/a/key.pem"),
+                      alpn_preferred_protocols: ["foo"]
+                    ]}
+                 )
+      end
+    else
+      @tag capture_log: true
+      test "it should error if a certificate is not found (pre-OTP-28.1)" do
+        {:ok, server_pid, port} =
+          start_handler(Error,
+            handler_options: [test_pid: self()],
+            transport_module: ThousandIsland.Transports.SSL,
+            transport_options: [
+              certfile: Path.join(__DIR__, "./not/a/cert.pem"),
+              keyfile: Path.join(__DIR__, "./not/a/key.pem"),
+              alpn_preferred_protocols: ["foo"]
+            ]
+          )
 
-      Process.sleep(500)
+        {:error, _} =
+          :ssl.connect(~c"localhost", port,
+            active: false,
+            verify: :verify_peer,
+            cacertfile: Path.join(__DIR__, "../support/ca.pem")
+          )
 
-      ThousandIsland.stop(server_pid)
+        Process.sleep(500)
 
-      assert_received {:options, {:certfile, _, _}}
+        ThousandIsland.stop(server_pid)
+
+        assert_received {:options, {:certfile, _, _}}
+      end
     end
 
     @tag capture_log: true
