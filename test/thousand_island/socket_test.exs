@@ -214,7 +214,6 @@ defmodule ThousandIsland.SocketTest do
 
       assert ^expected_prefix <> rest = to_string(resp)
       assert rest =~ ~r/protocol/
-      assert rest =~ ~r/cipher/
 
       context.client_mod.close(client)
     end

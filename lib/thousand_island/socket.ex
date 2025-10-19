@@ -67,7 +67,7 @@ defmodule ThousandIsland.Socket do
   def upgrade(%__MODULE__{} = socket, module, opts) when is_atom(module) do
     case module.upgrade(socket.socket, opts) do
       {:ok, updated_socket} ->
-        {:ok, %__MODULE__{socket | socket: updated_socket, transport_module: module}}
+        {:ok, %{socket | socket: updated_socket, transport_module: module}}
 
       {:error, reason} = err ->
         ThousandIsland.Telemetry.stop_span(socket.span, %{}, %{error: reason})
