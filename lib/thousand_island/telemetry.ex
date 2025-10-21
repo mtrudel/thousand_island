@@ -362,12 +362,12 @@ defmodule ThousandIsland.Telemetry do
   @doc false
   @spec stop_span(t(), measurements(), metadata()) :: :ok
   def stop_span(span, measurements \\ %{}, metadata \\ %{}) do
-    mono = measurements[:monotonic_time] || monotonic_time()
+    monotonic_time = measurements[:monotonic_time] || monotonic_time()
 
     measurements =
       Map.merge(measurements, %{
-        monotonic_time: mono,
-        duration: mono - span.start_time
+        monotonic_time: monotonic_time,
+        duration: monotonic_time - span.start_time
       })
 
     metadata = Map.merge(span.start_metadata, metadata)
