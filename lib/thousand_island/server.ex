@@ -73,6 +73,8 @@ defmodule ThousandIsland.Server do
            {Supervisor.sup_flags(),
             [Supervisor.child_spec() | (old_erlang_child_spec :: :supervisor.child_spec())]}}
   def init(config) do
+    ThousandIsland.ProcessLabel.set([:server, config.port, config.handler_module])
+
     children = [
       {ThousandIsland.Listener, config} |> Supervisor.child_spec(id: :listener),
       {ThousandIsland.AcceptorPoolSupervisor, {self(), config}}
