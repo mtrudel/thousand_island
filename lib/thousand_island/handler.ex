@@ -519,9 +519,10 @@ defmodule ThousandIsland.Handler do
     measurements =
       case ThousandIsland.Socket.getstat(socket) do
         {:ok, stats} ->
-          stats
-          |> Keyword.take([:send_oct, :send_cnt, :recv_oct, :recv_cnt])
-          |> Enum.into(%{})
+          for {k, v} <- stats,
+              k in [:send_oct, :send_cnt, :recv_oct, :recv_cnt],
+              into: %{},
+              do: {k, v}
 
         _ ->
           %{}

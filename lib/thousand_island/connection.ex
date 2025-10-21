@@ -47,6 +47,10 @@ defmodule ThousandIsland.Connection do
        ) do
     case DynamicSupervisor.start_child(sup_pid, child_spec) do
       {:ok, pid} ->
+        # Only send the fields actually needed by the handler to minimize message size
+        server_config =
+          Map.take(server_config, [:transport_module, :read_timeout, :silent_terminate_on_error])
+
         # Since this process owns the socket at this point, it needs to be the
         # one to make this call. connection_pid is sitting and waiting for the
         # word from us to start processing, in order to ensure that we've made
