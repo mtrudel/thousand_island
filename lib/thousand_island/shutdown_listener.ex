@@ -31,6 +31,7 @@ defmodule ThousandIsland.ShutdownListener do
   @spec handle_continue(:setup_listener_pid, state) :: {:noreply, state}
   def handle_continue(:setup_listener_pid, %{server_pid: server_pid}) do
     listener_pid = ThousandIsland.Server.listener_pid(server_pid)
+    ThousandIsland.ProcessLabel.set([:shutdown_listener, listener_pid])
     {:noreply, %{listener_pid: listener_pid}}
   end
 
