@@ -24,15 +24,15 @@ defmodule ThousandIsland.Socket do
   """
   @spec new(
           ThousandIsland.Transport.socket(),
-          ThousandIsland.ServerConfig.t(),
+          ThousandIsland.HandlerConfig.t(),
           ThousandIsland.Telemetry.t()
         ) :: t()
-  def new(raw_socket, server_config, span) do
+  def new(raw_socket, handler_config, span) do
     %__MODULE__{
       socket: raw_socket,
-      transport_module: server_config.transport_module,
-      read_timeout: server_config.read_timeout,
-      silent_terminate_on_error: server_config.silent_terminate_on_error,
+      transport_module: handler_config.transport_module,
+      read_timeout: handler_config.read_timeout,
+      silent_terminate_on_error: handler_config.silent_terminate_on_error,
       span: span
     }
   end
