@@ -519,10 +519,12 @@ defmodule ThousandIsland.Handler do
     measurements =
       case ThousandIsland.Socket.getstat(socket) do
         {:ok, stats} ->
-          for {k, v} <- stats,
-              k in [:send_oct, :send_cnt, :recv_oct, :recv_cnt],
-              into: %{},
-              do: {k, v}
+          %{
+            send_oct: stats[:send_oct],
+            send_cnt: stats[:send_cnt],
+            recv_oct: stats[:recv_oct],
+            recv_cnt: stats[:recv_cnt]
+          }
 
         _ ->
           %{}
