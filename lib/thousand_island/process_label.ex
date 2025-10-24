@@ -9,20 +9,36 @@ defmodule ThousandIsland.ProcessLabel do
     @doc """
     Sets a process label if the current Elixir version supports it (>= 1.17).
     """
-    @spec set(term() | [term()]) :: :ok
-    def set(labels) when is_list(labels) do
-      Process.set_label([:thousand_island | labels])
+    @spec set(atom(), ThousandIsland.ServerConfig.t(), term()) :: :ok
+    def set(name, %ThousandIsland.ServerConfig{} = config, state) when is_atom(name) do
+      Process.set_label({:thousand_island, name, {{config.port, config.handler_module}, state}})
     end
 
-    def set(label) do
-      Process.set_label([:thousand_island, label])
+    @doc """
+    Sets a process label if the current Elixir version supports it (>= 1.17).
+    """
+    @spec set(atom(), term()) :: :ok
+    def set(name, %ThousandIsland.ServerConfig{} = config) when is_atom(name) do
+      Process.set_label({:thousand_island, name, {config.port, config.handler_module}})
+    end
+
+    def set(name, state) when is_atom(name) do
+      Process.set_label({:thousand_island, name, state})
     end
   else
     @doc """
     No-op on Elixir versions < 1.17 that don't support Process.set_label/1.
     """
-    @spec set(term() | [term()]) :: :ok
-    def set(_labels) do
+    @spec set(atom(), ThousandIsland.ServerConfig.t(), term()) :: :ok
+    def set(_, _, _) do
+      :ok
+    end
+
+    @doc """
+    No-op on Elixir versions < 1.17 that don't support Process.set_label/1.
+    """
+    @spec set(atom(), term()) :: :ok
+    def set(_, _) do
       :ok
     end
   end

@@ -28,8 +28,7 @@ defmodule ThousandIsland.Listener do
   def init(%ThousandIsland.ServerConfig{} = server_config) do
     case start_listen_sockets(server_config) do
       {:ok, listener_sockets, local_info} ->
-        {_ip, port} = local_info
-        ThousandIsland.ProcessLabel.set([:listener, port, server_config.handler_module])
+        ThousandIsland.ProcessLabel.set(:listener, server_config)
 
         span_metadata = %{
           handler: server_config.handler_module,
