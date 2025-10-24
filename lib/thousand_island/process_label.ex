@@ -1,8 +1,9 @@
 defmodule ThousandIsland.ProcessLabel do
   @moduledoc false
   # Provides compile-time conditional support for Process.set_label/1
-  # which was introduced in Elixir 1.17.0
-  @supports_labels Version.match?(System.version(), ">= 1.17.0")
+  # which was introduced in Elixir 1.17.0 and OTP 27.
+  @supports_labels Version.match?(System.version(), ">= 1.17.0") and
+                     String.to_integer(System.otp_release()) >= 27
 
   if @supports_labels do
     @doc """

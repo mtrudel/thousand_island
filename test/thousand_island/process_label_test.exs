@@ -1,7 +1,7 @@
 defmodule ThousandIsland.ProcessLabelTest do
   use ExUnit.Case, async: true
 
-  # Process.set_label/1 was introduced in Elixir 1.17.0
+  # Process.set_label/1 was introduced in Elixir 1.17.0 and OTP 27
   @supports_labels Version.match?(System.version(), ">= 1.17.0") and
                      String.to_integer(System.otp_release()) >= 27
 
