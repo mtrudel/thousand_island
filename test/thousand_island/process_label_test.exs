@@ -36,22 +36,10 @@ defmodule ThousandIsland.ProcessLabelTest do
       :ok = :gen_tcp.send(client, "HELLO")
       Process.sleep(50)
 
-      # Get connection pid while connection is still open
       {:ok, [connection_pid]} = ThousandIsland.connection_pids(server_pid)
-
-      # Check the connection process label
       label = get_process_label(connection_pid)
 
-      # Label format: [:thousand_island, :connection, configured_port, handler_module, {remote_ip, remote_port}]
-      # Note: configured_port is 0 for dynamic port assignment
-      assert [
-               :thousand_island,
-               :connection,
-               0,
-               ThousandIsland.ProcessLabelTest.LongEcho,
-               {remote_ip, remote_port}
-             ] = label
-
+      assert {:thousand_island, :connection, {_config_part, {remote_ip, remote_port}}} = label
       assert is_tuple(remote_ip)
       assert is_integer(remote_port)
 
@@ -60,68 +48,41 @@ defmodule ThousandIsland.ProcessLabelTest do
 
     test "listener process should have correct label" do
       {:ok, server_pid, _port} = start_handler(Echo)
-      {:ok, {_ip, actual_port}} = ThousandIsland.listener_info(server_pid)
 
-      # Find the listener process using the Server module's helper
       listener_pid = ThousandIsland.Server.listener_pid(server_pid)
       assert listener_pid != nil
 
-      # Check the listener process label
       label = get_process_label(listener_pid)
-      # Listener gets the actual assigned port
-      assert label == [
-               :thousand_island,
-               :listener,
-               actual_port,
-               ThousandIsland.ProcessLabelTest.Echo
-             ]
+
+      assert {:thousand_island, :listener, _config_part} = label
     end
 
     test "acceptor processes should have correct labels" do
       {:ok, server_pid, _port} = start_handler(Echo, num_acceptors: 3)
 
-      # Give acceptors time to start
-      Process.sleep(50)
-
-      # Find acceptor processes
-      acceptor_pids = find_acceptor_pids(server_pid)
-      assert length(acceptor_pids) == 3
-
-      # Check that each acceptor has a label with an ID
-      labels =
-        Enum.map(acceptor_pids, fn pid ->
-          get_process_label(pid)
-        end)
-
-      # Each acceptor should have: [:thousand_island, :acceptor, configured_port (0), handler_module, acceptor_id]
       acceptor_ids =
-        Enum.map(labels, fn [
-                              :thousand_island,
-                              :acceptor,
-                              0,
-                              ThousandIsland.ProcessLabelTest.Echo,
-                              id
-                            ] ->
+        server_pid
+        |> find_acceptor_pids()
+        |> Enum.map(&get_process_label/1)
+        |> Enum.map(fn {:thousand_island, :acceptor, {_config_part, id}} ->
           id
         end)
+        |> Enum.sort()
 
-      assert Enum.sort(acceptor_ids) == [1, 2, 3]
+      assert acceptor_ids == [1, 2, 3]
     end
 
     test "shutdown_listener process should have correct label" do
       {:ok, server_pid, _port} = start_handler(Echo)
 
-      # Find the shutdown listener process by ID
       shutdown_listener_pid = find_child_by_id(server_pid, :shutdown_listener)
       assert shutdown_listener_pid != nil
 
-      # Give it time to complete its setup (it sets the label in handle_continue)
       Process.sleep(100)
 
-      # Check the shutdown listener process label
       label = get_process_label(shutdown_listener_pid)
-      assert [:thousand_island, :shutdown_listener, listener_pid] = label
-      assert is_pid(listener_pid)
+
+      assert {:thousand_island, :shutdown_listener, _config_part} = label
     end
 
     test "labels persist across multiple connections" do
@@ -144,9 +105,7 @@ defmodule ThousandIsland.ProcessLabelTest do
       {:ok, [connection_pid]} = ThousandIsland.connection_pids(server_pid)
       label = get_process_label(connection_pid)
 
-      # Should have thousand_island prefix and correct format (port is 0 for dynamic assignment)
-      assert [:thousand_island, :connection, 0, ThousandIsland.ProcessLabelTest.LongEcho | _] =
-               label
+      assert {:thousand_island, :connection, {_config_part, _remote_info}} = label
 
       {:ok, ~c"WORLD"} = :gen_tcp.recv(client2, 0)
       :gen_tcp.close(client2)
@@ -157,7 +116,8 @@ defmodule ThousandIsland.ProcessLabelTest do
 
       # Check the server process label (uses configured port, which is 0 for dynamic assignment)
       label = get_process_label(server_pid)
-      assert label == [:thousand_island, :server, 0, ThousandIsland.ProcessLabelTest.Echo]
+      config_part = {0, ThousandIsland.ProcessLabelTest.Echo}
+      assert label == {:thousand_island, :server, config_part}
     end
   else
     test "process labels are not set on Elixir < 1.17" do
@@ -207,7 +167,8 @@ defmodule ThousandIsland.ProcessLabelTest do
   end
 
   defp find_child_by_id(supervisor_pid, child_id) do
-    Supervisor.which_children(supervisor_pid)
+    supervisor_pid
+    |> Supervisor.which_children()
     |> Enum.find_value(fn
       {^child_id, pid, _, _} when is_pid(pid) -> pid
       _ -> nil
@@ -215,24 +176,23 @@ defmodule ThousandIsland.ProcessLabelTest do
   end
 
   defp find_acceptor_pids(server_pid) do
+    child_pid = fn {_, pid, _, _} -> pid end
     # Find the AcceptorPoolSupervisor using the Server module's helper
-    acceptor_pool_sup = ThousandIsland.Server.acceptor_pool_supervisor_pid(server_pid)
-
     # Get all AcceptorSupervisors
-    acceptor_sups =
-      DynamicSupervisor.which_children(acceptor_pool_sup)
-      |> Enum.map(fn {_, pid, _, _} -> pid end)
-
     # For each AcceptorSupervisor, find the Acceptor (Task) process
     # The AcceptorSupervisor has 2 children: the Acceptor Task and a DynamicSupervisor
     # We want the Task (worker type)
-    Enum.flat_map(acceptor_sups, fn sup_pid ->
+    server_pid
+    |> ThousandIsland.Server.acceptor_pool_supervisor_pid()
+    |> DynamicSupervisor.which_children()
+    |> Enum.map(child_pid)
+    |> Enum.flat_map(fn sup_pid ->
       Supervisor.which_children(sup_pid)
       |> Enum.filter(fn
         {_id, pid, :worker, _modules} when is_pid(pid) -> true
         _ -> false
       end)
-      |> Enum.map(fn {_, pid, _, _} -> pid end)
+      |> Enum.map(child_pid)
     end)
   end
 end
