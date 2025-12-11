@@ -361,8 +361,6 @@ defmodule ThousandIsland.Handler do
               throw({:stop, {:shutdown, {:premature_conn_closing, reason}}, {raw_socket, state}})
           end
 
-        ThousandIsland.ProcessLabel.set(:connection, server_config, {ip, port})
-
         span_meta = %{remote_address: ip, remote_port: port}
 
         connection_span =

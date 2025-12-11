@@ -14,8 +14,6 @@ defmodule ThousandIsland.Acceptor do
            ThousandIsland.ServerConfig.t()}
         ) :: no_return
   def run({server_pid, parent_pid, acceptor_id, %ThousandIsland.ServerConfig{} = server_config}) do
-    ThousandIsland.ProcessLabel.set(:acceptor, server_config, acceptor_id)
-
     listener_pid = ThousandIsland.Server.listener_pid(server_pid)
 
     {listener_socket, listener_span} =

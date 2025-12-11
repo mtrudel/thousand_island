@@ -13,17 +13,16 @@ defmodule ThousandIsland.ShutdownListener do
         }
 
   @doc false
-  @spec start_link({pid(), any()}) :: :ignore | {:error, any} | {:ok, pid}
-  def start_link({server_pid, key}) do
-    GenServer.start_link(__MODULE__, {server_pid, key})
+  @spec start_link(pid()) :: :ignore | {:error, any} | {:ok, pid}
+  def start_link(server_pid) do
+    GenServer.start_link(__MODULE__, server_pid)
   end
 
   @doc false
   @impl GenServer
-  @spec init({pid(), any()}) :: {:ok, state, {:continue, :setup_listener_pid}}
-  def init({server_pid, key}) do
+  @spec init(pid()) :: {:ok, state, {:continue, :setup_listener_pid}}
+  def init(server_pid) do
     Process.flag(:trap_exit, true)
-    ThousandIsland.ProcessLabel.set(:shutdown_listener, key)
     {:ok, %{server_pid: server_pid}, {:continue, :setup_listener_pid}}
   end
 

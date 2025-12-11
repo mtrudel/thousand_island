@@ -45,8 +45,6 @@ defmodule ThousandIsland.AcceptorSupervisor do
            {Supervisor.sup_flags(),
             [Supervisor.child_spec() | (old_erlang_child_spec :: :supervisor.child_spec())]}}
   def init({server_pid, acceptor_id, %ThousandIsland.ServerConfig{} = config}) do
-    ThousandIsland.ProcessLabel.set(:acceptor_supervisor, config)
-
     children = [
       {DynamicSupervisor, strategy: :one_for_one, max_children: config.num_connections}
       |> Supervisor.child_spec(id: :connection_sup),
