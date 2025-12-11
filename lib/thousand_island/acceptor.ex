@@ -23,21 +23,48 @@ defmodule ThousandIsland.Acceptor do
 
     connection_sup_pid = ThousandIsland.AcceptorSupervisor.connection_sup_pid(parent_pid)
     acceptor_span = ThousandIsland.Telemetry.start_child_span(listener_span, :acceptor)
-    accept(listener_socket, connection_sup_pid, server_config, acceptor_span, 0)
+
+    # Pre-create the handler config once to avoid Map.take on every connection (hot path)
+    handler_config = ThousandIsland.HandlerConfig.from_server_config(server_config)
+
+    accept(listener_socket, connection_sup_pid, server_config, handler_config, acceptor_span, 0)
   end
 
-  defp accept(listener_socket, connection_sup_pid, server_config, span, count) do
+  defp accept(listener_socket, connection_sup_pid, server_config, handler_config, span, count) do
     with {:ok, socket} <- server_config.transport_module.accept(listener_socket),
-         :ok <- ThousandIsland.Connection.start(connection_sup_pid, socket, server_config, span) do
-      accept(listener_socket, connection_sup_pid, server_config, span, count + 1)
+         :ok <-
+           ThousandIsland.Connection.start(
+             connection_sup_pid,
+             socket,
+             server_config,
+             handler_config,
+             span
+           ) do
+      accept(listener_socket, connection_sup_pid, server_config, handler_config, span, count + 1)
     else
       {:error, :too_many_connections} ->
         ThousandIsland.Telemetry.span_event(span, :spawn_error)
-        accept(listener_socket, connection_sup_pid, server_config, span, count + 1)
+
+        accept(
+          listener_socket,
+          connection_sup_pid,
+          server_config,
+          handler_config,
+          span,
+          count + 1
+        )
 
       {:error, reason} when reason in [:econnaborted, :einval] ->
         ThousandIsland.Telemetry.span_event(span, reason)
-        accept(listener_socket, connection_sup_pid, server_config, span, count + 1)
+
+        accept(
+          listener_socket,
+          connection_sup_pid,
+          server_config,
+          handler_config,
+          span,
+          count + 1
+        )
 
       {:error, :closed} ->
         ThousandIsland.Telemetry.stop_span(span, %{connections: count})
