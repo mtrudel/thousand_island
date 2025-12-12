@@ -1,7 +1,9 @@
 defmodule ThousandIsland.HandlerConfig do
-  @moduledoc false
-  # A minimal config struct containing only the fields needed by connection handlers.
-  # This is created once per acceptor to avoid Map.take on every connection (hot path).
+  @moduledoc """
+  A minimal config struct containing only the fields needed by connection handlers.
+
+  This is used internally by `ThousandIsland.Handler`
+  """
 
   @enforce_keys [:handler_module, :transport_module, :read_timeout, :silent_terminate_on_error]
   defstruct @enforce_keys
