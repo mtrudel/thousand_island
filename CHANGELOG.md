@@ -1,3 +1,10 @@
+## 1.4.3 (12 Dec 2025)
+
+### Enhancements
+
+* Add support for setting process labels for better observer visibility (#188, thanks @NelsonVides and @nathanl!)
+* Improve memory usage and performance (#181 & #182, thanks @NelsonVides!)
+
 ## 1.4.2 (19 Oct 2025)
 
 ### Changes
