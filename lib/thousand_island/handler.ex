@@ -157,7 +157,7 @@ defmodule ThousandIsland.Handler do
   conventional `GenServer.on_start()` style tuple. Note that this newly created process is not
   passed the connection socket immediately.
   2. The raw `t:ThousandIsland.Transport.socket()` socket will be passed to the new process via a
-  message of the form `{:thousand_island_ready, raw_socket, server_config, acceptor_span,
+  message of the form `{:thousand_island_ready, raw_socket, handler_config, acceptor_span,
   start_time}`.
   3. Your implementation must turn this into a `to:ThousandIsland.Socket.t()` socket by using the
   `ThousandIsland.Socket.new/3` call.
@@ -360,6 +360,8 @@ defmodule ThousandIsland.Handler do
               _ = handler_config.transport_module.close(raw_socket)
               throw({:stop, {:shutdown, {:premature_conn_closing, reason}}, {raw_socket, state}})
           end
+
+        ThousandIsland.ProcessLabel.set(:connection, handler_config, {ip, port})
 
         span_meta = %{remote_address: ip, remote_port: port}
 
