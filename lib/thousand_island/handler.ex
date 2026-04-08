@@ -18,7 +18,7 @@ defmodule ThousandIsland.Handler do
   same socket, it may elect to return `{:continue, state}`. This will cause Thousand Island to wait for client data
   asynchronously; `c:handle_data/3` will be invoked when the client sends more data.
 
-  4. In the meantime, the process which is hosting connection is idle & able to receive messages sent from elsewhere in your
+  4. In the meantime, the process which is hosting the connection is idle & able to receive messages sent from elsewhere in your
   application as needed. The implementation included in the `use ThousandIsland.Handler` macro uses a `GenServer` structure,
   so you may implement such behaviour via standard `GenServer` patterns. Note that in these cases that state is provided (and
   must be returned) in a `{socket, state}` format, where the second tuple is the same state value that is passed to the various `handle_*` callbacks
