@@ -569,15 +569,30 @@ defmodule ThousandIsland.HandlerTest do
       require Logger
 
       @impl ThousandIsland.Handler
+      def handle_connection(_socket, state) do
+        # Flood ourselves with local messages to verify they don't reset the
+        # read timer (regression test for https://github.com/mtrudel/bandit/issues/577)
+        schedule_local_ping()
+        {:continue, state}
+      end
+
+      @impl ThousandIsland.Handler
       def handle_data("ping", _socket, state) do
         Logger.info("ping_received")
         {:continue, state}
+      end
+
+      def handle_info(:local_ping, {socket, state}) do
+        schedule_local_ping()
+        {:noreply, {socket, state}}
       end
 
       @impl ThousandIsland.Handler
       def handle_timeout(_socket, _state) do
         Logger.error("handle_timeout")
       end
+
+      defp schedule_local_ping, do: Process.send_after(self(), :local_ping, 10)
     end
 
     test "it should close the connection and call handle_timeout if the global read_timeout is reached waiting for client data" do
@@ -589,14 +604,33 @@ defmodule ThousandIsland.HandlerTest do
         capture_log(fn ->
           {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
           :gen_tcp.send(client, "ping")
-          assert :gen_tcp.recv(client, 0, read_timeout * 2) == {:error, :closed}
+          assert :gen_tcp.recv(client, 0, read_timeout * 5) == {:error, :closed}
           Process.sleep(100)
         end)
 
       # Ensure the initial message was received
       assert messages =~ "ping_received"
-      # Ensure that we saw the message displayed by the handle_timeout callback
+      # Ensure that we saw the message displayed by the handle_timeout callback,
+      # even though local handle_info messages kept arriving
       assert messages =~ "handle_timeout"
+    end
+
+    @tag capture_log: true
+    test "it should not close the connection if the client keeps sending within the read_timeout, even with local messages arriving" do
+      read_timeout = 100
+      {:ok, port} = start_handler(ReadTimeout, read_timeout: read_timeout)
+
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      # Send pings every 50ms (well within the 100ms timeout) for 300ms
+      for _ <- 1..6 do
+        :gen_tcp.send(client, "ping")
+        Process.sleep(50)
+      end
+
+      # Connection should still be open
+      assert :gen_tcp.recv(client, 0, 10) == {:error, :timeout}
+      :gen_tcp.close(client)
     end
 
     defmodule SyncReadTimeout do
@@ -609,11 +643,8 @@ defmodule ThousandIsland.HandlerTest do
         Logger.info("ping_received")
 
         case ThousandIsland.Socket.recv(socket, 0) do
-          {:error, reason} ->
-            {:error, reason, state}
-
-          {:ok, _binary} ->
-            {:continue, state}
+          {:error, reason} -> {:error, reason, state}
+          {:ok, _binary} -> {:continue, state}
         end
       end
 
@@ -688,6 +719,357 @@ defmodule ThousandIsland.HandlerTest do
 
       # Ensure that we saw the message displayed by the handle_continue callback
       assert messages =~ "handle_continue"
+    end
+
+    defmodule GenServerIdleTimeout do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_connection(_socket, state) do
+        # Send ourselves a message that returns a 1ms GenServer idle timeout.
+        # Prior to 1.5.0, the resulting :timeout message was indistinguishable
+        # from the read timer and would call handle_timeout/2, closing the
+        # connection. Under the new timer-based approach it ends up as a :timeout
+        # message in our inbox and is ignored here
+        send(self(), :trigger_genserver_timeout)
+        {:continue, state}
+      end
+
+      def handle_info(:trigger_genserver_timeout, {socket, state}) do
+        {:noreply, {socket, state}, 1}
+      end
+
+      def handle_info(:timeout, {socket, state}) do
+        {:noreply, {socket, state}}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_timeout(_socket, _state) do
+        Logger.error("handle_timeout_fired")
+      end
+    end
+
+    test "it should NOT call handle_timeout when only a GenServer :timeout message fires (no client inactivity)" do
+      {:ok, port} = start_handler(GenServerIdleTimeout, read_timeout: 5_000)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          # Wait well past the 1ms GenServer idle timeout
+          Process.sleep(200)
+          # Connection should still be alive — the :timeout message was ignored
+          assert :gen_tcp.recv(client, 0, 50) == {:error, :timeout}
+          :gen_tcp.close(client)
+        end)
+
+      refute messages =~ "handle_timeout_fired"
+    end
+
+    defmodule SendDoesNotAffectTimeout do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_connection(_socket, state) do
+        Process.send_after(self(), :send_bytes, 1)
+        {:continue, state}
+      end
+
+      def handle_info(:send_bytes, {socket, state}) do
+        ThousandIsland.Socket.send(socket, "A")
+        Process.send_after(self(), :send_bytes, 1)
+        {:noreply, {socket, state}}
+      end
+    end
+
+    test "it should still timeout after read_timeout even though the server is sending bytes" do
+      {:ok, port} = start_handler(SendDoesNotAffectTimeout, read_timeout: 500)
+
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      # recv will see a bunch of separate reads, so reduce until we see a closed
+      assert Stream.unfold(client, fn client ->
+               case :gen_tcp.recv(client, 0, 1000) do
+                 {:ok, data} -> {data, client}
+                 {:error, :closed} -> nil
+               end
+             end)
+             |> Enum.flat_map(& &1)
+             |> Enum.join()
+             ~> string(min: 400, max: 600)
+
+      :gen_tcp.close(client)
+    end
+
+    defmodule LongHandlerCallbacksDoNotAffectTimeout do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_data(_data, _socket, state) do
+        Process.sleep(200)
+        Process.send_after(self(), :send_bytes, 50)
+        {:continue, state}
+      end
+
+      def handle_info(:send_bytes, {socket, state}) do
+        ThousandIsland.Socket.send(socket, "A")
+        {:noreply, {socket, state}}
+      end
+    end
+
+    test "time spent within network-facing callbacks does not affect timeout" do
+      {:ok, port} = start_handler(LongHandlerCallbacksDoNotAffectTimeout, read_timeout: 100)
+
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      :gen_tcp.send(client, "A")
+
+      # We expect the timeout (100ms) to be larger than the 50ms callback above
+      assert {:ok, ~c'A'} = :gen_tcp.recv(client, 0, 1000)
+
+      :gen_tcp.close(client)
+    end
+
+    defmodule LongGenServerCallbacksDoAffectTimeout do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_connection(_socket, state) do
+        send(self(), :sleep_then_send)
+        {:continue, state}
+      end
+
+      def handle_info(:sleep_then_send, {socket, state}) do
+        Process.sleep(75)
+
+        # This should occur after the timeout
+        Process.send_after(self(), :send_bytes, 50)
+        {:noreply, {socket, state}}
+      end
+
+      def handle_info(:send_bytes, {socket, state}) do
+        ThousandIsland.Socket.send(socket, "A")
+        {:noreply, {socket, state}}
+      end
+    end
+
+    test "time spent within GenServer native callbacks does affect timeout" do
+      {:ok, port} = start_handler(LongGenServerCallbacksDoAffectTimeout, read_timeout: 100)
+
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      # We expect the timeout (100ms) to be larger than the 150ms sleep above
+      assert {:error, :closed} = :gen_tcp.recv(client, 0, 1000)
+
+      :gen_tcp.close(client)
+    end
+
+    defmodule LongGenServerCallbacksHaveAContinuationEscapeHatch do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_connection(_socket, state) do
+        send(self(), :sleep_then_send)
+        {:continue, state}
+      end
+
+      def handle_info(:sleep_then_send, {socket, state}) do
+        Process.sleep(150)
+
+        Process.send_after(self(), :send_bytes, 50)
+        ThousandIsland.Handler.handle_continuation({:continue, state}, socket)
+      end
+
+      def handle_info(:send_bytes, {socket, state}) do
+        ThousandIsland.Socket.send(socket, "A")
+        {:noreply, {socket, state}}
+      end
+    end
+
+    test "GenServer native callbacks have an escape hatch to not affect timeout" do
+      {:ok, port} =
+        start_handler(LongGenServerCallbacksHaveAContinuationEscapeHatch, read_timeout: 100)
+
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      # We expect the handle_continuation to reset the timeout and for the send_bytes to fire
+      assert {:ok, ~c'A'} = :gen_tcp.recv(client, 0, 1000)
+      assert {:error, :closed} = :gen_tcp.recv(client, 0, 1000)
+
+      :gen_tcp.close(client)
+    end
+
+    defmodule EchoWithTimeout do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_data(data, socket, state) do
+        ThousandIsland.Socket.send(socket, data)
+        {:continue, state}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_timeout(_socket, _state) do
+        Logger.error("handle_timeout")
+      end
+    end
+
+    #
+    # Verify that the timer is properly reset each time client data arrives, so
+    # the timeout is always measured from the *last* client message, not the first.
+    #
+    test "timer resets from the last client message, not the first" do
+      read_timeout = 100
+      {:ok, port} = start_handler(EchoWithTimeout, read_timeout: read_timeout)
+
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      # Send several pings spread over 3x the timeout window — if the timer
+      # were not resetting, we'd be closed long before the last ping
+      for _ <- 1..4 do
+        :gen_tcp.send(client, "ping")
+        assert :gen_tcp.recv(client, 4) == {:ok, ~c"ping"}
+        Process.sleep(80)
+      end
+
+      # Now stop sending; the timeout should fire from the last ping
+      messages =
+        capture_log(fn ->
+          assert :gen_tcp.recv(client, 0, read_timeout * 3) == {:error, :closed}
+          Process.sleep(50)
+        end)
+
+      assert messages =~ "handle_timeout"
+    end
+
+    defmodule OneShotTimeoutWithLocalMessages do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_data("start", _socket, state) do
+        # Return a tight 50ms one-shot timeout, then flood with local messages
+        schedule_local_message()
+        {:continue, state, 50}
+      end
+
+      def handle_data(_data, _socket, state) do
+        {:continue, state}
+      end
+
+      def handle_info(:local_message, {socket, state}) do
+        schedule_local_message()
+        {:noreply, {socket, state}}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_timeout(_socket, _state) do
+        Logger.error("handle_timeout")
+      end
+
+      defp schedule_local_message do
+        Process.send_after(self(), :local_message, 10)
+      end
+    end
+
+    #
+    # Verify the {:continue, state, timeout} one-shot override is applied only
+    # to the next client-data window, and is not reset by local messages.
+    #
+    test "one-shot timeout fires based on client inactivity, not local messages" do
+      {:ok, port} = start_handler(OneShotTimeoutWithLocalMessages, read_timeout: 5_000)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          :gen_tcp.send(client, "start")
+          # Should close well within the global 5s timeout but ~50ms after "start"
+          assert :gen_tcp.recv(client, 0, 1_000) == {:error, :closed}
+          Process.sleep(50)
+        end)
+
+      assert messages =~ "handle_timeout"
+    end
+
+    defmodule PersistentTimeoutWithLocalMessages do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_data("start", _socket, state) do
+        schedule_local_message()
+        {:continue, state, {:persistent, 80}}
+      end
+
+      def handle_data(_data, _socket, state) do
+        schedule_local_message()
+        {:continue, state}
+      end
+
+      def handle_info(:local_message, {socket, state}) do
+        schedule_local_message()
+        {:noreply, {socket, state}}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_timeout(_socket, _state) do
+        Logger.error("handle_timeout")
+      end
+
+      defp schedule_local_message do
+        Process.send_after(self(), :local_message, 10)
+      end
+    end
+
+    #
+    # Verify {:persistent, timeout} continues to apply to subsequent rounds,
+    # still unaffected by local messages.
+    #
+    test "persistent timeout fires after client inactivity even across multiple data rounds" do
+      {:ok, port} = start_handler(PersistentTimeoutWithLocalMessages, read_timeout: 5_000)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          :gen_tcp.send(client, "start")
+          # Send a second message to confirm the persistent timeout carries over
+          Process.sleep(40)
+          :gen_tcp.send(client, "ping")
+          # Now go silent; should time out ~80ms after "ping" despite local messages
+          assert :gen_tcp.recv(client, 0, 1_000) == {:error, :closed}
+          Process.sleep(50)
+        end)
+
+      assert messages =~ "handle_timeout"
+    end
+
+    test "a GenServer :timeout message does not trigger handle_timeout" do
+      # Use a long read_timeout so it won't naturally expire during the test
+      {:ok, port} = start_handler(GenServerIdleTimeout, read_timeout: 5_000)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          # Wait well past the 1ms GenServer idle timeout
+          Process.sleep(200)
+          # Connection should still be alive — the :timeout message was ignored
+          assert :gen_tcp.recv(client, 0, 50) == {:error, :timeout}
+          :gen_tcp.close(client)
+        end)
+
+      refute messages =~ "handle_timeout_fired"
     end
 
     defmodule DoNothing do

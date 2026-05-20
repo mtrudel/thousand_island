@@ -5,13 +5,14 @@ defmodule ThousandIsland.Socket do
   """
 
   @enforce_keys [:socket, :transport_module, :read_timeout, :silent_terminate_on_error, :span]
-  defstruct @enforce_keys
+  defstruct @enforce_keys ++ [:read_timer]
 
   @typedoc "A reference to a socket along with metadata describing how to use it"
   @type t :: %__MODULE__{
           socket: ThousandIsland.Transport.socket(),
           transport_module: module(),
           read_timeout: timeout(),
+          read_timer: reference() | nil,
           silent_terminate_on_error: boolean(),
           span: ThousandIsland.Telemetry.t()
         }
