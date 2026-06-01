@@ -22,9 +22,7 @@ defmodule ThousandIsland.Handler do
   application as needed. The implementation included in the `use ThousandIsland.Handler` macro uses a `GenServer` structure,
   so you may implement such behaviour via standard `GenServer` patterns. Note that in these cases that state is provided (and
   must be returned) in a `{socket, state}` format, where the second tuple is the same state value that is passed to the various `handle_*` callbacks
-  defined on this behaviour. It also critical to maintain the socket's `read_timeout` value by
-  ensuring the relevant timeout value is returned as your callback's final argument. Both of these
-  concerns are illustrated in the following example:
+  defined on this behaviour. This is illustrated in the following example:
 
       ```elixir
       defmodule ExampleHandler do
@@ -35,25 +33,36 @@ defmodule ThousandIsland.Handler do
         @impl GenServer
         def handle_call(msg, from, {socket, state}) do
           # Do whatever you'd like with msg & from
-          {:reply, :ok, {socket, state}, socket.read_timeout}
+          {:reply, :ok, {socket, state}}
         end
 
         @impl GenServer
         def handle_cast(msg, {socket, state}) do
           # Do whatever you'd like with msg
-          {:noreply, {socket, state}, socket.read_timeout}
+          {:noreply, {socket, state}}
         end
 
         @impl GenServer
         def handle_info(msg, {socket, state}) do
           # Do whatever you'd like with msg
-          {:noreply, {socket, state}, socket.read_timeout}
+          {:noreply, {socket, state}}
         end
       end
       ```
 
+  Note that previous versions of Thousand Island required you to return the value of
+  socket.read_timeout as the third element in the callback tuple. As of Thousand Island 1.5.0,
+  network-related timeouts are handled entirely internally and as such this option retains its
+  OTP-native semantic of representing an option timeout between *any* message received by this
+  Handler, either network or local. In short, unless you specifically care about timeouts between
+  local mailbox messages, you can safely omit a timeout from your return tuples and the network
+  facing aspects of Thousand Island will continue to have correct timeout behaviour.
+
   It is fully supported to intermix synchronous `ThousandIsland.Socket.recv` calls with async return values from `c:handle_connection/2`
-  and `c:handle_data/3` callbacks.
+  and `c:handle_data/3` callbacks, however it is critical to note that the timeouts between the two
+  are completely separate. The `read_timeout` parameter only applies to reads
+  as observed by `handle_data/3` callbacks, and only applies to the duration *between*
+  ThousandIsland.Handler callbacks.
 
   # Example
 
@@ -103,7 +112,7 @@ defmodule ThousandIsland.Handler do
 
     def handle_info({:send, msg}, {socket, state}) do
       ThousandIsland.Socket.send(socket, msg)
-      {:noreply, {socket, state}, socket.read_timeout}
+      {:noreply, {socket, state}}
     end
   end
   ```
@@ -289,12 +298,16 @@ defmodule ThousandIsland.Handler do
 
   @doc """
   This callback is called when a handler process has gone more than `timeout` ms without receiving
-  either remote data or a local message. The value used for `timeout` defaults to the
-  `read_timeout` value specified at server startup, and may be overridden on a one-shot or
-  persistent basis based on values returned from `c:handle_connection/2` or `c:handle_data/3`
-  calls. Note that it is NOT called on explicit `ThousandIsland.Socket.recv/3` calls as they have
-  their own timeout semantics. The underlying socket has NOT been closed by the time this callback
-  is called. The return value is ignored.
+  remote data from the client. The value used for `timeout` defaults to the `read_timeout` value
+  specified at server startup, and may be overridden on a one-shot or persistent basis based on
+  values returned from `c:handle_connection/2` or `c:handle_data/3` calls. Note that it is NOT
+  called on explicit `ThousandIsland.Socket.recv/3` calls as they have their own timeout
+  semantics. This callback is triggered only by absence of incoming client data; local messages
+  sent to the handler process do not reset the clock, and any GenServer-native timeouts will NOT
+  cause this callback to be called (if you wish to handle GenServer-native timeouts, you can do so
+  using the [upstream GenServer pattern](https://hexdocs.pm/elixir/GenServer.html#module-timeouts)
+  for this purpose). The underlying socket has NOT been closed by the time this callback is
+  called. The return value is ignored.
   """
   @callback handle_timeout(socket :: ThousandIsland.Socket.t(), state :: term()) :: term()
 
@@ -411,8 +424,8 @@ defmodule ThousandIsland.Handler do
         {:stop, reason, {socket, state}}
       end
 
-      def handle_info(:timeout, {%ThousandIsland.Socket{} = socket, state}) do
-        {:stop, {:shutdown, :timeout}, {socket, state}}
+      def handle_info(:read_timeout, {%ThousandIsland.Socket{} = socket, state}) do
+        {:stop, {:shutdown, :read_timeout}, {socket, state}}
       end
 
       @before_compile {ThousandIsland.Handler, :add_handle_info_fallback}
@@ -433,8 +446,8 @@ defmodule ThousandIsland.Handler do
         :ok
       end
 
-      # Called by GenServer if we hit our read_timeout. Socket is still open
-      def terminate({:shutdown, :timeout}, {%ThousandIsland.Socket{} = socket, state}) do
+      # Called when we hit our read_timeout. Socket is still open
+      def terminate({:shutdown, :read_timeout}, {%ThousandIsland.Socket{} = socket, state}) do
         _ = __MODULE__.handle_timeout(socket, state)
         ThousandIsland.Handler.do_socket_close(socket, :timeout)
       end
@@ -539,25 +552,53 @@ defmodule ThousandIsland.Handler do
     ThousandIsland.Telemetry.stop_span(socket.span, measurements, metadata)
   end
 
+  defp cancel_read_timer(%{read_timer: nil} = socket), do: socket
+
+  defp cancel_read_timer(%{read_timer: timer} = socket) do
+    _ = Process.cancel_timer(timer)
+
+    # Since we don't cancel timers until the final handle_continuation call in a callback, flush
+    # any :read_timeout message already delivered to the mailbox before we could cancel the timer
+    receive do
+      :read_timeout -> :ok
+    after
+      0 -> :ok
+    end
+
+    %{socket | read_timer: nil}
+  end
+
+  defp reset_read_timer(socket, :infinity), do: cancel_read_timer(socket)
+
+  defp reset_read_timer(socket, timeout) do
+    %{cancel_read_timer(socket) | read_timer: Process.send_after(self(), :read_timeout, timeout)}
+  end
+
   @doc false
   def handle_continuation(continuation, socket) do
+    socket = cancel_read_timer(socket)
+
     case continuation do
       {:continue, state} ->
         _ = ThousandIsland.Socket.setopts(socket, active: :once)
-        {:noreply, {socket, state}, socket.read_timeout}
+        socket = reset_read_timer(socket, socket.read_timeout)
+        {:noreply, {socket, state}}
 
       {:continue, state, {:continue, continue}} ->
         _ = ThousandIsland.Socket.setopts(socket, active: :once)
+        socket = reset_read_timer(socket, socket.read_timeout)
         {:noreply, {socket, state}, {:continue, continue}}
 
       {:continue, state, {:persistent, timeout}} ->
         socket = %{socket | read_timeout: timeout}
         _ = ThousandIsland.Socket.setopts(socket, active: :once)
-        {:noreply, {socket, state}, timeout}
+        socket = reset_read_timer(socket, timeout)
+        {:noreply, {socket, state}}
 
       {:continue, state, timeout} ->
         _ = ThousandIsland.Socket.setopts(socket, active: :once)
-        {:noreply, {socket, state}, timeout}
+        socket = reset_read_timer(socket, timeout)
+        {:noreply, {socket, state}}
 
       {:switch_transport, {module, upgrade_opts}, state} ->
         handle_switch_continuation(socket, module, upgrade_opts, state, socket.read_timeout)
@@ -576,7 +617,7 @@ defmodule ThousandIsland.Handler do
         {:stop, {:shutdown, :local_closed}, {socket, state}}
 
       {:error, :timeout, state} ->
-        {:stop, {:shutdown, :timeout}, {socket, state}}
+        {:stop, {:shutdown, :read_timeout}, {socket, state}}
 
       {:error, reason, state} ->
         if socket.silent_terminate_on_error do
@@ -591,6 +632,7 @@ defmodule ThousandIsland.Handler do
     case ThousandIsland.Socket.upgrade(socket, module, upgrade_opts) do
       {:ok, socket} ->
         _ = ThousandIsland.Socket.setopts(socket, active: :once)
+        socket = reset_read_timer(socket, socket.read_timeout)
         {:noreply, {socket, state}, timeout_or_continue}
 
       {:error, reason} ->
