@@ -1,3 +1,14 @@
+## 1.5.0 (1 Jun 2026)
+
+### Changes
+
+* **Not-strictly-breaking-but-still-important-change**: We've improved the
+isolation between network-related timeouts and GenServer-related timeouts.
+Specifically, local GenServer callbacks (handle_info et al) no longer affect
+network-related timeouts; a 30s network timeout will be enforced after 30
+seconds, regardless of how many local messages arrive in the process' mailbox.
+See #202 for more details.
+
 ## 1.4.3 (12 Dec 2025)
 
 ### Enhancements
