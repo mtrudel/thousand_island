@@ -2,7 +2,7 @@
 ![Thousand Island](https://github.com/mtrudel/thousand_island/raw/main/assets/readme_logo-white.png#gh-dark-mode-only)
 
 [![Build Status](https://github.com/mtrudel/thousand_island/workflows/Elixir%20CI/badge.svg)](https://github.com/mtrudel/thousand_island/actions)
-[![Docs](https://img.shields.io/badge/api-docs-green.svg?style=flat)](https://hexdocs.pm/thousand_island)
+[![Docs](https://img.shields.io/badge/api-docs-green.svg?style=flat)](https://thousand-island.hexdocs.pm)
 [![Hex.pm](https://img.shields.io/hexpm/v/thousand_island.svg?style=flat&color=blue)](https://hex.pm/packages/thousand_island)
 
 Thousand Island is a modern, pure Elixir socket server, inspired heavily by
@@ -26,12 +26,12 @@ inside a host application, often as a dependency embedded within a higher-level
 protocol library such as [Bandit](https://github.com/mtrudel/bandit). Aside from
 supervising the Thousand Island process tree, applications interact with Thousand
 Island primarily via the
-[`ThousandIsland.Handler`](https://hexdocs.pm/thousand_island/ThousandIsland.Handler.html) behaviour.
+[`ThousandIsland.Handler`](https://thousand-island.hexdocs.pm/ThousandIsland.Handler.html) behaviour.
 
 ### Handlers
 
-The [`ThousandIsland.Handler`](https://hexdocs.pm/thousand_island/ThousandIsland.Handler.html) behaviour defines the interface that Thousand Island
-uses to pass [`ThousandIsland.Socket`](https://hexdocs.pm/thousand_island/ThousandIsland.Socket.html)s up to the application level; together they
+The [`ThousandIsland.Handler`](https://thousand-island.hexdocs.pm/ThousandIsland.Handler.html) behaviour defines the interface that Thousand Island
+uses to pass [`ThousandIsland.Socket`](https://thousand-island.hexdocs.pm/ThousandIsland.Socket.html)s up to the application level; together they
 form the primary interface that most applications will have with Thousand Island.
 Thousand Island comes with a few simple protocol handlers to serve as examples;
 these can be found in the [examples](https://github.com/mtrudel/thousand_island/tree/main/examples)
@@ -51,16 +51,16 @@ end
 {:ok, pid} = ThousandIsland.start_link(port: 1234, handler_module: Echo)
 ```
 
-For more information, please consult the [`ThousandIsland.Handler`](https://hexdocs.pm/thousand_island/ThousandIsland.Handler.html) documentation.
+For more information, please consult the [`ThousandIsland.Handler`](https://thousand-island.hexdocs.pm/ThousandIsland.Handler.html) documentation.
 
 ### Starting a Thousand Island Server
 
 Thousand Island servers exist as a supervision tree, and are started by a call
 to
-[`ThousandIsland.start_link/1`](https://hexdocs.pm/thousand_island/ThousandIsland.html#start_link/1).
+[`ThousandIsland.start_link/1`](https://thousand-island.hexdocs.pm/ThousandIsland.html#start_link/1).
 There are a number of options supported; for a complete description, consult the
 [Thousand Island
-docs](https://hexdocs.pm/thousand_island/ThousandIsland.html#t:options/0).
+docs](https://thousand-island.hexdocs.pm/ThousandIsland.html#t:options/0).
 
 ### Connection Draining & Shutdown
 
@@ -81,14 +81,14 @@ the shutdown timeout value. It defaults to 15000 ms.
 ### Logging & Telemetry
 
 As a low-level library, Thousand Island purposely does not do any inline
-logging of any kind. The [`ThousandIsland.Logger`](https://hexdocs.pm/thousand_island/ThousandIsland.Logger.html) module defines a number of
+logging of any kind. The [`ThousandIsland.Logger`](https://thousand-island.hexdocs.pm/ThousandIsland.Logger.html) module defines a number of
 functions to aid in tracing connections at various log levels, and such logging
 can be dynamically enabled and disabled against an already running server. This
 logging is backed by telemetry events internally.
 
 Thousand Island emits a rich set of telemetry events including spans for each
 server, acceptor process, and individual client connection. These telemetry
-events are documented in the [`ThousandIsland.Telemetry`](https://hexdocs.pm/thousand_island/ThousandIsland.Telemetry.html) module.
+events are documented in the [`ThousandIsland.Telemetry`](https://thousand-island.hexdocs.pm/ThousandIsland.Telemetry.html) module.
 
 ## Implementation Notes
 
@@ -159,7 +159,7 @@ def deps do
 end
 ```
 
-Documentation can be found at [https://hexdocs.pm/thousand_island](https://hexdocs.pm/thousand_island).
+Documentation can be found at [https://thousand-island.hexdocs.pm](https://thousand-island.hexdocs.pm).
 
 ## License
 

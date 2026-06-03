@@ -18,7 +18,7 @@ defmodule ThousandIsland.MixProject do
         licenses: ["MIT"],
         links: %{
           "GitHub" => "https://github.com/mtrudel/thousand_island",
-          "Changelog" => "https://hexdocs.pm/thousand_island/changelog.html"
+          "Changelog" => "https://thousand-island.hexdocs.pm/changelog.html"
         },
         files: ["lib", "mix.exs", "README*", "LICENSE*", "CHANGELOG*"]
       ],

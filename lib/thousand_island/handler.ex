@@ -305,7 +305,7 @@ defmodule ThousandIsland.Handler do
   semantics. This callback is triggered only by absence of incoming client data; local messages
   sent to the handler process do not reset the clock, and any GenServer-native timeouts will NOT
   cause this callback to be called (if you wish to handle GenServer-native timeouts, you can do so
-  using the [upstream GenServer pattern](https://hexdocs.pm/elixir/GenServer.html#module-timeouts)
+  using the [upstream GenServer pattern](https://elixir.hexdocs.pm/GenServer.html#module-timeouts)
   for this purpose). The underlying socket has NOT been closed by the time this callback is
   called. The return value is ignored.
   """
