@@ -80,8 +80,8 @@ defmodule ThousandIsland.Transports.TCP do
   defdelegate accept(listener_socket), to: :gen_tcp
 
   @impl ThousandIsland.Transport
-  @spec handshake(socket()) :: ThousandIsland.Transport.on_handshake()
-  def handshake(socket), do: {:ok, socket}
+  @spec handshake(socket(), timeout()) :: ThousandIsland.Transport.on_handshake()
+  def handshake(socket, _timeout), do: {:ok, socket}
 
   @impl ThousandIsland.Transport
   @spec upgrade(socket(), options()) :: ThousandIsland.Transport.on_upgrade()

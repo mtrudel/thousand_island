@@ -119,8 +119,13 @@ defmodule ThousandIsland.Transport do
   Performs an initial handshake on a new client connection (such as that done
   when negotiating an SSL connection). Transports which do not have such a
   handshake can simply pass the socket through unchanged.
+
+  The handshake must complete within `timeout` milliseconds (or `:infinity`);
+  transports which perform a network handshake must abort and return an error if
+  the peer does not complete it in time, in order to bound the resources a slow
+  or stalled client can hold. Transports without a handshake can ignore `timeout`.
   """
-  @callback handshake(socket()) :: on_handshake()
+  @callback handshake(socket(), timeout()) :: on_handshake()
 
   @doc """
   Performs an upgrade of an existing client connection (for example upgrading

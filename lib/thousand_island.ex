@@ -141,6 +141,13 @@ defmodule ThousandIsland do
   above. Defaults to `5`
   * `read_timeout`: How long to wait for client data before closing the connection, in
   milliseconds. Defaults to 60_000
+  * `handshake_timeout`: How long to allow for a new connection to complete its transport
+  handshake (the TLS handshake, in the case of the SSL transport) before closing it, in
+  milliseconds. This bounds how long a client that connects but never (or too slowly) completes
+  the handshake can hold a handler process and a connection slot. Transports without a
+  handshake, such as `ThousandIsland.Transports.TCP`, ignore this value. May also be
+  `:infinity` to wait indefinitely, though this is not recommended for servers exposed to
+  untrusted clients. Defaults to 5_000
   * `shutdown_timeout`: How long to wait for existing client connections to complete before
   forcibly shutting those connections down at server shutdown time, in milliseconds. Defaults to
   15_000. May also be `:infinity` or `:brutal_kill` as described in the `Supervisor`
@@ -165,6 +172,7 @@ defmodule ThousandIsland do
           max_connections_retry_count: non_neg_integer(),
           max_connections_retry_wait: timeout(),
           read_timeout: timeout(),
+          handshake_timeout: timeout(),
           shutdown_timeout: timeout(),
           silent_terminate_on_error: boolean()
         ]

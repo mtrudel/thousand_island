@@ -5,13 +5,20 @@ defmodule ThousandIsland.HandlerConfig do
   This is used internally by `ThousandIsland.Handler`
   """
 
-  @enforce_keys [:handler_module, :transport_module, :read_timeout, :silent_terminate_on_error]
+  @enforce_keys [
+    :handler_module,
+    :transport_module,
+    :read_timeout,
+    :handshake_timeout,
+    :silent_terminate_on_error
+  ]
   defstruct @enforce_keys
 
   @type t :: %__MODULE__{
           handler_module: nil,
           transport_module: module(),
           read_timeout: timeout(),
+          handshake_timeout: timeout(),
           silent_terminate_on_error: boolean()
         }
 
@@ -25,6 +32,7 @@ defmodule ThousandIsland.HandlerConfig do
       handler_module: config.handler_module,
       transport_module: config.transport_module,
       read_timeout: config.read_timeout,
+      handshake_timeout: config.handshake_timeout,
       silent_terminate_on_error: config.silent_terminate_on_error
     }
   end

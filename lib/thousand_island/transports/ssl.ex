@@ -92,9 +92,10 @@ defmodule ThousandIsland.Transports.SSL do
   defdelegate accept(listener_socket), to: :ssl, as: :transport_accept
 
   @impl ThousandIsland.Transport
-  @spec handshake(socket()) :: ThousandIsland.Transport.on_handshake()
-  def handshake(socket) do
-    case :ssl.handshake(socket) do
+  @spec handshake(socket(), timeout()) :: ThousandIsland.Transport.on_handshake()
+  def handshake(socket, timeout) do
+    case :ssl.handshake(socket, timeout) do
+      {:ok, socket} -> {:ok, socket}
       {:ok, socket, _protocol_extensions} -> {:ok, socket}
       other -> other
     end
