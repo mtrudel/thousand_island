@@ -112,6 +112,23 @@ defmodule ThousandIsland.Telemetry do
 
       * `telemetry_span_context`: A unique identifier for this span
 
+  * `[:thousand_island, :acceptor, :emfile]`
+
+      Thousand Island was unable to accept a connection because the system is out of file
+      descriptors (`:emfile` or `:enfile`). The acceptor backs off briefly and keeps running
+      rather than crashing. Persistent occurrences indicate that the OS file descriptor limit
+      (`ulimit -n`) is too low, or that file descriptors are being leaked elsewhere in the node.
+
+      This event contains the following measurements:
+
+      * `monotonic_time`: The time of this event, in `:native` units
+      * `error`: The specific error returned by accept: `:emfile` if the per-process
+        descriptor limit was reached, or `:enfile` if the system-wide limit was reached
+
+      This event contains the following metadata:
+
+      * `telemetry_span_context`: A unique identifier for this span
+
   ## `[:thousand_island, :connection, *]`
 
   Represents Thousand Island handling a specific client request
@@ -306,6 +323,7 @@ defmodule ThousandIsland.Telemetry do
           :ready
           | :spawn_error
           | :econnaborted
+          | :emfile
           | :recv_error
           | :send_error
           | :sendfile_error
