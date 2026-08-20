@@ -8,10 +8,8 @@ defmodule ThousandIsland.Connection do
           ThousandIsland.HandlerConfig.t(),
           ThousandIsland.Telemetry.t()
         ) ::
-          :ignore
-          | :ok
-          | {:ok, pid, info :: term}
-          | {:error, :too_many_connections | {:already_started, pid} | term}
+          :ok
+          | {:error, :too_many_connections | {:spawn_error, term}}
   def start(
         sup_pid,
         raw_socket,
@@ -95,8 +93,20 @@ defmodule ThousandIsland.Connection do
         handler_config.transport_module.close(raw_socket)
         {:error, :too_many_connections}
 
+      {:error, reason} ->
+        # The handler process could not be started, for example because its
+        # init returned `{:stop, reason}`. We still own the raw socket at this
+        # point, so close it (rather than leaving it open until this acceptor
+        # exits), and report a spawn error so the acceptor can carry on rather
+        # than crashing on an otherwise-successful accept
+        _ = handler_config.transport_module.close(raw_socket)
+        {:error, {:spawn_error, reason}}
+
       other ->
-        other
+        # `:ignore`, or a nonstandard return from the handler's start_link.
+        # Handled exactly as above
+        _ = handler_config.transport_module.close(raw_socket)
+        {:error, {:spawn_error, other}}
     end
   end
 end
