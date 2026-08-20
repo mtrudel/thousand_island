@@ -388,6 +388,51 @@ defmodule ThousandIsland.ServerTest do
     end
   end
 
+  describe "status / info" do
+    test "should report status across the suspend / resume lifecycle" do
+      {:ok, server_pid, port} = start_handler(LongEcho)
+      assert ThousandIsland.status(server_pid) == :running
+
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      # Make sure the socket has transitioned ownership to the connection process
+      Process.sleep(100)
+
+      :ok = ThousandIsland.suspend(server_pid)
+      assert ThousandIsland.status(server_pid) == :suspended
+
+      # Suspending does not affect existing connections, and info reflects both facts
+      assert {:ok, %{status: :suspended, local_info: nil, active_connections: 1}} =
+               ThousandIsland.info(server_pid)
+
+      :ok = ThousandIsland.resume(server_pid)
+      assert ThousandIsland.status(server_pid) == :running
+
+      :gen_tcp.close(client)
+    end
+
+    test "should report local info and track active connection counts" do
+      {:ok, server_pid, port} = start_handler(LongEcho)
+
+      assert {:ok, %{status: :running, local_info: {_ip, ^port}, active_connections: 0}} =
+               ThousandIsland.info(server_pid)
+
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      {:ok, other_client} = :gen_tcp.connect(:localhost, port, active: false)
+
+      # Make sure the sockets have transitioned ownership to the connection processes
+      Process.sleep(100)
+
+      assert {:ok, %{active_connections: 2}} = ThousandIsland.info(server_pid)
+
+      :gen_tcp.close(client)
+      :gen_tcp.close(other_client)
+      Process.sleep(100)
+
+      assert {:ok, %{active_connections: 0}} = ThousandIsland.info(server_pid)
+    end
+  end
+
   describe "configuration" do
     test "tcp should allow default options to be overridden" do
       {:ok, _, port} = start_handler(ReadOpt, transport_options: [send_timeout: 1230])
