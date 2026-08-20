@@ -4,8 +4,15 @@ defmodule ThousandIsland.Socket do
   read, write, and otherwise manipulate a connection from a client.
   """
 
-  @enforce_keys [:socket, :transport_module, :read_timeout, :silent_terminate_on_error, :span]
-  defstruct @enforce_keys ++ [:read_timer, handshake_timeout: 5_000]
+  @enforce_keys [
+    :socket,
+    :transport_module,
+    :read_timeout,
+    :handshake_timeout,
+    :silent_terminate_on_error,
+    :span
+  ]
+  defstruct @enforce_keys ++ [:read_timer]
 
   @typedoc "A reference to a socket along with metadata describing how to use it"
   @type t :: %__MODULE__{
