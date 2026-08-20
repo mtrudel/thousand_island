@@ -1,4 +1,4 @@
-defmodule ThousandIsland.AcceptorTransientErrorTest do
+defmodule ThousandIsland.AcceptorTest do
   use ExUnit.Case, async: false
 
   use Machete
