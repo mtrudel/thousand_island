@@ -24,6 +24,12 @@ defmodule ThousandIsland.Acceptor do
     :etimedout
   ]
 
+  # How long to pause the accept loop when the system reports file descriptor
+  # exhaustion (:emfile / :enfile). We cannot accept while out of descriptors, so
+  # we back off briefly to let the situation resolve rather than spinning or
+  # crashing. This mirrors Ranch's behaviour (ranch_acceptor.erl).
+  @fd_exhaustion_wait 100
+
   @spec start_link(
           {server :: Supervisor.supervisor(), parent :: Supervisor.supervisor(), pos_integer(),
            ThousandIsland.ServerConfig.t()}
@@ -93,6 +99,24 @@ defmodule ThousandIsland.Acceptor do
         # accepting rather than crashing the acceptor (and, through restart
         # escalation, the acceptor's supervisor and its live connections)
         ThousandIsland.Telemetry.span_event(span, :accept_error, %{error: reason})
+
+        accept(
+          listener_socket,
+          connection_sup_pid,
+          server_config,
+          handler_config,
+          span,
+          count + 1
+        )
+
+      {:error, reason} when reason in [:emfile, :enfile] ->
+        # File descriptors are exhausted, so nothing can be accepted right now.
+        # Back off briefly to let the situation resolve rather than crashing the
+        # acceptor (whose crash loop would escalate through the supervision
+        # tree, killing in-flight connections along the way). This mirrors
+        # Ranch's handling of the same condition
+        ThousandIsland.Telemetry.span_event(span, :emfile, %{error: reason})
+        Process.sleep(@fd_exhaustion_wait)
 
         accept(
           listener_socket,

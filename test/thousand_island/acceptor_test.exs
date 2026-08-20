@@ -3,9 +3,10 @@ defmodule ThousandIsland.AcceptorTest do
 
   use Machete
 
-  # A transport that injects a queue of accept/1 results (to simulate the OS
-  # returning transient network errors from accept), then falls through to real
-  # gen_tcp accepts.
+  # A transport that delegates to gen_tcp but lets the test inject a queue of
+  # accept/1 results via :persistent_term, so we can simulate the OS reporting
+  # transient network errors or file descriptor exhaustion. Once the queue is
+  # drained, real accepts resume.
   defmodule FlakyTransport do
     @behaviour ThousandIsland.Transport
 
@@ -22,6 +23,7 @@ defmodule ThousandIsland.AcceptorTest do
       case :persistent_term.get({__MODULE__, key}, []) do
         [next | rest] ->
           :persistent_term.put({__MODULE__, key}, rest)
+          # Inject a simulated error without consuming a real connection
           {:error, next}
 
         [] ->
@@ -95,6 +97,74 @@ defmodule ThousandIsland.AcceptorTest do
     :etimedout,
     :einval
   ]
+
+  test "descriptor exhaustion does not take down the acceptor or its in-flight connections" do
+    key = make_ref()
+    :persistent_term.put({FlakyTransport, :key}, key)
+    FlakyTransport.set_accept_results(key, [])
+
+    {:ok, server_pid} =
+      start_supervised(
+        {ThousandIsland,
+         port: 0, handler_module: Echo, transport_module: FlakyTransport, num_acceptors: 1}
+      )
+
+    {:ok, {_ip, port}} = ThousandIsland.listener_info(server_pid)
+    [acceptor_sup] = acceptor_sup_pids(server_pid)
+
+    # Open a connection while descriptors are still available
+    {:ok, existing} = :gen_tcp.connect(:localhost, port, [:binary, active: false])
+    :ok = :gen_tcp.send(existing, "FIRST")
+    assert :gen_tcp.recv(existing, 0, 1000) == {:ok, "FIRST"}
+
+    # Now have accept report descriptor exhaustion five times in a row. Five
+    # failures is past the acceptor's restart budget (3 restarts in 5 seconds):
+    # if each error crashes the acceptor, the crash loop takes down the
+    # acceptor's supervisor, and with it every connection that acceptor is
+    # currently serving
+    FlakyTransport.set_accept_results(key, [:emfile, :enfile, :emfile, :enfile, :emfile])
+
+    # A new client unblocks the acceptor's pending accept; the acceptor then
+    # works through the injected errors (backing off briefly on each) before
+    # settling back into normal accepts
+    {:ok, fresh} = :gen_tcp.connect(:localhost, port, [:binary, active: false])
+    Process.sleep(800)
+
+    # The in-flight connections survived the exhaustion window
+    :ok = :gen_tcp.send(existing, "STILL HERE")
+    assert :gen_tcp.recv(existing, 0, 1000) == {:ok, "STILL HERE"}
+    :ok = :gen_tcp.send(fresh, "HELLO")
+    assert :gen_tcp.recv(fresh, 0, 1000) == {:ok, "HELLO"}
+
+    # Nothing under the server was restarted, and new connections are accepted
+    # now that descriptors have freed up
+    assert acceptor_sup_pids(server_pid) == [acceptor_sup]
+    {:ok, late} = :gen_tcp.connect(:localhost, port, [:binary, active: false])
+    :ok = :gen_tcp.send(late, "LATE")
+    assert :gen_tcp.recv(late, 0, 1000) == {:ok, "LATE"}
+
+    Enum.each([existing, fresh, late], &:gen_tcp.close/1)
+  end
+
+  test "an :emfile telemetry event is emitted on descriptor exhaustion" do
+    on_exit(TelemetryHelpers.attach_all_events(Echo))
+
+    key = make_ref()
+    :persistent_term.put({FlakyTransport, :key}, key)
+    FlakyTransport.set_accept_results(key, [:emfile])
+
+    {:ok, _server_pid} =
+      start_supervised(
+        {ThousandIsland,
+         port: 0, handler_module: Echo, transport_module: FlakyTransport, num_acceptors: 1}
+      )
+
+    assert_receive {:telemetry, [:thousand_island, :acceptor, :emfile], measurements, metadata},
+                   1000
+
+    assert measurements ~> %{monotonic_time: integer(), error: :emfile}
+    assert metadata ~> %{handler: Echo, telemetry_span_context: reference()}
+  end
 
   test "transient accept(2) network errors are retried rather than crashing the acceptor" do
     key = make_ref()
