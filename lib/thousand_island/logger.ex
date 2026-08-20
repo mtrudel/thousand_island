@@ -23,7 +23,8 @@ defmodule ThousandIsland.Logger do
   def attach_logger(:error) do
     events = [
       [:thousand_island, :acceptor, :spawn_error],
-      [:thousand_island, :acceptor, :econnaborted]
+      [:thousand_island, :acceptor, :econnaborted],
+      [:thousand_island, :acceptor, :emfile]
     ]
 
     :telemetry.attach_many("#{__MODULE__}.error", events, &__MODULE__.log_error/4, nil)
