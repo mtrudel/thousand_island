@@ -141,6 +141,16 @@ defmodule ThousandIsland do
   above. Defaults to `5`
   * `read_timeout`: How long to wait for client data before closing the connection, in
   milliseconds. Defaults to 60_000
+  * `handshake_timeout`: How long to allow for the transport handshake (such as TLS negotiation)
+  to complete after a client connects, in milliseconds (or `:infinity`). Connections which do not
+  complete their handshake within this time are closed and surfaced to the handler via
+  `c:ThousandIsland.Handler.handle_error/3` with a reason of `:timeout`. Without such a bound, a
+  client which connects and then stalls mid-handshake will hold its connection process (and its
+  slot within `num_connections`) indefinitely. This value is only consulted by transports which
+  perform a handshake (it is ignored by `ThousandIsland.Transports.TCP`, and by custom transports
+  which do not implement the optional `c:ThousandIsland.Transport.handshake/2` callback).
+  Defaults to `5_000` (the same default that Ranch uses); pass `:infinity` to restore the
+  previous unbounded behaviour
   * `shutdown_timeout`: How long to wait for existing client connections to complete before
   forcibly shutting those connections down at server shutdown time, in milliseconds. Defaults to
   15_000. May also be `:infinity` or `:brutal_kill` as described in the `Supervisor`
@@ -165,6 +175,7 @@ defmodule ThousandIsland do
           max_connections_retry_count: non_neg_integer(),
           max_connections_retry_wait: timeout(),
           read_timeout: timeout(),
+          handshake_timeout: timeout(),
           shutdown_timeout: timeout(),
           silent_terminate_on_error: boolean()
         ]
