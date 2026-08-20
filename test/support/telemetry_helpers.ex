@@ -8,6 +8,7 @@ defmodule TelemetryHelpers do
     [:thousand_island, :acceptor, :stop],
     [:thousand_island, :acceptor, :spawn_error],
     [:thousand_island, :acceptor, :econnaborted],
+    [:thousand_island, :acceptor, :accept_error],
     [:thousand_island, :connection, :start],
     [:thousand_island, :connection, :stop],
     [:thousand_island, :connection, :ready],
