@@ -368,6 +368,8 @@ defmodule ThousandIsland.SocketTest do
 
       assert :gen_tcp.send(client, "HELLO") == :ok
       assert :gen_tcp.recv(client, 0) == {:ok, "HELLO"}
+    end
+
     test "it should emit exactly one connection stop event when the handshake fails", context do
       TelemetryHelpers.attach_all_events(Echo)
 
