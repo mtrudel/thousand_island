@@ -141,6 +141,24 @@ defmodule ThousandIsland.SocketTest do
         assert measurements ~> %{data: "HELLO"}
         assert metadata ~> %{handler: Echo, telemetry_span_context: reference()}
       end
+
+      test "it should emit exactly one connection start and one stop event", context do
+        TelemetryHelpers.attach_all_events(Echo)
+
+        {:ok, port} = start_handler(Echo, context.server_opts)
+        {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
+
+        :ok = context.client_mod.send(client, "HELLO")
+        {:ok, "HELLO"} = context.client_mod.recv(client, 0)
+        context.client_mod.close(client)
+
+        # Spans must be balanced so that consumers pairing starts with stops
+        # (or keeping an active-connection gauge) stay correct
+        assert_receive {:telemetry, [:thousand_island, :connection, :start], _, _}, 1000
+        assert_receive {:telemetry, [:thousand_island, :connection, :stop], _, _}, 1000
+        refute_receive {:telemetry, [:thousand_island, :connection, :stop], _, _}, 300
+        refute_received {:telemetry, [:thousand_island, :connection, :start], _, _}
+      end
     end
   end)
 
@@ -235,6 +253,27 @@ defmodule ThousandIsland.SocketTest do
       total_received = receive_all_data(context.client_mod, client, @large_file_size, "")
       assert byte_size(total_received) == @large_file_size
       assert_receive {:monitored_by, [_pid]}
+    end
+
+    test "it should emit exactly one connection stop event when the handshake fails", context do
+      TelemetryHelpers.attach_all_events(Echo)
+
+      {:ok, port} = start_handler(Echo, context.server_opts)
+
+      # Force a handshake failure by offering only an unsupported cipher
+      {:error, _} =
+        :ssl.connect(~c"localhost", port,
+          active: false,
+          verify: :verify_none,
+          ciphers: [%{cipher: :rc4_128, key_exchange: :rsa, mac: :md5, prf: :default_prf}]
+        )
+
+      # The failed connection's span must still stop exactly once (from the
+      # handler's cleanup path), not once per failure site
+      assert_receive {:telemetry, [:thousand_island, :connection, :start], _, _}, 1000
+      assert_receive {:telemetry, [:thousand_island, :connection, :stop], _, _}, 1000
+      refute_receive {:telemetry, [:thousand_island, :connection, :stop], _, _}, 300
+      refute_received {:telemetry, [:thousand_island, :connection, :start], _, _}
     end
   end
 
