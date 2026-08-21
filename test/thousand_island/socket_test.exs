@@ -97,6 +97,80 @@ defmodule ThousandIsland.SocketTest do
     end
   end
 
+  defmodule Error do
+    use ThousandIsland.Handler
+
+    @impl ThousandIsland.Handler
+    def handle_error(error, _socket, state) do
+      send(state[:test_pid], {:handle_error, error})
+      :ok
+    end
+  end
+
+  defmodule LegacyTransport do
+    # A transport which implements only the original handshake/1 callback, as any third-party
+    # transport written before the optional handshake/2 callback existed would. Everything else
+    # delegates to the TCP transport
+    @behaviour ThousandIsland.Transport
+
+    @impl ThousandIsland.Transport
+    defdelegate listen(port, options), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate accept(listener_socket), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    def handshake(socket), do: {:ok, socket}
+
+    @impl ThousandIsland.Transport
+    defdelegate upgrade(socket, opts), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate controlling_process(socket, pid), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate recv(socket, length, timeout), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate send(socket, data), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate sendfile(socket, filename, offset, length), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate getopts(socket, options), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate setopts(socket, options), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate shutdown(socket, way), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate close(socket), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate sockname(socket), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate peername(socket), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate peercert(socket), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate secure?(), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate getstat(socket), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate negotiated_protocol(socket), to: ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate connection_information(socket), to: ThousandIsland.Transports.TCP
+  end
+
   [:gen_tcp_setup, :ssl_setup]
   |> Enum.each(fn setup_fn ->
     describe "common behaviour using #{setup_fn}" do
@@ -253,6 +327,49 @@ defmodule ThousandIsland.SocketTest do
       total_received = receive_all_data(context.client_mod, client, @large_file_size, "")
       assert byte_size(total_received) == @large_file_size
       assert_receive {:monitored_by, [_pid]}
+    end
+
+    @tag capture_log: true
+    test "it should close stalled handshakes once handshake_timeout has elapsed", context do
+      server_opts =
+        [handler_options: [test_pid: self()], handshake_timeout: 250] ++ context.server_opts
+
+      {:ok, server_pid} =
+        start_supervised({ThousandIsland, [port: 0, handler_module: Error] ++ server_opts})
+
+      {:ok, {_ip, port}} = ThousandIsland.listener_info(server_pid)
+
+      # Connect at the TCP level but never start a TLS handshake
+      {:ok, client} = :gen_tcp.connect(~c"localhost", port, active: false)
+
+      assert_receive {:handle_error, :timeout}, 1000
+
+      # The connection process should be gone and the socket closed underneath the client
+      Process.sleep(100)
+      assert ThousandIsland.connection_pids(server_pid) == {:ok, []}
+      assert :gen_tcp.recv(client, 0, 100) == {:error, :closed}
+
+      :gen_tcp.close(client)
+    end
+
+    test "it should complete handshakes as normal within handshake_timeout", context do
+      {:ok, port} = start_handler(Echo, [handshake_timeout: 5_000] ++ context.server_opts)
+      {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
+
+      assert context.client_mod.send(client, "HELLO") == :ok
+      assert context.client_mod.recv(client, 0) == {:ok, "HELLO"}
+    end
+  end
+
+  describe "transports which only implement handshake/1" do
+    setup :gen_tcp_setup
+
+    test "it should fall back to handshake/1 irrespective of handshake_timeout" do
+      {:ok, port} = start_handler(Echo, transport_module: LegacyTransport, handshake_timeout: 250)
+      {:ok, client} = :gen_tcp.connect(~c"localhost", port, [:binary, active: false])
+
+      assert :gen_tcp.send(client, "HELLO") == :ok
+      assert :gen_tcp.recv(client, 0) == {:ok, "HELLO"}
     end
 
     test "it should emit exactly one connection stop event when the handshake fails", context do

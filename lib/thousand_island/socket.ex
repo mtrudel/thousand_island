@@ -4,7 +4,14 @@ defmodule ThousandIsland.Socket do
   read, write, and otherwise manipulate a connection from a client.
   """
 
-  @enforce_keys [:socket, :transport_module, :read_timeout, :silent_terminate_on_error, :span]
+  @enforce_keys [
+    :socket,
+    :transport_module,
+    :read_timeout,
+    :handshake_timeout,
+    :silent_terminate_on_error,
+    :span
+  ]
   defstruct @enforce_keys ++ [:read_timer]
 
   @typedoc "A reference to a socket along with metadata describing how to use it"
@@ -12,6 +19,7 @@ defmodule ThousandIsland.Socket do
           socket: ThousandIsland.Transport.socket(),
           transport_module: module(),
           read_timeout: timeout(),
+          handshake_timeout: timeout(),
           read_timer: reference() | nil,
           silent_terminate_on_error: boolean(),
           span: ThousandIsland.Telemetry.t()
@@ -33,6 +41,7 @@ defmodule ThousandIsland.Socket do
       socket: raw_socket,
       transport_module: handler_config.transport_module,
       read_timeout: handler_config.read_timeout,
+      handshake_timeout: handler_config.handshake_timeout,
       silent_terminate_on_error: handler_config.silent_terminate_on_error,
       span: span
     }
@@ -46,7 +55,7 @@ defmodule ThousandIsland.Socket do
   """
   @spec handshake(t()) :: ThousandIsland.Transport.on_handshake()
   def handshake(%__MODULE__{} = socket) do
-    case socket.transport_module.handshake(socket.socket) do
+    case do_handshake(socket) do
       {:ok, inner_socket} ->
         {:ok, %{socket | socket: inner_socket}}
 
@@ -57,6 +66,14 @@ defmodule ThousandIsland.Socket do
         # single place that stops the span. Stopping it here as well would emit a
         # duplicate `[:thousand_island, :connection, :stop]` event.
         err
+    end
+  end
+
+  defp do_handshake(%__MODULE__{} = socket) do
+    if function_exported?(socket.transport_module, :handshake, 2) do
+      socket.transport_module.handshake(socket.socket, socket.handshake_timeout)
+    else
+      socket.transport_module.handshake(socket.socket)
     end
   end
 
