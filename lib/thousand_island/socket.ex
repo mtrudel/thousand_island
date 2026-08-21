@@ -59,8 +59,12 @@ defmodule ThousandIsland.Socket do
       {:ok, inner_socket} ->
         {:ok, %{socket | socket: inner_socket}}
 
-      {:error, reason} = err ->
-        ThousandIsland.Telemetry.stop_span(socket.span, %{}, %{error: reason})
+      {:error, _reason} = err ->
+        # Note that we intentionally do not stop the connection span here. The
+        # caller (ThousandIsland.Handler) surfaces this error and closes the
+        # connection via `ThousandIsland.Handler.do_socket_close/2`, which is the
+        # single place that stops the span. Stopping it here as well would emit a
+        # duplicate `[:thousand_island, :connection, :stop]` event.
         err
     end
   end
@@ -87,8 +91,10 @@ defmodule ThousandIsland.Socket do
       {:ok, updated_socket} ->
         {:ok, %{socket | socket: updated_socket, transport_module: module}}
 
-      {:error, reason} = err ->
-        ThousandIsland.Telemetry.stop_span(socket.span, %{}, %{error: reason})
+      {:error, _reason} = err ->
+        # As with handshake/1, the span is stopped exactly once by the caller via
+        # `ThousandIsland.Handler.do_socket_close/2`; stopping it here too would
+        # emit a duplicate `[:thousand_island, :connection, :stop]` event.
         err
     end
   end

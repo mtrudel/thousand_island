@@ -283,6 +283,85 @@ defmodule ThousandIsland do
     end)
   end
 
+  @typedoc "The status of a server's listener"
+  @type status :: :running | :suspended
+
+  @doc """
+  Returns the current status of the given server: `:running` if it is accepting new connections,
+  or `:suspended` if the acceptance of new connections has been suspended via `suspend/1`.
+  Existing connections are not reflected in (and are unaffected by) this value; a `:suspended`
+  server may well still be serving many previously accepted connections
+  """
+  @spec status(Supervisor.supervisor()) :: status()
+  def status(supervisor) do
+    case ThousandIsland.Server.listener_pid(supervisor) do
+      nil -> :suspended
+      _pid -> :running
+    end
+  end
+
+  @doc """
+  Returns a map of information about the given server, suitable for observability and debugging
+  purposes such as health checks, remote consoles and dashboards:
+
+  * `status`: `:running` or `:suspended`, as per `status/1`
+  * `local_info`: the address and port that the server is listening on, as per
+    `listener_info/1`, or `nil` if the server is suspended
+  * `active_connections`: the number of connection handler processes currently alive across the
+    entire server. As with `connection_pids/1`, this is inherently a leaky notion in the face of
+    concurrency; connections may come and go while this function runs
+
+  Note that this function walks the server's supervision tree on every call, and so is intended
+  to be called at human timescales; it is not optimized for use in hot loops. One especially
+  useful application is graceful draining at deploy time, without having to stop the server:
+
+  ```elixir
+  :ok = ThousandIsland.suspend(server_pid)
+
+  # Poll (at whatever interval and deadline suits) until existing connections finish up
+  {:ok, %{active_connections: 0}} = ThousandIsland.info(server_pid)
+  ```
+  """
+  @spec info(Supervisor.supervisor()) ::
+          {:ok,
+           %{
+             status: status(),
+             local_info: ThousandIsland.Transport.socket_info() | nil,
+             active_connections: non_neg_integer()
+           }}
+          | :error
+  def info(supervisor) do
+    case ThousandIsland.Server.acceptor_pool_supervisor_pid(supervisor) do
+      nil ->
+        :error
+
+      acceptor_pool_pid ->
+        local_info =
+          case listener_info(supervisor) do
+            {:ok, local_info} -> local_info
+            :error -> nil
+          end
+
+        {:ok,
+         %{
+           status: status(supervisor),
+           local_info: local_info,
+           active_connections: count_connections(acceptor_pool_pid)
+         }}
+    end
+  end
+
+  defp count_connections(acceptor_pool_pid) do
+    acceptor_pool_pid
+    |> ThousandIsland.AcceptorPoolSupervisor.acceptor_supervisor_pids()
+    |> Enum.reduce(0, fn acceptor_sup_pid, acc ->
+      case ThousandIsland.AcceptorSupervisor.connection_sup_pid(acceptor_sup_pid) do
+        nil -> acc
+        connection_sup_pid -> acc + DynamicSupervisor.count_children(connection_sup_pid).active
+      end
+    end)
+  end
+
   @doc """
   Synchronously stops the given server, waiting up to the given number of milliseconds
   for existing connections to finish up. Immediately upon calling this function,

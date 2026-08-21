@@ -86,12 +86,15 @@ defmodule ThousandIsland.Telemetry do
   * `[:thousand_island, :acceptor, :spawn_error]`
 
       Thousand Island was unable to spawn a process to handle a connection. This occurs when too
-      many connections are in progress; you may want to look at increasing the `num_connections`
-      configuration parameter
+      many connections are in progress (in which case you may want to look at increasing the
+      `num_connections` configuration parameter), or when the configured handler failed to start
+      (for example if its `init/1` returned `{:stop, reason}` or `:ignore`)
 
       This event contains the following measurements:
 
       * `monotonic_time`: The time of this event, in `:native` units
+      * `error`: Present when a handler process failed to start; the reason the start failed.
+        Not present when the connection limit was reached
 
       This event contains the following metadata:
 
@@ -107,6 +110,23 @@ defmodule ThousandIsland.Telemetry do
       This event contains the following measurements:
 
       * `monotonic_time`: The time of this event, in `:native` units
+
+      This event contains the following metadata:
+
+      * `telemetry_span_context`: A unique identifier for this span
+
+  * `[:thousand_island, :acceptor, :emfile]`
+
+      Thousand Island was unable to accept a connection because the system is out of file
+      descriptors (`:emfile` or `:enfile`). The acceptor backs off briefly and keeps running
+      rather than crashing. Persistent occurrences indicate that the OS file descriptor limit
+      (`ulimit -n`) is too low, or that file descriptors are being leaked elsewhere in the node.
+
+      This event contains the following measurements:
+
+      * `monotonic_time`: The time of this event, in `:native` units
+      * `error`: The specific error returned by accept: `:emfile` if the per-process
+        descriptor limit was reached, or `:enfile` if the system-wide limit was reached
 
       This event contains the following metadata:
 
@@ -306,6 +326,7 @@ defmodule ThousandIsland.Telemetry do
           :ready
           | :spawn_error
           | :econnaborted
+          | :emfile
           | :recv_error
           | :send_error
           | :sendfile_error
