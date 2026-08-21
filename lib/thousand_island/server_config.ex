@@ -20,6 +20,7 @@ defmodule ThousandIsland.ServerConfig do
           max_connections_retry_count: non_neg_integer(),
           max_connections_retry_wait: timeout(),
           read_timeout: timeout(),
+          handshake_timeout: timeout(),
           shutdown_timeout: timeout(),
           silent_terminate_on_error: boolean()
         }
@@ -37,6 +38,7 @@ defmodule ThousandIsland.ServerConfig do
             max_connections_retry_count: 5,
             max_connections_retry_wait: 1000,
             read_timeout: 60_000,
+            handshake_timeout: 5_000,
             shutdown_timeout: 15_000,
             silent_terminate_on_error: false
 

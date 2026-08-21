@@ -38,6 +38,14 @@ defmodule ThousandIsland.ConfigTest do
       assert config.num_listen_sockets == 1
     end
 
+    test "handshake_timeout defaults to 5000 and accepts :infinity" do
+      config = ServerConfig.new(handler_module: __MODULE__)
+      assert config.handshake_timeout == 5_000
+
+      config = ServerConfig.new(handler_module: __MODULE__, handshake_timeout: :infinity)
+      assert config.handshake_timeout == :infinity
+    end
+
     test "allows num_listen_sockets less than num_acceptors" do
       config =
         ServerConfig.new(

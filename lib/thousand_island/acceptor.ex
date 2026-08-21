@@ -81,6 +81,23 @@ defmodule ThousandIsland.Acceptor do
           count + 1
         )
 
+      {:error, {:spawn_error, reason}} ->
+        # The socket was accepted fine but a handler process could not be
+        # started for it (the socket has already been closed by
+        # ThousandIsland.Connection). This is a failure of one connection, so
+        # emit a spawn error and keep accepting rather than crashing the
+        # acceptor
+        ThousandIsland.Telemetry.span_event(span, :spawn_error, %{error: reason})
+
+        accept(
+          listener_socket,
+          connection_sup_pid,
+          server_config,
+          handler_config,
+          span,
+          count + 1
+        )
+
       {:error, reason} when reason in [:econnaborted, :einval] ->
         ThousandIsland.Telemetry.span_event(span, reason)
 

@@ -93,8 +93,13 @@ defmodule ThousandIsland.Transports.SSL do
 
   @impl ThousandIsland.Transport
   @spec handshake(socket()) :: ThousandIsland.Transport.on_handshake()
-  def handshake(socket) do
-    case :ssl.handshake(socket) do
+  def handshake(socket), do: handshake(socket, :infinity)
+
+  @impl ThousandIsland.Transport
+  @spec handshake(socket(), timeout()) :: ThousandIsland.Transport.on_handshake()
+  def handshake(socket, timeout) do
+    case :ssl.handshake(socket, timeout) do
+      {:ok, socket} -> {:ok, socket}
       {:ok, socket, _protocol_extensions} -> {:ok, socket}
       other -> other
     end

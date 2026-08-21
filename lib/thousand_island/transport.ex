@@ -123,6 +123,18 @@ defmodule ThousandIsland.Transport do
   @callback handshake(socket()) :: on_handshake()
 
   @doc """
+  Performs an initial handshake on a new client connection (such as that done when negotiating an
+  SSL connection), waiting at most `timeout` milliseconds for it to complete. This optional
+  callback is invoked in preference to `c:handshake/1` whenever it is implemented; transports
+  which do not implement it will have `c:handshake/1` called regardless of any configured
+  `handshake_timeout`. Transports which do not have a handshake can simply pass the socket
+  through unchanged.
+  """
+  @callback handshake(socket(), timeout()) :: on_handshake()
+
+  @optional_callbacks handshake: 2
+
+  @doc """
   Performs an upgrade of an existing client connection (for example upgrading
   an already-established connection to SSL). Transports which do not support upgrading can return
   `{:error, :unsupported_upgrade}`.

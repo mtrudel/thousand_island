@@ -84,6 +84,10 @@ defmodule ThousandIsland.Transports.TCP do
   def handshake(socket), do: {:ok, socket}
 
   @impl ThousandIsland.Transport
+  @spec handshake(socket(), timeout()) :: ThousandIsland.Transport.on_handshake()
+  def handshake(socket, _timeout), do: {:ok, socket}
+
+  @impl ThousandIsland.Transport
   @spec upgrade(socket(), options()) :: ThousandIsland.Transport.on_upgrade()
   def upgrade(_, _), do: {:error, :unsupported_upgrade}
 
