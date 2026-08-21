@@ -45,8 +45,8 @@ defmodule ThousandIsland.Transports.SSL do
 
   @hardcoded_options [mode: :binary, active: false]
 
-  # Default chunk size: 8MB - balances memory usage vs syscall overhead
-  @sendfile_chunk_size 8 * 1024 * 1024
+  # Default chunk size: 1MB - balances memory usage vs send overhead
+  @sendfile_chunk_size 1024 * 1024
 
   @impl ThousandIsland.Transport
   @spec listen(:inet.port_number(), [:ssl.tls_server_option()]) ::
