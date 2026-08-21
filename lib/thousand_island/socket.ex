@@ -12,7 +12,7 @@ defmodule ThousandIsland.Socket do
     :silent_terminate_on_error,
     :span
   ]
-  defstruct @enforce_keys ++ [:read_timer]
+  defstruct @enforce_keys ++ [:read_timer, :read_deadline, :timer_deadline]
 
   @typedoc "A reference to a socket along with metadata describing how to use it"
   @type t :: %__MODULE__{
@@ -21,6 +21,8 @@ defmodule ThousandIsland.Socket do
           read_timeout: timeout(),
           handshake_timeout: timeout(),
           read_timer: reference() | nil,
+          read_deadline: integer() | nil,
+          timer_deadline: integer() | nil,
           silent_terminate_on_error: boolean(),
           span: ThousandIsland.Telemetry.t()
         }
