@@ -425,7 +425,10 @@ defmodule ThousandIsland.Handler do
       end
 
       def handle_info(:read_timeout, {%ThousandIsland.Socket{} = socket, state}) do
-        {:stop, {:shutdown, :read_timeout}, {socket, state}}
+        case ThousandIsland.Handler.check_read_deadline(socket) do
+          {:timeout, socket} -> {:stop, {:shutdown, :read_timeout}, {socket, state}}
+          {:continue, socket} -> {:noreply, {socket, state}}
+        end
       end
 
       @before_compile {ThousandIsland.Handler, :add_handle_info_fallback}
@@ -552,52 +555,93 @@ defmodule ThousandIsland.Handler do
     ThousandIsland.Telemetry.stop_span(socket.span, measurements, metadata)
   end
 
-  defp cancel_read_timer(%{read_timer: nil} = socket), do: socket
+  defp cancel_read_timer(%{read_timer: nil} = socket), do: %{socket | read_deadline: nil}
 
   defp cancel_read_timer(%{read_timer: timer} = socket) do
     _ = Process.cancel_timer(timer)
 
-    # Since we don't cancel timers until the final handle_continuation call in a callback, flush
-    # any :read_timeout message already delivered to the mailbox before we could cancel the timer
+    # Flush any :read_timeout message already delivered to the mailbox before we could cancel
+    # the timer
     receive do
       :read_timeout -> :ok
     after
       0 -> :ok
     end
 
-    %{socket | read_timer: nil}
+    %{socket | read_timer: nil, read_deadline: nil, timer_deadline: nil}
   end
 
-  defp reset_read_timer(socket, :infinity), do: cancel_read_timer(socket)
+  # The read timer is lazily evaluated: the hot path (a callback returning a `:continue` tuple
+  # after every piece of data) only records the new deadline, and the already-armed timer
+  # re-checks that deadline whenever it fires (see `check_read_deadline/1`). This keeps timer
+  # arming and cancellation off of the per-message path; a timer is armed at most once per
+  # timeout interval rather than once per message
+  defp arm_read_timer(socket, :infinity), do: cancel_read_timer(socket)
 
-  defp reset_read_timer(socket, timeout) do
-    %{cancel_read_timer(socket) | read_timer: Process.send_after(self(), :read_timeout, timeout)}
+  defp arm_read_timer(socket, timeout) do
+    deadline = System.monotonic_time(:millisecond) + timeout
+
+    cond do
+      is_nil(socket.read_timer) ->
+        timer = Process.send_after(self(), :read_timeout, timeout)
+        %{socket | read_deadline: deadline, read_timer: timer, timer_deadline: deadline}
+
+      socket.timer_deadline <= deadline ->
+        # The armed timer fires at or before the new deadline; when it fires it will re-arm
+        # itself for whatever time then remains
+        %{socket | read_deadline: deadline}
+
+      true ->
+        # The new deadline is sooner than the armed timer would fire; re-arm eagerly
+        socket = cancel_read_timer(socket)
+        timer = Process.send_after(self(), :read_timeout, timeout)
+        %{socket | read_deadline: deadline, read_timer: timer, timer_deadline: deadline}
+    end
+  end
+
+  @doc false
+  # Called when an armed :read_timeout fires. Because arming is lazy, a firing timer is not
+  # necessarily a timeout: data may have moved the deadline forward since the timer was armed
+  @spec check_read_deadline(ThousandIsland.Socket.t()) ::
+          {:timeout, ThousandIsland.Socket.t()} | {:continue, ThousandIsland.Socket.t()}
+  def check_read_deadline(%{read_deadline: nil} = socket) do
+    # The timeout has since been set to :infinity; absorb the stale firing
+    {:continue, %{socket | read_timer: nil, timer_deadline: nil}}
+  end
+
+  def check_read_deadline(socket) do
+    now = System.monotonic_time(:millisecond)
+
+    if now >= socket.read_deadline do
+      {:timeout, socket}
+    else
+      timer = Process.send_after(self(), :read_timeout, socket.read_deadline - now)
+      {:continue, %{socket | read_timer: timer, timer_deadline: socket.read_deadline}}
+    end
   end
 
   @doc false
   def handle_continuation(continuation, socket) do
-    socket = cancel_read_timer(socket)
-
     case continuation do
       {:continue, state} ->
         _ = ThousandIsland.Socket.setopts(socket, active: :once)
-        socket = reset_read_timer(socket, socket.read_timeout)
+        socket = arm_read_timer(socket, socket.read_timeout)
         {:noreply, {socket, state}}
 
       {:continue, state, {:continue, continue}} ->
         _ = ThousandIsland.Socket.setopts(socket, active: :once)
-        socket = reset_read_timer(socket, socket.read_timeout)
+        socket = arm_read_timer(socket, socket.read_timeout)
         {:noreply, {socket, state}, {:continue, continue}}
 
       {:continue, state, {:persistent, timeout}} ->
         socket = %{socket | read_timeout: timeout}
         _ = ThousandIsland.Socket.setopts(socket, active: :once)
-        socket = reset_read_timer(socket, timeout)
+        socket = arm_read_timer(socket, timeout)
         {:noreply, {socket, state}}
 
       {:continue, state, timeout} ->
         _ = ThousandIsland.Socket.setopts(socket, active: :once)
-        socket = reset_read_timer(socket, timeout)
+        socket = arm_read_timer(socket, timeout)
         {:noreply, {socket, state}}
 
       {:switch_transport, {module, upgrade_opts}, state} ->
@@ -614,12 +658,14 @@ defmodule ThousandIsland.Handler do
         handle_switch_continuation(socket, module, upgrade_opts, state, timeout)
 
       {:close, state} ->
-        {:stop, {:shutdown, :local_closed}, {socket, state}}
+        {:stop, {:shutdown, :local_closed}, {cancel_read_timer(socket), state}}
 
       {:error, :timeout, state} ->
-        {:stop, {:shutdown, :read_timeout}, {socket, state}}
+        {:stop, {:shutdown, :read_timeout}, {cancel_read_timer(socket), state}}
 
       {:error, reason, state} ->
+        socket = cancel_read_timer(socket)
+
         if socket.silent_terminate_on_error do
           {:stop, {:shutdown, {:silent_termination, reason}}, {socket, state}}
         else
@@ -632,7 +678,7 @@ defmodule ThousandIsland.Handler do
     case ThousandIsland.Socket.upgrade(socket, module, upgrade_opts) do
       {:ok, socket} ->
         _ = ThousandIsland.Socket.setopts(socket, active: :once)
-        socket = reset_read_timer(socket, socket.read_timeout)
+        socket = arm_read_timer(socket, socket.read_timeout)
         {:noreply, {socket, state}, timeout_or_continue}
 
       {:error, reason} ->

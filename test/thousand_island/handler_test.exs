@@ -1055,6 +1055,88 @@ defmodule ThousandIsland.HandlerTest do
       assert messages =~ "handle_timeout"
     end
 
+    defmodule LongerOneShotTimeout do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_data("ping", _socket, state) do
+        {:continue, state, 400}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_timeout(_socket, _state) do
+        Logger.error("handle_timeout")
+      end
+    end
+
+    #
+    # Verify a {:continue, state, timeout} override *longer* than the pending
+    # read_timeout is honored in full: the connection must survive past the
+    # point where the originally scheduled timeout would have fired, and must
+    # still time out at the extended deadline
+    #
+    test "a one-shot timeout longer than the pending read_timeout is honored in full" do
+      {:ok, port} = start_handler(LongerOneShotTimeout, read_timeout: 100)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          :gen_tcp.send(client, "ping")
+
+          # Well past the global 100ms read_timeout, the connection must still
+          # be open thanks to the 400ms one-shot override
+          assert :gen_tcp.recv(client, 0, 250) == {:error, :timeout}
+
+          # ...and must still close at the extended deadline
+          assert :gen_tcp.recv(client, 0, 500) == {:error, :closed}
+          Process.sleep(50)
+        end)
+
+      assert messages =~ "handle_timeout"
+    end
+
+    defmodule InfinityOneShotTimeout do
+      use ThousandIsland.Handler
+
+      require Logger
+
+      @impl ThousandIsland.Handler
+      def handle_data("ping", _socket, state) do
+        {:continue, state, :infinity}
+      end
+
+      @impl ThousandIsland.Handler
+      def handle_timeout(_socket, _state) do
+        Logger.error("handle_timeout")
+      end
+    end
+
+    #
+    # Verify a {:continue, state, :infinity} override disables the pending
+    # read_timeout entirely rather than closing when the originally scheduled
+    # timeout would have fired
+    #
+    test "a one-shot :infinity timeout disables the pending read_timeout" do
+      {:ok, port} = start_handler(InfinityOneShotTimeout, read_timeout: 100)
+
+      messages =
+        capture_log(fn ->
+          {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+          :gen_tcp.send(client, "ping")
+
+          # Well past the global 100ms read_timeout, the connection must still
+          # be open
+          assert :gen_tcp.recv(client, 0, 400) == {:error, :timeout}
+
+          :gen_tcp.close(client)
+          Process.sleep(50)
+        end)
+
+      refute messages =~ "handle_timeout"
+    end
+
     test "a GenServer :timeout message does not trigger handle_timeout" do
       # Use a long read_timeout so it won't naturally expire during the test
       {:ok, port} = start_handler(GenServerIdleTimeout, read_timeout: 5_000)
