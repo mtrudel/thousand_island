@@ -53,37 +53,51 @@ defmodule ThousandIsland.Listener do
   end
 
   defp start_listen_sockets(%ThousandIsland.ServerConfig{} = server_config) do
-    num_sockets = server_config.num_listen_sockets
+    with {:ok, first_socket} <-
+           server_config.transport_module.listen(
+             server_config.port,
+             server_config.transport_options
+           ) do
+      sockets = [{1, first_socket}]
 
-    sockets =
-      for socket_id <- 1..num_sockets do
-        case server_config.transport_module.listen(
-               server_config.port,
-               server_config.transport_options
-             ) do
-          {:ok, socket} -> {socket_id, socket}
-          {:error, reason} -> throw({:error, reason})
-        end
+      case server_config.transport_module.sockname(first_socket) do
+        {:ok, local_info} ->
+          port = bind_port(local_info, server_config)
+
+          case start_listen_sockets(server_config, port, 2, sockets) do
+            {:ok, sockets} -> {:ok, sockets, local_info}
+            {:error, reason, sockets} -> close_listen_sockets(server_config, sockets, reason)
+          end
+
+        {:error, reason} ->
+          close_listen_sockets(server_config, sockets, reason)
       end
+    end
+  end
 
-    # Get local info from first socket
-    {1, first_socket} = List.keyfind(sockets, 1, 0)
+  defp start_listen_sockets(server_config, _port, next_id, sockets)
+       when next_id > server_config.num_listen_sockets,
+       do: {:ok, Enum.reverse(sockets)}
 
-    case server_config.transport_module.sockname(first_socket) do
-      {:ok, {ip, port}} ->
-        {:ok, sockets, {ip, port}}
+  defp start_listen_sockets(server_config, port, next_id, sockets) do
+    case server_config.transport_module.listen(port, server_config.transport_options) do
+      {:ok, socket} ->
+        start_listen_sockets(server_config, port, next_id + 1, [{next_id, socket} | sockets])
 
       {:error, reason} ->
-        # Cleanup all sockets on error
-        Enum.each(sockets, fn {_, socket} ->
-          server_config.transport_module.close(socket)
-        end)
-
-        {:error, reason}
+        {:error, reason, sockets}
     end
-  catch
-    {:error, reason} ->
-      {:error, reason}
+  end
+
+  # A listener bound to port 0 is assigned a concrete port by the operating system; use it for
+  # the remaining listeners so that every socket is reachable via the advertised port. Non-IP
+  # listeners (Unix domain sockets) have no port to propagate and keep the configured value
+  defp bind_port({_ip, port}, _server_config) when is_integer(port), do: port
+  defp bind_port(_local_info, server_config), do: server_config.port
+
+  defp close_listen_sockets(server_config, sockets, reason) do
+    Enum.each(sockets, fn {_, socket} -> server_config.transport_module.close(socket) end)
+    {:error, reason}
   end
 
   @impl GenServer
