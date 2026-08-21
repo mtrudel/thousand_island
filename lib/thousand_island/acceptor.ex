@@ -3,6 +3,27 @@ defmodule ThousandIsland.Acceptor do
 
   use Task, restart: :transient
 
+  # Transient errors which accept(2) documents as retryable: on Linux, accept()
+  # passes network errors already pending on the new socket back through the
+  # accept call itself, and instructs applications to "treat them like EAGAIN
+  # by retrying" (:etimedout is from the man page's adjacent list of errors
+  # that various kernels can also return). These are conditions of a single
+  # incoming connection, not of the listener, so we retry rather than crash
+  # the acceptor. :econnaborted and :einval are the same kind of condition,
+  # already handled in their own clause below with their own long-standing
+  # telemetry events
+  @transient_accept_errors [
+    :enetdown,
+    :enetunreach,
+    :ehostdown,
+    :ehostunreach,
+    :enonet,
+    :eproto,
+    :enoprotoopt,
+    :eopnotsupp,
+    :etimedout
+  ]
+
   # How long to pause the accept loop when the system reports file descriptor
   # exhaustion (:emfile / :enfile). We cannot accept while out of descriptors, so
   # we back off briefly to let the situation resolve rather than spinning or
@@ -79,6 +100,22 @@ defmodule ThousandIsland.Acceptor do
 
       {:error, reason} when reason in [:econnaborted, :einval] ->
         ThousandIsland.Telemetry.span_event(span, reason)
+
+        accept(
+          listener_socket,
+          connection_sup_pid,
+          server_config,
+          handler_config,
+          span,
+          count + 1
+        )
+
+      {:error, reason} when reason in @transient_accept_errors ->
+        # A transient error on the incoming connection which accept(2) tells us
+        # to treat like EAGAIN. Emit an event for observability and keep
+        # accepting rather than crashing the acceptor (and, through restart
+        # escalation, the acceptor's supervisor and its live connections)
+        ThousandIsland.Telemetry.span_event(span, :accept_error, %{error: reason})
 
         accept(
           listener_socket,

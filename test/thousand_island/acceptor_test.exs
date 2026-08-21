@@ -5,7 +5,8 @@ defmodule ThousandIsland.AcceptorTest do
 
   # A transport that delegates to gen_tcp but lets the test inject a queue of
   # accept/1 results via :persistent_term, so we can simulate the OS reporting
-  # file descriptor exhaustion. Once the queue is drained, real accepts resume.
+  # transient network errors or file descriptor exhaustion. Once the queue is
+  # drained, real accepts resume.
   defmodule FlakyTransport do
     @behaviour ThousandIsland.Transport
 
@@ -106,6 +107,21 @@ defmodule ThousandIsland.AcceptorTest do
     end)
   end
 
+  # The accept(2) retry list, plus :etimedout (same man page, "various kernels"
+  # note) and :einval (retried by Thousand Island since 1.3.12)
+  @transient [
+    :enetdown,
+    :enetunreach,
+    :ehostdown,
+    :ehostunreach,
+    :enonet,
+    :eproto,
+    :enoprotoopt,
+    :eopnotsupp,
+    :etimedout,
+    :einval
+  ]
+
   test "descriptor exhaustion does not take down the acceptor or its in-flight connections" do
     key = make_ref()
     :persistent_term.put({FlakyTransport, :key}, key)
@@ -171,6 +187,72 @@ defmodule ThousandIsland.AcceptorTest do
                    1000
 
     assert measurements ~> %{monotonic_time: integer(), error: :emfile}
+    assert metadata ~> %{handler: Echo, telemetry_span_context: reference()}
+  end
+
+  test "transient accept(2) network errors are retried rather than crashing the acceptor" do
+    key = make_ref()
+    :persistent_term.put({FlakyTransport, :key}, key)
+    FlakyTransport.set_accept_results(key, [])
+
+    {:ok, server_pid} =
+      start_supervised(
+        {ThousandIsland,
+         port: 0, handler_module: Echo, transport_module: FlakyTransport, num_acceptors: 1}
+      )
+
+    {:ok, {_ip, port}} = ThousandIsland.listener_info(server_pid)
+    [acceptor_sup] = acceptor_sup_pids(server_pid)
+
+    # Open a connection before any trouble starts
+    {:ok, existing} = :gen_tcp.connect(:localhost, port, [:binary, active: false])
+    :ok = :gen_tcp.send(existing, "FIRST")
+    assert :gen_tcp.recv(existing, 0, 1000) == {:ok, "FIRST"}
+
+    # Now have accept return every transient error in the set, back to back.
+    # Ten in a row is far past the acceptor's restart budget (3 restarts in 5
+    # seconds): if these crash the acceptor, its supervisor comes down too,
+    # taking the acceptor's in-flight connections with it
+    FlakyTransport.set_accept_results(key, @transient)
+
+    # A new client unblocks the pending accept; the acceptor then works
+    # through the injected errors
+    {:ok, fresh} = :gen_tcp.connect(:localhost, port, [:binary, active: false])
+    Process.sleep(300)
+
+    # The in-flight connections survived the errors
+    :ok = :gen_tcp.send(existing, "STILL HERE")
+    assert :gen_tcp.recv(existing, 0, 1000) == {:ok, "STILL HERE"}
+    :ok = :gen_tcp.send(fresh, "HELLO")
+    assert :gen_tcp.recv(fresh, 0, 1000) == {:ok, "HELLO"}
+
+    # Nothing under the server was restarted, and new connections still flow
+    assert acceptor_sup_pids(server_pid) == [acceptor_sup]
+    {:ok, late} = :gen_tcp.connect(:localhost, port, [:binary, active: false])
+    :ok = :gen_tcp.send(late, "LATE")
+    assert :gen_tcp.recv(late, 0, 1000) == {:ok, "LATE"}
+
+    Enum.each([existing, fresh, late], &:gen_tcp.close/1)
+  end
+
+  test "a transient accept error emits an :accept_error telemetry event carrying the reason" do
+    on_exit(TelemetryHelpers.attach_all_events(Echo))
+
+    key = make_ref()
+    :persistent_term.put({FlakyTransport, :key}, key)
+    FlakyTransport.set_accept_results(key, [:ehostunreach])
+
+    {:ok, _server_pid} =
+      start_supervised(
+        {ThousandIsland,
+         port: 0, handler_module: Echo, transport_module: FlakyTransport, num_acceptors: 1}
+      )
+
+    assert_receive {:telemetry, [:thousand_island, :acceptor, :accept_error], measurements,
+                    metadata},
+                   1000
+
+    assert measurements ~> %{monotonic_time: integer(), error: :ehostunreach}
     assert metadata ~> %{handler: Echo, telemetry_span_context: reference()}
   end
 

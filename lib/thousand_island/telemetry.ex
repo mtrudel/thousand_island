@@ -115,6 +115,23 @@ defmodule ThousandIsland.Telemetry do
 
       * `telemetry_span_context`: A unique identifier for this span
 
+  * `[:thousand_island, :acceptor, :accept_error]`
+
+      Thousand Island encountered a transient network error while accepting a connection, of the
+      kind that `accept(2)` documents as retryable (an error already pending on the incoming
+      connection, such as `:ehostunreach` or `:enetdown`). These reflect a condition on one
+      incoming connection rather than a problem with the listener, so the acceptor retries and
+      keeps running rather than crashing.
+
+      This event contains the following measurements:
+
+      * `monotonic_time`: The time of this event, in `:native` units
+      * `error`: The transient error reason that was retried
+
+      This event contains the following metadata:
+
+      * `telemetry_span_context`: A unique identifier for this span
+
   * `[:thousand_island, :acceptor, :emfile]`
 
       Thousand Island was unable to accept a connection because the system is out of file
@@ -326,6 +343,7 @@ defmodule ThousandIsland.Telemetry do
           :ready
           | :spawn_error
           | :econnaborted
+          | :accept_error
           | :emfile
           | :recv_error
           | :send_error

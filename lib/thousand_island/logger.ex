@@ -24,6 +24,7 @@ defmodule ThousandIsland.Logger do
     events = [
       [:thousand_island, :acceptor, :spawn_error],
       [:thousand_island, :acceptor, :econnaborted],
+      [:thousand_island, :acceptor, :accept_error],
       [:thousand_island, :acceptor, :emfile]
     ]
 
