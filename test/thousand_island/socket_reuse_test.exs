@@ -15,6 +15,41 @@ defmodule ThousandIsland.SocketReuseTest do
 
   # Note: This test may fail on systems without SO_REUSEPORT support
   describe "socket reuse functionality" do
+    test "port zero binds every listener socket to the advertised port" do
+      config = %ThousandIsland.ServerConfig{
+        port: 0,
+        handler_module: EchoHandler,
+        num_listen_sockets: 3,
+        transport_options: [reuseport: true]
+      }
+
+      case ThousandIsland.Listener.init(config) do
+        {:ok, %{listener_sockets: sockets, local_info: local_info}} ->
+          for {_, socket} <- sockets do
+            assert {:ok, ^local_info} = :inet.sockname(socket)
+            :gen_tcp.close(socket)
+          end
+
+        {:stop, reason} when reason in [:eaddrinuse, :enotsup] ->
+          :ok
+      end
+    end
+
+    test "unix domain sockets with multiple listeners still fail cleanly" do
+      path = Path.join(System.tmp_dir!(), "ti_uds_#{System.unique_integer([:positive])}.sock")
+
+      config = %ThousandIsland.ServerConfig{
+        port: 0,
+        handler_module: EchoHandler,
+        num_listen_sockets: 2,
+        transport_options: [ip: {:local, path}, reuseport: true]
+      }
+
+      assert {:stop, :eaddrinuse} = ThousandIsland.Listener.init(config)
+
+      File.rm(path)
+    end
+
     test "creates multiple sockets when reuseport is enabled" do
       config = %ThousandIsland.ServerConfig{
         port: 5004,
