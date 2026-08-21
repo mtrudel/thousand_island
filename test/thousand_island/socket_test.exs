@@ -362,6 +362,8 @@ defmodule ThousandIsland.SocketTest do
   end
 
   describe "transports which only implement handshake/1" do
+    setup :gen_tcp_setup
+
     test "it should fall back to handshake/1 irrespective of handshake_timeout" do
       {:ok, port} = start_handler(Echo, transport_module: LegacyTransport, handshake_timeout: 250)
       {:ok, client} = :gen_tcp.connect(~c"localhost", port, [:binary, active: false])
