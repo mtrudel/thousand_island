@@ -41,29 +41,11 @@ defmodule ThousandIsland.Transports.TCP do
 
   @behaviour ThousandIsland.Transport
 
-  @hardcoded_options [mode: :binary, active: false]
-
   @impl ThousandIsland.Transport
   @spec listen(:inet.port_number(), [:inet.inet_backend() | :gen_tcp.listen_option()]) ::
           ThousandIsland.Transport.on_listen()
   def listen(port, user_options) do
-    default_options = [
-      backlog: 1024,
-      nodelay: true,
-      send_timeout: 30_000,
-      send_timeout_close: true,
-      reuseaddr: true
-    ]
-
-    # We can't use Keyword functions here because :gen_tcp accepts non-keyword style options
-    resolved_options =
-      Enum.uniq_by(
-        @hardcoded_options ++ user_options ++ default_options,
-        fn
-          {key, _} when is_atom(key) -> key
-          key when is_atom(key) -> key
-        end
-      )
+    resolved_options = ThousandIsland.Transport.resolve_options(user_options)
 
     # `inet_backend`, if present, needs to be the first option
     sorted_options =
