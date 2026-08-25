@@ -43,8 +43,6 @@ defmodule ThousandIsland.Transports.SSL do
 
   @behaviour ThousandIsland.Transport
 
-  @hardcoded_options [mode: :binary, active: false]
-
   # Default chunk size: 1MB - balances memory usage vs send overhead
   @sendfile_chunk_size 1024 * 1024
 
@@ -52,23 +50,7 @@ defmodule ThousandIsland.Transports.SSL do
   @spec listen(:inet.port_number(), [:ssl.tls_server_option()]) ::
           ThousandIsland.Transport.on_listen()
   def listen(port, user_options) do
-    default_options = [
-      backlog: 1024,
-      nodelay: true,
-      send_timeout: 30_000,
-      send_timeout_close: true,
-      reuseaddr: true
-    ]
-
-    # We can't use Keyword functions here because :ssl accepts non-keyword style options
-    resolved_options =
-      Enum.uniq_by(
-        @hardcoded_options ++ user_options ++ default_options,
-        fn
-          {key, _} when is_atom(key) -> key
-          key when is_atom(key) -> key
-        end
-      )
+    resolved_options = ThousandIsland.Transport.resolve_options(user_options)
 
     if not Enum.any?(
          [:certs_keys, :keyfile, :key, :sni_hosts, :sni_fun],

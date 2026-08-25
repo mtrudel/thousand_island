@@ -8,6 +8,15 @@ defmodule ThousandIsland.Transport do
   as described in `ThousandIsland`.
   """
 
+  @required_options [mode: :binary, active: false]
+  @default_options [
+    backlog: 1024,
+    nodelay: true,
+    send_timeout: 30_000,
+    send_timeout_close: true,
+    reuseaddr: true
+  ]
+
   @typedoc "A listener socket used to wait for connections"
   @type listener_socket() :: :inet.socket() | :ssl.sslsocket()
 
@@ -100,6 +109,16 @@ defmodule ThousandIsland.Transport do
   @typedoc "The return value from a negotiated_protocol/1 call"
   @type on_negotiated_protocol() ::
           {:ok, binary()} | {:error, :protocol_not_negotiated | :closed}
+
+  @doc false
+  @spec resolve_options(list()) :: list()
+  def resolve_options(user_options) do
+    # We can't use Keyword functions here because the Erlang transports accept bare options
+    Enum.uniq_by(@required_options ++ user_options ++ @default_options, fn
+      {key, _} when is_atom(key) -> key
+      key when is_atom(key) -> key
+    end)
+  end
 
   @doc """
   Create and return a listener socket bound to the given port and configured per
