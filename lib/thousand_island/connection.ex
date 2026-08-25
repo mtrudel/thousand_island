@@ -30,29 +30,12 @@ defmodule ThousandIsland.Connection do
       |> Supervisor.child_spec(shutdown: server_config.shutdown_timeout)
 
     # Then try to create it
-    do_start(
-      sup_pid,
-      child_spec,
-      raw_socket,
-      server_config,
-      handler_config,
-      acceptor_span,
-      start_time,
-      server_config.max_connections_retry_count
-    )
-  end
-
-  defp do_start(
-         sup_pid,
-         child_spec,
-         raw_socket,
-         server_config,
-         handler_config,
-         acceptor_span,
-         start_time,
-         retries
-       ) do
-    case DynamicSupervisor.start_child(sup_pid, child_spec) do
+    case start_child_with_retry(
+           sup_pid,
+           child_spec,
+           server_config.max_connections_retry_wait,
+           server_config.max_connections_retry_count
+         ) do
       {:ok, pid} ->
         # Since this process owns the socket at this point, it needs to be the
         # one to make this call. connection_pid is sitting and waiting for the
@@ -69,23 +52,6 @@ defmodule ThousandIsland.Connection do
         send(pid, {:thousand_island_ready, raw_socket, handler_config, acceptor_span, start_time})
 
         :ok
-
-      {:error, :max_children} when retries > 0 ->
-        # We're in a tricky spot here; we have a client connection in hand, but no room to put it
-        # into the connection supervisor. We try to wait a maximum number of times to see if any
-        # room opens up before we give up
-        Process.sleep(server_config.max_connections_retry_wait)
-
-        do_start(
-          sup_pid,
-          child_spec,
-          raw_socket,
-          server_config,
-          handler_config,
-          acceptor_span,
-          start_time,
-          retries - 1
-        )
 
       {:error, :max_children} ->
         # We gave up trying to find room for this connection in our supervisor.
@@ -107,6 +73,20 @@ defmodule ThousandIsland.Connection do
         # Handled exactly as above
         _ = handler_config.transport_module.close(raw_socket)
         {:error, {:spawn_error, other}}
+    end
+  end
+
+  defp start_child_with_retry(sup_pid, child_spec, retry_wait, retries) do
+    case DynamicSupervisor.start_child(sup_pid, child_spec) do
+      {:error, :max_children} when retries > 0 ->
+        # We're in a tricky spot here; we have a client connection in hand, but no room to put it
+        # into the connection supervisor. We try to wait a maximum number of times to see if any
+        # room opens up before we give up
+        Process.sleep(retry_wait)
+        start_child_with_retry(sup_pid, child_spec, retry_wait, retries - 1)
+
+      result ->
+        result
     end
   end
 end
