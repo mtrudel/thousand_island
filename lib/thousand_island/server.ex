@@ -9,29 +9,21 @@ defmodule ThousandIsland.Server do
   end
 
   @spec listener_pid(Supervisor.supervisor()) :: pid() | nil
-  def listener_pid(supervisor) do
-    supervisor
-    |> Supervisor.which_children()
-    |> Enum.find_value(fn
-      {:listener, listener_pid, _, _} when is_pid(listener_pid) ->
-        listener_pid
-
-      _ ->
-        false
-    end)
-  end
+  def listener_pid(supervisor), do: child_pid(supervisor, :listener)
 
   @spec acceptor_pool_supervisor_pid(Supervisor.supervisor()) :: pid() | nil
-  def acceptor_pool_supervisor_pid(supervisor) do
+  def acceptor_pool_supervisor_pid(supervisor),
+    do: child_pid(supervisor, :acceptor_pool_supervisor)
+
+  defp child_pid(supervisor, child_id) do
     supervisor
     |> Supervisor.which_children()
     |> Enum.find_value(fn
-      {:acceptor_pool_supervisor, acceptor_pool_sup_pid, _, _}
-      when is_pid(acceptor_pool_sup_pid) ->
-        acceptor_pool_sup_pid
+      {^child_id, child_pid, _, _} when is_pid(child_pid) ->
+        child_pid
 
       _ ->
-        false
+        nil
     end)
   end
 
