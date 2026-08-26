@@ -28,6 +28,9 @@ defmodule ThousandIsland.Transports.SSL do
   reuseaddr: true
   ```
 
+  The `nodelay` default is omitted for Unix domain sockets, since it is a
+  TCP-specific option.
+
   The following options are required for the proper operation of Thousand Island
   and cannot be overridden:
 
