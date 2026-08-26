@@ -387,11 +387,14 @@ defmodule ThousandIsland.Handler do
           )
 
         socket = ThousandIsland.Socket.new(raw_socket, handler_config, connection_span)
-        ThousandIsland.Telemetry.span_event(connection_span, :ready)
 
         case ThousandIsland.Socket.handshake(socket) do
-          {:ok, socket} -> {:noreply, {socket, state}, {:continue, :handle_connection}}
-          {:error, reason} -> {:stop, {:shutdown, {:handshake, reason}}, {socket, state}}
+          {:ok, socket} ->
+            ThousandIsland.Telemetry.span_event(connection_span, :ready)
+            {:noreply, {socket, state}, {:continue, :handle_connection}}
+
+          {:error, reason} ->
+            {:stop, {:shutdown, {:handshake, reason}}, {socket, state}}
         end
       catch
         {:stop, _, _} = stop -> stop
