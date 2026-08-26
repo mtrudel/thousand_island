@@ -171,7 +171,7 @@ defmodule ThousandIsland.Telemetry do
       * `remote_address`: The IP address of the connected client
       * `remote_port`: The port of the connected client
 
-  This span is ended by the following event:
+  This span is normally ended by the following event:
 
   * `[:thousand_island, :connection, :stop]`
 
@@ -194,6 +194,29 @@ defmodule ThousandIsland.Telemetry do
       * `remote_address`: The IP address of the connected client
       * `remote_port`: The port of the connected client
       * `error`: The error that caused the span to end, if it ended in error
+
+  If `handle_connection/2` or `handle_data/3` raises, throws, or exits, the span is instead
+  ended by:
+
+  * `[:thousand_island, :connection, :exception]`
+
+      Represents an exception which ended the span
+
+      This event contains the following measurements:
+
+      * `monotonic_time`: The time of this event, in `:native` units
+      * `duration`: The span duration, in `:native` units
+
+      This event contains the following metadata:
+
+      * `telemetry_span_context`: A unique identifier for this span
+      * `parent_telemetry_span_context`: The span context of the `:acceptor` span which accepted
+        this connection
+      * `remote_address`: The IP address of the connected client
+      * `remote_port`: The port of the connected client
+      * `kind`: The exception class (`:error`, `:throw`, or `:exit`)
+      * `reason`: The exception reason
+      * `stacktrace`: The exception stacktrace
 
   The following events may be emitted within this span:
 
@@ -353,6 +376,7 @@ defmodule ThousandIsland.Telemetry do
   @typedoc false
   @type untimed_event_name ::
           :async_recv
+          | :exception
           | :stop
           | :recv
           | :send
@@ -401,17 +425,49 @@ defmodule ThousandIsland.Telemetry do
   @doc false
   @spec stop_span(t(), measurements(), metadata()) :: :ok
   def stop_span(span, measurements \\ %{}, metadata \\ %{}) do
-    monotonic_time = measurements[:monotonic_time] || monotonic_time()
+    case Process.delete(exception_marker(span)) do
+      true ->
+        :ok
 
-    measurements =
-      Map.merge(measurements, %{
-        monotonic_time: monotonic_time,
-        duration: monotonic_time - span.start_time
-      })
+      _ ->
+        monotonic_time = measurements[:monotonic_time] || monotonic_time()
 
-    metadata = Map.merge(span.start_metadata, metadata)
+        measurements =
+          Map.merge(measurements, %{
+            monotonic_time: monotonic_time,
+            duration: monotonic_time - span.start_time
+          })
 
-    untimed_span_event(span, :stop, measurements, metadata)
+        metadata = Map.merge(span.start_metadata, metadata)
+
+        untimed_span_event(span, :stop, measurements, metadata)
+    end
+  end
+
+  @doc false
+  @spec exception_span(t(), :error | :throw | :exit, term(), Exception.stacktrace()) :: :ok
+  def exception_span(span, kind, reason, stacktrace) do
+    case Process.put(exception_marker(span), true) do
+      true ->
+        :ok
+
+      _ ->
+        monotonic_time = monotonic_time()
+
+        measurements = %{
+          monotonic_time: monotonic_time,
+          duration: monotonic_time - span.start_time
+        }
+
+        metadata =
+          Map.merge(span.start_metadata, %{
+            kind: kind,
+            reason: reason,
+            stacktrace: stacktrace
+          })
+
+        untimed_span_event(span, :exception, measurements, metadata)
+    end
   end
 
   @doc false
@@ -436,4 +492,7 @@ defmodule ThousandIsland.Telemetry do
   defp event(suffix, measurements, metadata) do
     :telemetry.execute([@app_name | suffix], measurements, metadata)
   end
+
+  defp exception_marker(span),
+    do: {__MODULE__, :exception_emitted, span.telemetry_span_context}
 end
