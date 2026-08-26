@@ -98,6 +98,23 @@ defmodule ThousandIsland.Acceptor do
           count + 1
         )
 
+      {:error, {:controlling_process, reason}} ->
+        # The handler was started, but the accepted socket could not be transferred to it.
+        # Connection.start/5 has already closed the socket and terminated the idle handler,
+        # so report a per-connection setup failure and continue accepting.
+        ThousandIsland.Telemetry.span_event(span, :spawn_error, %{
+          error: {:controlling_process, reason}
+        })
+
+        accept(
+          listener_socket,
+          connection_sup_pid,
+          server_config,
+          handler_config,
+          span,
+          count + 1
+        )
+
       {:error, reason} when reason in [:econnaborted, :einval] ->
         ThousandIsland.Telemetry.span_event(span, reason)
 

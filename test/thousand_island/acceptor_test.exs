@@ -12,6 +12,9 @@ defmodule ThousandIsland.AcceptorTest do
 
     def set_accept_results(key, results), do: :persistent_term.put({__MODULE__, key}, results)
 
+    def set_controlling_process_results(key, results),
+      do: :persistent_term.put({__MODULE__, key, :controlling_process}, results)
+
     @impl true
     def listen(port, _opts),
       do: :gen_tcp.listen(port, [:binary, active: false, reuseaddr: true])
@@ -36,7 +39,19 @@ defmodule ThousandIsland.AcceptorTest do
     @impl true
     def upgrade(_socket, _opts), do: {:error, :unsupported_upgrade}
     @impl true
-    def controlling_process(socket, pid), do: :gen_tcp.controlling_process(socket, pid)
+    def controlling_process(socket, pid) do
+      key = :persistent_term.get({__MODULE__, :key})
+
+      case :persistent_term.get({__MODULE__, key, :controlling_process}, []) do
+        [reason | rest] ->
+          :persistent_term.put({__MODULE__, key, :controlling_process}, rest)
+          {:error, reason}
+
+        [] ->
+          :gen_tcp.controlling_process(socket, pid)
+      end
+    end
+
     @impl true
     def recv(socket, length, timeout), do: :gen_tcp.recv(socket, length, timeout)
     @impl true
@@ -309,5 +324,44 @@ defmodule ThousandIsland.AcceptorTest do
 
     assert measurements ~> %{monotonic_time: integer(), error: :intentional_init_failure}
     assert metadata ~> %{handler: FailInitHandler, telemetry_span_context: reference()}
+  end
+
+  test "an ownership transfer failure is reported and the acceptor serves the next connection" do
+    on_exit(TelemetryHelpers.attach_all_events(Echo))
+
+    key = make_ref()
+    :persistent_term.put({FlakyTransport, :key}, key)
+    FlakyTransport.set_accept_results(key, [])
+    FlakyTransport.set_controlling_process_results(key, [:badarg])
+
+    {:ok, server_pid} =
+      start_supervised(
+        {ThousandIsland,
+         port: 0, handler_module: Echo, transport_module: FlakyTransport, num_acceptors: 1}
+      )
+
+    {:ok, {_ip, port}} = ThousandIsland.listener_info(server_pid)
+    acceptors_before = acceptor_pids(server_pid)
+
+    {:ok, rejected} = :gen_tcp.connect(:localhost, port, [:binary, active: false], 1_000)
+    assert {:error, :closed} = :gen_tcp.recv(rejected, 0, 1_000)
+    :ok = :gen_tcp.close(rejected)
+
+    assert_receive {:telemetry, [:thousand_island, :acceptor, :spawn_error], measurements,
+                    metadata},
+                   1_000
+
+    assert measurements
+           ~> %{monotonic_time: integer(), error: {:controlling_process, :badarg}}
+
+    assert metadata ~> %{handler: Echo, telemetry_span_context: reference()}
+
+    {:ok, accepted} = :gen_tcp.connect(:localhost, port, [:binary, active: false], 1_000)
+    :ok = :gen_tcp.send(accepted, "NEXT")
+    assert {:ok, "NEXT"} = :gen_tcp.recv(accepted, 0, 1_000)
+
+    assert acceptor_pids(server_pid) == acceptors_before
+    assert Process.alive?(server_pid)
+    :ok = :gen_tcp.close(accepted)
   end
 end

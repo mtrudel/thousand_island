@@ -60,8 +60,11 @@ defmodule ThousandIsland.Transport do
   @type on_accept_tcp_error() :: :closed | :system_limit | :inet.posix()
   @type on_accept_ssl_error() :: :closed | :timeout | :ssl.error_alert()
 
+  @typedoc "An error returned from a controlling_process/2 call"
+  @type controlling_process_error() :: :closed | :not_owner | :badarg | :inet.posix()
+
   @typedoc "The return value from a controlling_process/2 call"
-  @type on_controlling_process() :: :ok | {:error, :closed | :not_owner | :badarg | :inet.posix()}
+  @type on_controlling_process() :: :ok | {:error, controlling_process_error()}
 
   @typedoc "The return value from a handshake/1 call"
   @type on_handshake() :: {:ok, socket()} | {:error, on_handshake_ssl_error()}

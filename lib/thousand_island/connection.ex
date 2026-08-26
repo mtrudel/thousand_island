@@ -1,6 +1,11 @@
 defmodule ThousandIsland.Connection do
   @moduledoc false
 
+  @type start_error() ::
+          :too_many_connections
+          | {:spawn_error, term()}
+          | {:controlling_process, ThousandIsland.Transport.controlling_process_error()}
+
   @spec start(
           Supervisor.supervisor(),
           ThousandIsland.Transport.socket(),
@@ -8,8 +13,7 @@ defmodule ThousandIsland.Connection do
           ThousandIsland.HandlerConfig.t(),
           ThousandIsland.Telemetry.t()
         ) ::
-          :ok
-          | {:error, :too_many_connections | {:spawn_error, term}}
+          :ok | {:error, start_error()}
   def start(
         sup_pid,
         raw_socket,
@@ -39,19 +43,29 @@ defmodule ThousandIsland.Connection do
       {:ok, pid} ->
         # Since this process owns the socket at this point, it needs to be the
         # one to make this call. connection_pid is sitting and waiting for the
-        # word from us to start processing, in order to ensure that we've made
-        # the following call. Note that we purposefully do not match on the
-        # return from this function; if there's an error the connection process
-        # will see it, but it's no longer our problem if that's the case
-        _ = handler_config.transport_module.controlling_process(raw_socket, pid)
+        # word from us to start processing, in order to ensure that this call
+        # has succeeded before it receives the ready message.
+        case handler_config.transport_module.controlling_process(raw_socket, pid) do
+          :ok ->
+            # Now that we have transferred ownership over to the new process, send a message to the
+            # new process with all the info it needs to start working with the socket (note that the
+            # new process will still need to handshake with the remote end). handler_config was
+            # pre-created by the acceptor to avoid Map.take on every connection.
+            send(
+              pid,
+              {:thousand_island_ready, raw_socket, handler_config, acceptor_span, start_time}
+            )
 
-        # Now that we have transferred ownership over to the new process, send a message to the
-        # new process with all the info it needs to start working with the socket (note that the
-        # new process will still need to handshake with the remote end). handler_config was
-        # pre-created by the acceptor to avoid Map.take on every connection.
-        send(pid, {:thousand_island_ready, raw_socket, handler_config, acceptor_span, start_time})
+            :ok
 
-        :ok
+          {:error, reason} ->
+            # Ownership remains with this process when the transfer fails. Close from here, then
+            # terminate the idle handler as well; terminating it also closes the socket if a custom
+            # transport transferred ownership despite returning an error.
+            _ = handler_config.transport_module.close(raw_socket)
+            _ = DynamicSupervisor.terminate_child(sup_pid, pid)
+            {:error, {:controlling_process, reason}}
+        end
 
       {:error, :max_children} ->
         # We gave up trying to find room for this connection in our supervisor.
