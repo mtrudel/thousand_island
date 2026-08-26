@@ -15,6 +15,7 @@ defmodule ThousandIsland.Telemetry do
       This event contains the following measurements:
 
       * `monotonic_time`: The time of this event, in `:native` units
+      * `system_time`: The system time of this event, in `:native` units
 
       This event contains the following metadata:
 
@@ -57,6 +58,7 @@ defmodule ThousandIsland.Telemetry do
       This event contains the following measurements:
 
       * `monotonic_time`: The time of this event, in `:native` units
+      * `system_time`: The system time of this event, in `:native` units
 
       This event contains the following metadata:
 
@@ -162,6 +164,7 @@ defmodule ThousandIsland.Telemetry do
       This event contains the following measurements:
 
       * `monotonic_time`: The time of this event, in `:native` units
+      * `system_time`: The system time of this event, in `:native` units
 
       This event contains the following metadata:
 
@@ -363,7 +366,11 @@ defmodule ThousandIsland.Telemetry do
   @doc false
   @spec start_span(span_name(), measurements(), metadata()) :: t()
   def start_span(span_name, measurements, metadata) do
-    measurements = Map.put_new_lazy(measurements, :monotonic_time, &monotonic_time/0)
+    measurements =
+      measurements
+      |> Map.put_new_lazy(:monotonic_time, &monotonic_time/0)
+      |> Map.put_new_lazy(:system_time, &system_time/0)
+
     telemetry_span_context = make_ref()
     metadata = Map.put(metadata, :telemetry_span_context, telemetry_span_context)
     _ = event([span_name, :start], measurements, metadata)
@@ -432,6 +439,10 @@ defmodule ThousandIsland.Telemetry do
 
   @spec monotonic_time() :: integer
   defdelegate monotonic_time, to: System
+
+  @doc false
+  @spec system_time() :: integer
+  defdelegate system_time, to: System
 
   defp event(suffix, measurements, metadata) do
     :telemetry.execute([@app_name | suffix], measurements, metadata)

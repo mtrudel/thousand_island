@@ -333,7 +333,7 @@ defmodule ThousandIsland.ServerTest do
       assert_receive {:telemetry, [:thousand_island, :listener, :start], measurements, metadata},
                      500
 
-      assert measurements ~> %{monotonic_time: integer()}
+      assert measurements ~> %{monotonic_time: integer(), system_time: integer()}
 
       assert metadata
              ~> %{
@@ -348,7 +348,7 @@ defmodule ThousandIsland.ServerTest do
       assert_receive {:telemetry, [:thousand_island, :acceptor, :start], measurements, metadata},
                      500
 
-      assert measurements ~> %{monotonic_time: integer()}
+      assert measurements ~> %{monotonic_time: integer(), system_time: integer()}
 
       assert metadata
              ~> %{
