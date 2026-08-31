@@ -1217,16 +1217,21 @@ defmodule ThousandIsland.HandlerTest do
     test "it should send `ready` telemetry event once socket is ready" do
       TelemetryHelpers.attach_all_events(Telemetry.Closer)
 
-      {:ok, port} = start_handler(Telemetry.Closer)
+      {:ok, port} = start_handler(Telemetry.Closer, handler_options: self())
 
       {:ok, _client} = :gen_tcp.connect(:localhost, port, active: false)
 
-      assert_receive {:telemetry, [:thousand_island, :connection, :ready], measurements,
+      assert_receive {:telemetry, [:thousand_island, :connection, first_event], _, _}, 500
+      assert first_event == :start
+
+      assert_receive {:telemetry, [:thousand_island, :connection, second_event], measurements,
                       metadata},
                      500
 
+      assert second_event == :ready
       assert measurements ~> %{monotonic_time: integer()}
       assert metadata ~> %{handler: Telemetry.Closer, telemetry_span_context: reference()}
+      assert_receive :handle_connection, 500
     end
 
     test "it should send `async_recv` telemetry event on async receipt of data" do
@@ -1290,6 +1295,7 @@ defmodule ThousandIsland.HandlerTest do
 
       @impl ThousandIsland.Handler
       def handle_connection(socket, state) do
+        if is_pid(state), do: send(state, :handle_connection)
         ThousandIsland.Socket.send(socket, "HELLO")
         {:close, state}
       end

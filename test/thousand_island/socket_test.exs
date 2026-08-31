@@ -331,8 +331,10 @@ defmodule ThousandIsland.SocketTest do
 
     @tag capture_log: true
     test "it should close stalled handshakes once handshake_timeout has elapsed", context do
+      TelemetryHelpers.attach_all_events(Error)
+
       server_opts =
-        [handler_options: [test_pid: self()], handshake_timeout: 250] ++ context.server_opts
+        [handler_options: [test_pid: self()], handshake_timeout: 500] ++ context.server_opts
 
       {:ok, server_pid} =
         start_supervised({ThousandIsland, [port: 0, handler_module: Error] ++ server_opts})
@@ -342,7 +344,10 @@ defmodule ThousandIsland.SocketTest do
       # Connect at the TCP level but never start a TLS handshake
       {:ok, client} = :gen_tcp.connect(~c"localhost", port, active: false)
 
+      assert_receive {:telemetry, [:thousand_island, :connection, :start], _, _}, 500
+      refute_receive {:telemetry, [:thousand_island, :connection, :ready], _, _}, 100
       assert_receive {:handle_error, :timeout}, 1000
+      refute_received {:telemetry, [:thousand_island, :connection, :ready], _, _}
 
       # The connection process should be gone and the socket closed underneath the client
       Process.sleep(100)
@@ -353,8 +358,15 @@ defmodule ThousandIsland.SocketTest do
     end
 
     test "it should complete handshakes as normal within handshake_timeout", context do
+      TelemetryHelpers.attach_all_events(Echo)
+
       {:ok, port} = start_handler(Echo, [handshake_timeout: 5_000] ++ context.server_opts)
       {:ok, client} = context.client_mod.connect(~c"localhost", port, context.client_opts)
+
+      assert_receive {:telemetry, [:thousand_island, :connection, first_event], _, _}, 500
+      assert first_event == :start
+      assert_receive {:telemetry, [:thousand_island, :connection, second_event], _, _}, 500
+      assert second_event == :ready
 
       assert context.client_mod.send(client, "HELLO") == :ok
       assert context.client_mod.recv(client, 0) == {:ok, "HELLO"}
