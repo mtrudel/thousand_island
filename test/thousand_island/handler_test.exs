@@ -1202,7 +1202,7 @@ defmodule ThousandIsland.HandlerTest do
                       metadata},
                      500
 
-      assert measurements ~> %{monotonic_time: integer()}
+      assert measurements ~> %{monotonic_time: integer(), system_time: integer()}
 
       assert metadata
              ~> %{
