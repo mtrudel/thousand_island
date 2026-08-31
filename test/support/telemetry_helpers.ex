@@ -12,6 +12,7 @@ defmodule TelemetryHelpers do
     [:thousand_island, :acceptor, :emfile],
     [:thousand_island, :connection, :start],
     [:thousand_island, :connection, :stop],
+    [:thousand_island, :connection, :exception],
     [:thousand_island, :connection, :ready],
     [:thousand_island, :connection, :async_recv],
     [:thousand_island, :connection, :recv],

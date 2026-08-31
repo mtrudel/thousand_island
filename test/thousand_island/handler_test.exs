@@ -1343,6 +1343,26 @@ defmodule ThousandIsland.HandlerTest do
       end
     end
 
+    defmodule Telemetry.Exception do
+      use ThousandIsland.Handler
+
+      @impl ThousandIsland.Handler
+      def handle_connection(_socket, {kind, reason}) do
+        case kind do
+          :error -> raise reason
+          :throw -> throw(reason)
+          :exit -> exit(reason)
+        end
+      end
+    end
+
+    defmodule Telemetry.DataException do
+      use ThousandIsland.Handler
+
+      @impl ThousandIsland.Handler
+      def handle_data(_data, _socket, _state), do: raise("data nope")
+    end
+
     @tag capture_log: true
     test "it should send `stop` telemetry event with payload on error" do
       TelemetryHelpers.attach_all_events(Telemetry.Error)
@@ -1374,8 +1394,71 @@ defmodule ThousandIsland.HandlerTest do
                remote_port: port,
                telemetry_span_context: reference()
              }
+
+      refute_receive {:telemetry, [:thousand_island, :connection, :exception], _, _}, 100
+    end
+
+    for kind <- [:error, :throw, :exit] do
+      @tag capture_log: true
+      test "it should end the span with an exception event when a callback #{kind}s" do
+        kind = unquote(kind)
+        TelemetryHelpers.attach_all_events(Telemetry.Exception)
+
+        {:ok, port} = start_handler(Telemetry.Exception, handler_options: {kind, "nope"})
+        {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+        {:ok, {ip, port}} = :inet.sockname(client)
+
+        assert_receive {:telemetry, [:thousand_island, :connection, :exception], measurements,
+                        metadata},
+                       500
+
+        assert measurements ~> %{monotonic_time: integer(), duration: integer()}
+
+        assert metadata
+               ~> %{
+                 handler: Telemetry.Exception,
+                 kind: kind,
+                 parent_telemetry_span_context: reference(),
+                 reason: term(),
+                 remote_address: ip,
+                 remote_port: port,
+                 stacktrace: list(),
+                 telemetry_span_context: reference()
+               }
+
+        assert_exception_reason(kind, metadata.reason)
+
+        refute_receive {:telemetry, [:thousand_island, :connection, :stop], _, _}, 100
+      end
+    end
+
+    @tag capture_log: true
+    test "it should end the span with an exception when handle_data raises" do
+      TelemetryHelpers.attach_all_events(Telemetry.DataException)
+
+      {:ok, port} = start_handler(Telemetry.DataException)
+      {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
+      :ok = :gen_tcp.send(client, "boom")
+
+      assert_receive {:telemetry, [:thousand_island, :connection, :exception], measurements,
+                      metadata},
+                     500
+
+      assert measurements ~> %{monotonic_time: integer(), duration: integer()}
+
+      assert Map.take(metadata, [:handler, :kind, :reason])
+             ~> %{handler: Telemetry.DataException, kind: :error, reason: term()}
+
+      assert %RuntimeError{message: "data nope"} = metadata.reason
+      refute_receive {:telemetry, [:thousand_island, :connection, :stop], _, _}, 100
     end
   end
+
+  defp assert_exception_reason(:error, reason),
+    do: assert(%RuntimeError{message: "nope"} = reason)
+
+  defp assert_exception_reason(kind, reason) when kind in [:throw, :exit],
+    do: assert(reason == "nope")
 
   defp start_handler(handler, server_args \\ []) do
     resolved_args = [port: 0, handler_module: handler, num_acceptors: 1] ++ server_args

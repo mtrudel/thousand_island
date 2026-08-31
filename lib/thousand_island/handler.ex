@@ -407,7 +407,9 @@ defmodule ThousandIsland.Handler do
           when msg in [:tcp, :ssl] do
         ThousandIsland.Telemetry.untimed_span_event(socket.span, :async_recv, %{data: data})
 
-        __MODULE__.handle_data(data, socket, state)
+        ThousandIsland.Handler.invoke_callback(socket, fn ->
+          __MODULE__.handle_data(data, socket, state)
+        end)
         |> ThousandIsland.Handler.handle_continuation(socket)
       end
 
@@ -442,7 +444,9 @@ defmodule ThousandIsland.Handler do
       # close down the process
       @impl true
       def handle_continue(:handle_connection, {%ThousandIsland.Socket{} = socket, state}) do
-        __MODULE__.handle_connection(socket, state)
+        ThousandIsland.Handler.invoke_callback(socket, fn ->
+          __MODULE__.handle_connection(socket, state)
+        end)
         |> ThousandIsland.Handler.handle_continuation(socket)
       end
 
@@ -621,6 +625,17 @@ defmodule ThousandIsland.Handler do
       timer = Process.send_after(self(), :read_timeout, socket.read_deadline - now)
       {:continue, %{socket | read_timer: timer, timer_deadline: socket.read_deadline}}
     end
+  end
+
+  @doc false
+  @spec invoke_callback(ThousandIsland.Socket.t(), (-> result)) :: result when result: term()
+  def invoke_callback(socket, callback) do
+    callback.()
+  catch
+    kind, reason ->
+      stacktrace = __STACKTRACE__
+      ThousandIsland.Telemetry.exception_span(socket.span, kind, reason, stacktrace)
+      :erlang.raise(kind, reason, stacktrace)
   end
 
   @doc false
