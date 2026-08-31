@@ -11,7 +11,6 @@ defmodule ThousandIsland.Transport do
   @required_options [mode: :binary, active: false]
   @default_options [
     backlog: 1024,
-    nodelay: true,
     send_timeout: 30_000,
     send_timeout_close: true,
     reuseaddr: true
@@ -117,10 +116,28 @@ defmodule ThousandIsland.Transport do
   @spec resolve_options(list()) :: list()
   def resolve_options(user_options) do
     # We can't use Keyword functions here because the Erlang transports accept bare options
-    Enum.uniq_by(@required_options ++ user_options ++ @default_options, fn
-      {key, _} when is_atom(key) -> key
-      key when is_atom(key) -> key
-    end)
+    Enum.uniq_by(
+      @required_options ++
+        user_options ++
+        default_nodelay_options(user_options) ++
+        @default_options,
+      fn
+        {key, _} when is_atom(key) -> key
+        key when is_atom(key) -> key
+      end
+    )
+  end
+
+  # `nodelay` is a TCP-specific option, and the default is omitted for Unix domain sockets:
+  # the legacy inet backend ignores the invalid combination, but the socket backend rejects
+  # it, so injecting it breaks Unix domain listeners under `inet_backend: :socket`. An
+  # explicitly supplied `nodelay` value is still passed through unchanged.
+  defp default_nodelay_options(user_options) do
+    local_address? =
+      match?({:local, _}, :proplists.get_value(:ip, user_options)) or
+        match?({:local, _}, :proplists.get_value(:ifaddr, user_options))
+
+    if local_address?, do: [], else: [nodelay: true]
   end
 
   @doc """
