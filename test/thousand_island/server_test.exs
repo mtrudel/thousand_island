@@ -556,6 +556,8 @@ defmodule ThousandIsland.ServerTest do
     else
       @tag capture_log: true
       test "it should error if a certificate is not found (pre-OTP-28.1)" do
+        on_exit(TelemetryHelpers.attach_all_events(Error))
+
         {:ok, server_pid, port} =
           start_handler(Error,
             handler_options: [test_pid: self()],
@@ -578,7 +580,36 @@ defmodule ThousandIsland.ServerTest do
 
         ThousandIsland.stop(server_pid)
 
-        assert_received {:options, {:certfile, _, _}}
+        # Depending on whether the peer closes before socket ownership is transferred, the
+        # certificate error is observed either by the handler or while setting up the connection.
+        # Both paths must surface an error without activating a non-owning handler.
+        result =
+          receive do
+            {:options, {:certfile, _, _}} ->
+              :handler_error
+
+            {:telemetry, [:thousand_island, :acceptor, :spawn_error], measurements, metadata} ->
+              {:ownership_error, measurements, metadata}
+          after
+            1_000 -> :timeout
+          end
+
+        case result do
+          :handler_error ->
+            :ok
+
+          {:ownership_error, measurements, metadata} ->
+            assert measurements
+                   ~> %{
+                     monotonic_time: integer(),
+                     error: {:controlling_process, atom()}
+                   }
+
+            assert metadata ~> %{handler: Error, telemetry_span_context: reference()}
+
+          :timeout ->
+            flunk("expected the certificate or ownership-transfer error to be reported")
+        end
       end
     end
 
