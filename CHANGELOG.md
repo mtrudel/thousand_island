@@ -1,3 +1,26 @@
+## 1.6.0 (15 Oct 2026)
+
+### Enhancements
+
+* Add `ThousandIsland.status/1` and `ThousandIsland.info/1` for runtime introspection of a server (#212, thanks @mpettibone!)
+* Add a `handshake_timeout` server option. It limits the time a new connection can take to complete its transport handshake. The default is 5000 ms (#211, thanks @mpettibone!)
+* Improve handler performance. The read timer now resets lazily, not on every message (#213, thanks @mpettibone!)
+* Reduce the TLS sendfile chunk size from 8 MiB to 1 MiB. This lowers peak memory use and increases throughput on large files (#215, thanks @mpettibone!)
+
+### Fixes
+
+* Back off on `:emfile` and `:enfile` in the accept loop. The acceptor no longer crashes the server (#206, thanks @mpettibone!)
+* Retry the transient network errors that `accept(2)` documents. The acceptor no longer crashes (#208, thanks @mpettibone!)
+* Close the socket and keep accepting when a handler fails to start (#209, thanks @mpettibone!)
+* Stop the duplicate connection `:stop` telemetry event on handshake and upgrade failures (#210, thanks @mpettibone!)
+* Bind every listen socket to the advertised port when `port: 0` is used with `num_listen_sockets` (#214, thanks @mpettibone!)
+* Handle socket ownership-transfer errors during connection start (#220, thanks @mpettibone!)
+* Emit the `[:thousand_island, :connection, :ready]` telemetry event only after the handshake succeeds (#221, thanks @mpettibone!)
+* Emit `[:thousand_island, :connection, :exception]` telemetry events when `handle_connection/2` or `handle_data/3` raises, throws, or exits (#222, thanks @mpettibone!)
+* Add `system_time` to the measurements of telemetry span start events (#223, thanks @mpettibone!)
+* Omit the default `nodelay: true` option for Unix domain socket listeners (#225, thanks @mpettibone!)
+* **Technically breaking change but unused and really in the weeds** Cache the peername on the socket at accept time. `ThousandIsland.Socket.peername/1` now works after the client goes away (#228)
+
 ## 1.5.0 (1 Jun 2026)
 
 ### Changes
