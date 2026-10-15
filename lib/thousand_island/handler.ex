@@ -169,7 +169,7 @@ defmodule ThousandIsland.Handler do
   message of the form `{:thousand_island_ready, raw_socket, handler_config, acceptor_span,
   start_time}`.
   3. Your implementation must turn this into a `to:ThousandIsland.Socket.t()` socket by using the
-  `ThousandIsland.Socket.new/3` call.
+  `ThousandIsland.Socket.new/3` (or `new/4`, if you have already looked up the peername) call.
   4. Your implementation must then call `ThousandIsland.Socket.handshake/1` with the socket as the
   sole argument in order to finalize the setup of the socket.
   5. The socket is now ready to use.
@@ -386,7 +386,8 @@ defmodule ThousandIsland.Handler do
             span_meta
           )
 
-        socket = ThousandIsland.Socket.new(raw_socket, handler_config, connection_span)
+        socket =
+          ThousandIsland.Socket.new(raw_socket, handler_config, connection_span, {ip, port})
 
         case ThousandIsland.Socket.handshake(socket) do
           {:ok, socket} ->

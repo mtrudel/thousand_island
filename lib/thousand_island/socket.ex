@@ -12,7 +12,7 @@ defmodule ThousandIsland.Socket do
     :silent_terminate_on_error,
     :span
   ]
-  defstruct @enforce_keys ++ [:read_timer, :read_deadline, :timer_deadline]
+  defstruct @enforce_keys ++ [:read_timer, :read_deadline, :timer_deadline, :peername]
 
   @typedoc "A reference to a socket along with metadata describing how to use it"
   @type t :: %__MODULE__{
@@ -23,6 +23,7 @@ defmodule ThousandIsland.Socket do
           read_timer: reference() | nil,
           read_deadline: integer() | nil,
           timer_deadline: integer() | nil,
+          peername: ThousandIsland.Transport.socket_info() | nil,
           silent_terminate_on_error: boolean(),
           span: ThousandIsland.Telemetry.t()
         }
@@ -32,20 +33,27 @@ defmodule ThousandIsland.Socket do
 
   This is normally called internally by `ThousandIsland.Handler` and does not need to be
   called by implementations which are based on `ThousandIsland.Handler`
+
+  If the remote end's `peername` is already known (as it is to `ThousandIsland.Handler`, which has
+  to look it up before it can start a connection) it may be passed so that `peername/1` can keep
+  returning it after the client has gone away. If it is not passed, `peername/1` looks it up on
+  the underlying socket each time it is called
   """
   @spec new(
           ThousandIsland.Transport.socket(),
           ThousandIsland.HandlerConfig.t(),
-          ThousandIsland.Telemetry.t()
+          ThousandIsland.Telemetry.t(),
+          ThousandIsland.Transport.socket_info() | nil
         ) :: t()
-  def new(raw_socket, handler_config, span) do
+  def new(raw_socket, handler_config, span, peername \\ nil) do
     %__MODULE__{
       socket: raw_socket,
       transport_module: handler_config.transport_module,
       read_timeout: handler_config.read_timeout,
       handshake_timeout: handler_config.handshake_timeout,
       silent_terminate_on_error: handler_config.silent_terminate_on_error,
-      span: span
+      span: span,
+      peername: peername
     }
   end
 
@@ -206,11 +214,18 @@ defmodule ThousandIsland.Socket do
 
   @doc """
   Returns information in the form of `t:ThousandIsland.Transport.socket_info()` about the remote end of the socket.
+
+  For sockets created by `ThousandIsland.Handler` this is the value captured when the connection
+  was accepted, so it remains available if the client closes or resets the connection before the
+  handler gets to it (a lookup on the underlying socket would then fail, with `:enotconn` or
+  `:einval` depending on the platform)
   """
   @spec peername(t()) :: ThousandIsland.Transport.on_peername()
-  def peername(%__MODULE__{} = socket) do
+  def peername(%__MODULE__{peername: nil} = socket) do
     socket.transport_module.peername(socket.socket)
   end
+
+  def peername(%__MODULE__{peername: peername}), do: {:ok, peername}
 
   @doc """
   Returns information in the form of `t:public_key.der_encoded()` about the peer certificate of the socket.
