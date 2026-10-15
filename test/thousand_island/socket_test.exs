@@ -454,31 +454,18 @@ defmodule ThousandIsland.SocketTest do
       assert {:ok, {_ip, ^client_port}} = cached
     end
 
-    test "is looked up on the underlying socket if it was not provided at creation", context do
-      {:ok, listener} = :gen_tcp.listen(0, [:binary, active: false])
-      {:ok, listen_port} = :inet.port(listener)
-      {:ok, client} = :gen_tcp.connect(~c"localhost", listen_port, [:binary, active: false])
-      {:ok, accepted} = :gen_tcp.accept(listener)
-      {:ok, client_port} = :inet.port(client)
-
-      socket = %ThousandIsland.Socket{
-        socket: accepted,
+    test "is the value the socket was created with", _context do
+      handler_config = %ThousandIsland.HandlerConfig{
+        handler_module: nil,
         transport_module: ThousandIsland.Transports.TCP,
         read_timeout: 1000,
         handshake_timeout: 1000,
-        silent_terminate_on_error: false,
-        span: nil
+        silent_terminate_on_error: false
       }
 
-      assert {:ok, {_ip, ^client_port}} = ThousandIsland.Socket.peername(socket)
-
-      assert ThousandIsland.Socket.peername(%{socket | peername: {{1, 2, 3, 4}, 5}}) ==
-               {:ok, {{1, 2, 3, 4}, 5}}
-
-      _ = context
-      :gen_tcp.close(client)
-      :gen_tcp.close(accepted)
-      :gen_tcp.close(listener)
+      # The raw socket is never touched, so it can be anything
+      socket = ThousandIsland.Socket.new(:unused, {{1, 2, 3, 4}, 5}, handler_config, nil)
+      assert ThousandIsland.Socket.peername(socket) == {:ok, {{1, 2, 3, 4}, 5}}
     end
   end
 
