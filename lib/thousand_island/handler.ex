@@ -168,8 +168,10 @@ defmodule ThousandIsland.Handler do
   2. The raw `t:ThousandIsland.Transport.socket()` socket will be passed to the new process via a
   message of the form `{:thousand_island_ready, raw_socket, handler_config, acceptor_span,
   start_time}`.
-  3. Your implementation must turn this into a `to:ThousandIsland.Socket.t()` socket by using the
-  `ThousandIsland.Socket.new/3` call.
+  3. Your implementation must look up the peername of the raw socket with the configured transport's
+  `peername/1` (if this fails, the client has already gone away and the connection should be
+  abandoned), and then turn the raw socket into a `to:ThousandIsland.Socket.t()` socket by using the
+  `ThousandIsland.Socket.new/4` call.
   4. Your implementation must then call `ThousandIsland.Socket.handshake/1` with the socket as the
   sole argument in order to finalize the setup of the socket.
   5. The socket is now ready to use.
@@ -386,7 +388,8 @@ defmodule ThousandIsland.Handler do
             span_meta
           )
 
-        socket = ThousandIsland.Socket.new(raw_socket, handler_config, connection_span)
+        socket =
+          ThousandIsland.Socket.new(raw_socket, {ip, port}, handler_config, connection_span)
 
         case ThousandIsland.Socket.handshake(socket) do
           {:ok, socket} ->

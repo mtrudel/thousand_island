@@ -97,6 +97,32 @@ defmodule ThousandIsland.SocketTest do
     end
   end
 
+  defmodule PeernameAfterAbort do
+    use ThousandIsland.Handler
+
+    @impl ThousandIsland.Handler
+    def handle_connection(socket, state) do
+      send(state[:test_pid], {:ready, self()})
+      receive do: (:go -> :ok)
+
+      # Wait for the client's reset to be processed, so that a lookup on the raw socket fails
+      live = wait_for_failure(fn -> :inet.peername(socket.socket) end, 200)
+      send(state[:test_pid], {:peernames, live, ThousandIsland.Socket.peername(socket)})
+      {:close, state}
+    end
+
+    defp wait_for_failure(fun, retries) do
+      case fun.() do
+        {:ok, _} when retries > 0 ->
+          Process.sleep(5)
+          wait_for_failure(fun, retries - 1)
+
+        result ->
+          result
+      end
+    end
+  end
+
   defmodule Error do
     use ThousandIsland.Handler
 
@@ -403,6 +429,43 @@ defmodule ThousandIsland.SocketTest do
       assert_receive {:telemetry, [:thousand_island, :connection, :stop], _, _}, 1000
       refute_receive {:telemetry, [:thousand_island, :connection, :stop], _, _}, 300
       refute_received {:telemetry, [:thousand_island, :connection, :start], _, _}
+    end
+  end
+
+  describe "peername" do
+    setup :gen_tcp_setup
+
+    test "is still available once the client has aborted the connection", context do
+      server_opts = Keyword.put(context.server_opts, :handler_options, test_pid: self())
+      {:ok, port} = start_handler(PeernameAfterAbort, server_opts)
+
+      {:ok, client} =
+        :gen_tcp.connect(~c"localhost", port, context.client_opts ++ [linger: {true, 0}])
+
+      {:ok, client_port} = :inet.port(client)
+      assert_receive {:ready, handler_pid}
+
+      # linger: {true, 0} makes this send an RST rather than a FIN
+      :gen_tcp.close(client)
+      send(handler_pid, :go)
+
+      assert_receive {:peernames, live, cached}, 2000
+      assert {:error, _reason} = live
+      assert {:ok, {_ip, ^client_port}} = cached
+    end
+
+    test "is the value the socket was created with", _context do
+      handler_config = %ThousandIsland.HandlerConfig{
+        handler_module: nil,
+        transport_module: ThousandIsland.Transports.TCP,
+        read_timeout: 1000,
+        handshake_timeout: 1000,
+        silent_terminate_on_error: false
+      }
+
+      # The raw socket is never touched, so it can be anything
+      socket = ThousandIsland.Socket.new(:unused, {{1, 2, 3, 4}, 5}, handler_config, nil)
+      assert ThousandIsland.Socket.peername(socket) == {:ok, {{1, 2, 3, 4}, 5}}
     end
   end
 
