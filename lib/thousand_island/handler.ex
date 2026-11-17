@@ -405,7 +405,7 @@ defmodule ThousandIsland.Handler do
 
       def handle_info(
             {msg, raw_socket, data},
-            {%ThousandIsland.Socket{socket: raw_socket} = socket, state}
+            {%ThousandIsland.Socket{message_socket: raw_socket} = socket, state}
           )
           when msg in [:tcp, :ssl] do
         ThousandIsland.Telemetry.untimed_span_event(socket.span, :async_recv, %{data: data})
@@ -418,7 +418,7 @@ defmodule ThousandIsland.Handler do
 
       def handle_info(
             {msg, raw_socket},
-            {%ThousandIsland.Socket{socket: raw_socket} = socket, state}
+            {%ThousandIsland.Socket{message_socket: raw_socket} = socket, state}
           )
           when msg in [:tcp_closed, :ssl_closed] do
         {:stop, {:shutdown, :peer_closed}, {socket, state}}
@@ -426,7 +426,7 @@ defmodule ThousandIsland.Handler do
 
       def handle_info(
             {msg, raw_socket, reason},
-            {%ThousandIsland.Socket{socket: raw_socket} = socket, state}
+            {%ThousandIsland.Socket{message_socket: raw_socket} = socket, state}
           )
           when msg in [:tcp_error, :ssl_error] do
         {:stop, reason, {socket, state}}
