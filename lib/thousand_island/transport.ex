@@ -158,6 +158,13 @@ defmodule ThousandIsland.Transport do
   Performs an initial handshake on a new client connection (such as that done
   when negotiating an SSL connection). Transports which do not have such a
   handshake can simply pass the socket through unchanged.
+
+  A transport may also return a socket other than the one it was given, such as a term of its
+  own which wraps the socket of another transport. This becomes the socket which is passed to
+  every other callback from then on, and `c:peername/1` is called on it to find out who the
+  peer is, so that a transport is able to report an address which it learned during the
+  handshake. If the socket returned is not the one which sends the connection's active mode
+  messages, the transport must also implement `c:message_socket/1`.
   """
   @callback handshake(socket()) :: on_handshake()
 
@@ -171,7 +178,18 @@ defmodule ThousandIsland.Transport do
   """
   @callback handshake(socket(), timeout()) :: on_handshake()
 
-  @optional_callbacks handshake: 2
+  @optional_callbacks handshake: 2, message_socket: 1
+
+  @doc """
+  Returns the socket by which the given socket is identified in the messages it sends when in
+  active mode (this is the `socket` in `{:tcp, socket, data}`, for example). Thousand Island
+  uses this to recognize the messages which belong to a connection.
+
+  This callback is optional, and only needs to be implemented by a transport whose
+  `c:handshake/1` or `c:upgrade/2` returns a term of its own which wraps the socket of another
+  transport. If it is not implemented, a socket is taken to identify itself.
+  """
+  @callback message_socket(socket()) :: socket()
 
   @doc """
   Performs an upgrade of an existing client connection (for example upgrading
