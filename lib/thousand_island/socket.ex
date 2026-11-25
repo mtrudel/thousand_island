@@ -11,7 +11,8 @@ defmodule ThousandIsland.Socket do
     :handshake_timeout,
     :silent_terminate_on_error,
     :span,
-    :peername
+    :peername,
+    :message_socket
   ]
   defstruct @enforce_keys ++ [:read_timer, :read_deadline, :timer_deadline]
 
@@ -25,6 +26,7 @@ defmodule ThousandIsland.Socket do
           read_deadline: integer() | nil,
           timer_deadline: integer() | nil,
           peername: ThousandIsland.Transport.socket_info(),
+          message_socket: ThousandIsland.Transport.socket(),
           silent_terminate_on_error: boolean(),
           span: ThousandIsland.Telemetry.t()
         }
@@ -33,8 +35,9 @@ defmodule ThousandIsland.Socket do
   Creates a new socket struct based on the passed parameters.
 
   `peername` is the remote end of the connection, as returned by the transport's `peername/1` for
-  `raw_socket`. It is captured here, once, so that `peername/1` keeps working if the client closes
-  or resets the connection before the handler gets to it.
+  `raw_socket`. It is captured here so that `peername/1` keeps working if the client closes or
+  resets the connection before the handler gets to it. It is only ever looked up again if the
+  transport's handshake hands back a different socket, as described in `handshake/1`.
 
   This is normally called internally by `ThousandIsland.Handler` and does not need to be
   called by implementations which are based on `ThousandIsland.Handler`
@@ -48,6 +51,7 @@ defmodule ThousandIsland.Socket do
   def new(raw_socket, peername, handler_config, span) do
     %__MODULE__{
       socket: raw_socket,
+      message_socket: raw_socket,
       peername: peername,
       transport_module: handler_config.transport_module,
       read_timeout: handler_config.read_timeout,
@@ -60,14 +64,30 @@ defmodule ThousandIsland.Socket do
   @doc """
   Handshakes the underlying socket if it is required (as in the case of SSL sockets, for example).
 
+  A transport's handshake nearly always hands back the socket it was given. If it hands back a
+  different one (as a transport which wraps the socket of another transport does), the peername
+  of the new socket is looked up and replaces the one captured by `new/4`, so that such a
+  transport is able to report an address which it learned during the handshake. Should that
+  lookup fail, the peername captured by `new/4` is kept.
+
   This is normally called internally by `ThousandIsland.Handler` and does not need to be
   called by implementations which are based on `ThousandIsland.Handler`
   """
   @spec handshake(t()) :: ThousandIsland.Transport.on_handshake()
-  def handshake(%__MODULE__{} = socket) do
+  def handshake(%__MODULE__{socket: raw_socket} = socket) do
     case do_handshake(socket) do
+      {:ok, ^raw_socket} ->
+        {:ok, socket}
+
       {:ok, inner_socket} ->
-        {:ok, %{socket | socket: inner_socket}}
+        socket = replace_socket(socket, socket.transport_module, inner_socket)
+
+        # A transport which hands back a socket of its own gets to say who the peer is. If it
+        # cannot, we keep the peername which was captured when the connection was accepted
+        case socket.transport_module.peername(inner_socket) do
+          {:ok, peername} -> {:ok, %{socket | peername: peername}}
+          {:error, _reason} -> {:ok, socket}
+        end
 
       {:error, _reason} = err ->
         # Note that we intentionally do not stop the connection span here. The
@@ -77,6 +97,22 @@ defmodule ThousandIsland.Socket do
         # duplicate `[:thousand_island, :connection, :stop]` event.
         err
     end
+  end
+
+  # Switches to the socket handed back by a handshake or an upgrade, taking note of the socket
+  # which its active mode messages will carry
+  defp replace_socket(socket, transport_module, inner_socket) do
+    message_socket =
+      if function_exported?(transport_module, :message_socket, 1),
+        do: transport_module.message_socket(inner_socket),
+        else: inner_socket
+
+    %{
+      socket
+      | socket: inner_socket,
+        transport_module: transport_module,
+        message_socket: message_socket
+    }
   end
 
   defp do_handshake(%__MODULE__{} = socket) do
@@ -99,7 +135,7 @@ defmodule ThousandIsland.Socket do
   def upgrade(%__MODULE__{} = socket, module, opts) when is_atom(module) do
     case module.upgrade(socket.socket, opts) do
       {:ok, updated_socket} ->
-        {:ok, %{socket | socket: updated_socket, transport_module: module}}
+        {:ok, replace_socket(socket, module, updated_socket)}
 
       {:error, _reason} = err ->
         # As with handshake/1, the span is stopped exactly once by the caller via
@@ -215,7 +251,8 @@ defmodule ThousandIsland.Socket do
   @doc """
   Returns information in the form of `t:ThousandIsland.Transport.socket_info()` about the remote end of the socket.
 
-  This is the value captured when the connection was accepted, so it remains available if the
+  This is the value captured when the connection was accepted (or once its handshake completed,
+  for a transport whose handshake hands back a different socket), so it remains available if the
   client closes or resets the connection before the handler gets to it (a lookup on the underlying
   socket would then fail, with `:enotconn` or `:einval` depending on the platform). It always
   returns an `:ok` tuple.

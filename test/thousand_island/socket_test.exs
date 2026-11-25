@@ -197,6 +197,99 @@ defmodule ThousandIsland.SocketTest do
     defdelegate connection_information(socket), to: ThousandIsland.Transports.TCP
   end
 
+  defmodule WrappingTransport do
+    # A transport whose handshake hands back a socket of its own making, which wraps the TCP
+    # socket it was given (much as a transport implementing the PROXY protocol would, in order
+    # to hold on to the client's address). Everything else delegates to the TCP transport
+    @behaviour ThousandIsland.Transport
+
+    alias ThousandIsland.Transports.TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate listen(port, options), to: TCP
+
+    @impl ThousandIsland.Transport
+    defdelegate accept(listener_socket), to: TCP
+
+    @impl ThousandIsland.Transport
+    def handshake(socket), do: {:ok, {:wrapped, socket}}
+
+    @impl ThousandIsland.Transport
+    def message_socket({:wrapped, socket}), do: socket
+
+    @impl ThousandIsland.Transport
+    def upgrade(socket, opts), do: TCP.upgrade(unwrap(socket), opts)
+
+    @impl ThousandIsland.Transport
+    defdelegate controlling_process(socket, pid), to: TCP
+
+    @impl ThousandIsland.Transport
+    def recv(socket, length, timeout), do: TCP.recv(unwrap(socket), length, timeout)
+
+    @impl ThousandIsland.Transport
+    def send(socket, data), do: TCP.send(unwrap(socket), data)
+
+    @impl ThousandIsland.Transport
+    def sendfile(socket, filename, offset, length),
+      do: TCP.sendfile(unwrap(socket), filename, offset, length)
+
+    @impl ThousandIsland.Transport
+    def getopts(socket, options), do: TCP.getopts(unwrap(socket), options)
+
+    @impl ThousandIsland.Transport
+    def setopts(socket, options), do: TCP.setopts(unwrap(socket), options)
+
+    @impl ThousandIsland.Transport
+    def shutdown(socket, way), do: TCP.shutdown(unwrap(socket), way)
+
+    @impl ThousandIsland.Transport
+    def close(socket), do: TCP.close(unwrap(socket))
+
+    @impl ThousandIsland.Transport
+    def sockname(socket), do: TCP.sockname(unwrap(socket))
+
+    # Once wrapped, a socket reports a peer other than that of the socket it wraps, as if this
+    # had been learned during the handshake. A wrapped socket which is not a real one has no peer
+    @impl ThousandIsland.Transport
+    def peername({:wrapped, socket}) when is_port(socket), do: {:ok, {{192, 0, 2, 1}, 4321}}
+    def peername({:wrapped, _socket}), do: {:error, :enotconn}
+    def peername(socket), do: TCP.peername(socket)
+
+    @impl ThousandIsland.Transport
+    def peercert(socket), do: TCP.peercert(unwrap(socket))
+
+    @impl ThousandIsland.Transport
+    defdelegate secure?(), to: TCP
+
+    @impl ThousandIsland.Transport
+    def getstat(socket), do: TCP.getstat(unwrap(socket))
+
+    @impl ThousandIsland.Transport
+    def negotiated_protocol(socket), do: TCP.negotiated_protocol(unwrap(socket))
+
+    @impl ThousandIsland.Transport
+    def connection_information(socket), do: TCP.connection_information(unwrap(socket))
+
+    defp unwrap({:wrapped, socket}), do: socket
+    defp unwrap(socket), do: socket
+  end
+
+  defmodule AsyncEcho do
+    use ThousandIsland.Handler
+
+    @impl ThousandIsland.Handler
+    def handle_data(data, socket, state) do
+      ThousandIsland.Socket.send(socket, data)
+      {:continue, state}
+    end
+
+    @impl ThousandIsland.Handler
+    def handle_close(_socket, state) do
+      send(state[:test_pid], :handle_close)
+      :ok
+    end
+  end
+
   [:gen_tcp_setup, :ssl_setup]
   |> Enum.each(fn setup_fn ->
     describe "common behaviour using #{setup_fn}" do
@@ -432,6 +525,38 @@ defmodule ThousandIsland.SocketTest do
     end
   end
 
+  describe "transports which wrap the socket of another transport" do
+    test "it should deliver data and the closing of the connection to the handler" do
+      server_opts = [transport_module: WrappingTransport, handler_options: [test_pid: self()]]
+      {:ok, port} = start_handler(AsyncEcho, server_opts)
+      {:ok, client} = :gen_tcp.connect(~c"localhost", port, [:binary, active: false])
+
+      assert :gen_tcp.send(client, "HELLO") == :ok
+      assert :gen_tcp.recv(client, 0) == {:ok, "HELLO"}
+
+      :gen_tcp.close(client)
+      assert_receive :handle_close
+    end
+
+    test "it should report the peername which the transport gives after the handshake" do
+      {:ok, port} = start_handler(Info, transport_module: WrappingTransport)
+      {:ok, client} = :gen_tcp.connect(~c"localhost", port, [:binary, active: false])
+      {:ok, resp} = :gen_tcp.recv(client, 0)
+
+      expected =
+        inspect([
+          {{127, 0, 0, 1}, port},
+          {{192, 0, 2, 1}, 4321},
+          {:error, :protocol_not_negotiated},
+          {:error, :not_secure}
+        ])
+
+      assert to_string(resp) == expected
+
+      :gen_tcp.close(client)
+    end
+  end
+
   describe "peername" do
     setup :gen_tcp_setup
 
@@ -465,6 +590,22 @@ defmodule ThousandIsland.SocketTest do
 
       # The raw socket is never touched, so it can be anything
       socket = ThousandIsland.Socket.new(:unused, {{1, 2, 3, 4}, 5}, handler_config, nil)
+      assert ThousandIsland.Socket.peername(socket) == {:ok, {{1, 2, 3, 4}, 5}}
+    end
+
+    test "is kept if the transport has none for the socket which its handshake hands back" do
+      handler_config = %ThousandIsland.HandlerConfig{
+        handler_module: nil,
+        transport_module: WrappingTransport,
+        read_timeout: 1000,
+        handshake_timeout: 1000,
+        silent_terminate_on_error: false
+      }
+
+      # This is not a real socket, so the transport has no peername for it once wrapped
+      socket = ThousandIsland.Socket.new(:unreal, {{1, 2, 3, 4}, 5}, handler_config, nil)
+      assert {:ok, socket} = ThousandIsland.Socket.handshake(socket)
+      assert socket.socket == {:wrapped, :unreal}
       assert ThousandIsland.Socket.peername(socket) == {:ok, {{1, 2, 3, 4}, 5}}
     end
   end
